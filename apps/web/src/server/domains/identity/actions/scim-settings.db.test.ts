@@ -7,7 +7,12 @@ import { ForbiddenError } from "../exceptions/errors";
 import type { AppAuth } from "../repositories/auth-instance";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import { kyselySsoRepository } from "../repositories/kysely-sso-repository";
-import { cookieHeaders, createTestUser, testAppAuth } from "../testing/test-auth";
+import {
+  cookieHeaders,
+  createTestUser,
+  testAppAuth,
+  testRateLimitStore,
+} from "../testing/test-auth";
 import { createScimLimiters } from "./scim";
 import {
   generateScimToken,
@@ -112,7 +117,7 @@ describe("Admin › Users' SCIM badges", () => {
         body: body ? JSON.stringify(body) : undefined,
       }),
       app,
-      { limiters: createScimLimiters() },
+      { limiters: createScimLimiters(testRateLimitStore(t)) },
     );
 
   it("say which provider manages, adopted or deprovisioned each account", async () => {

@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
+import { memoryRateLimiter } from "../../../rate-limit/memory-store";
 import { rollbackProbe, throwAfterNotify } from "../../notifications/testing/throw-after-notify";
-import { LoginRateLimiter } from "../models/login-rate-limiter";
 import type { CurrentUser } from "../models/user";
 import type { AppAuth } from "../repositories/auth-instance";
 import { kyselyIdentityProviderRepository } from "../repositories/kysely-identity-provider-repository";
@@ -19,7 +19,7 @@ import {
 } from "../services/identity-providers";
 import { type FakeOidc, followAuthorize, startFakeOidc } from "../testing/fake-oidc-server";
 import { createTestUser, testAppAuth } from "../testing/test-auth";
-import { completeSsoSignIn, SSO_STATE_COOKIE, startSsoSignIn } from "./sso";
+import { completeSsoSignIn, SSO_LIMIT, SSO_STATE_COOKIE, startSsoSignIn } from "./sso";
 
 vi.mock("../../notifications/services/notify", async (original) =>
   throwAfterNotify(await original<{ notify: (...a: never[]) => Promise<number> }>()),
@@ -35,7 +35,7 @@ let root: CurrentUser;
 let deps: IdentityProviderDeps;
 let eng: string;
 let ops: string;
-const limiter = new LoginRateLimiter({ max: 10_000 });
+const limiter = memoryRateLimiter({ ...SSO_LIMIT, max: 10_000 });
 const actor = () => ({ user: root, ip: null });
 
 const insertWorkspace = async (name: string) => {

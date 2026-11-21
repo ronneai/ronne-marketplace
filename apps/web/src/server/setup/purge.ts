@@ -21,6 +21,7 @@ export const purgeLines = (counts: PurgeCounts, erasuresFinished = 0): string[] 
     `Finished device grants deleted: ${n(counts.grantsDeleted)}`,
     `Handled feedback deleted: ${n(counts.feedbackDeleted)}`,
     `Notifications deleted: ${n(counts.notificationsDeleted)}`,
+    `Rate limit counters deleted: ${n(counts.rateLimitsDeleted)}`,
     // Erasures (103) whose audit log rewrite the run finished, when there were any.
     ...(erasuresFinished > 0 ? [`Erasures finished: ${n(erasuresFinished)}`] : []),
   ];

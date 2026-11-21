@@ -41,6 +41,7 @@ import { scanDismissalKind } from "./0040_scan_dismissal_kind";
 import { notifications } from "./0041_notifications";
 import { notificationWorkspaces } from "./0042_notification_workspaces";
 import { auditContext } from "./0043_audit_context";
+import { rateLimits } from "./0044_rate_limits";
 import type { AppMigration } from "./types";
 
 /**
@@ -91,4 +92,5 @@ export const migrations: Record<string, AppMigration> = {
   "0041_notifications": notifications,
   "0042_notification_workspaces": notificationWorkspaces,
   "0043_audit_context": auditContext,
+  "0044_rate_limits": rateLimits,
 };

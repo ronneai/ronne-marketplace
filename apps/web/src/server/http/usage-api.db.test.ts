@@ -5,7 +5,11 @@ import { createTestDb, type TestDb } from "../db/testing/test-db";
 import { authenticateToken, exchangePassword } from "../domains/identity/actions/access-tokens";
 import { createRoot } from "../domains/identity/actions/root-account";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
-import { createTestUser, testAppAuth } from "../domains/identity/testing/test-auth";
+import {
+  createTestUser,
+  testAppAuth,
+  testRateLimitStore,
+} from "../domains/identity/testing/test-auth";
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import type { UsagePolicy } from "../domains/settings/models/usage-policy";
 import { kyselySettingsRepository } from "../domains/settings/repositories/kysely-settings-repository";
@@ -33,7 +37,7 @@ beforeEach(async () => {
   deps = {
     app,
     guard: { ready: async () => true, authenticate: (value) => authenticateToken(value, app) },
-    limiter: createUsageLimiter(),
+    limiter: createUsageLimiter(testRateLimitStore(t)),
   };
   ({ id: rootId } = await createRoot(t.db, t.dialect, {
     email: "root@example.com",
@@ -152,6 +156,20 @@ describe("POST /api/v1/usage", () => {
     const large = await post({ events: [event({ padding: "x".repeat(300 * 1024) })] });
     expect(large.status).toBe(413);
     expect((await large.json()).error.code).toBe("body_too_large");
+  });
+
+  it("counts reports in the database, shared by every server (109)", async () => {
+    const server = (): UsageApiDeps => {
+      const a = testAppAuth(t, { rateLimits: testRateLimitStore(t) });
+      return {
+        app: a,
+        guard: { ready: async () => true, authenticate: (value) => authenticateToken(value, a) },
+      };
+    };
+    const servers = [server(), server()];
+    for (let i = 0; i < 60; i += 1)
+      expect((await post({ events: [] }, token, servers[i % 2])).status).toBe(202);
+    expect((await post({ events: [] }, token, servers[1])).status).toBe(429);
   });
 
   it("limits each user to 60 reports in 10 minutes", async () => {

@@ -34,6 +34,8 @@ export const LastRun = ({ status }: { status: RetentionJobView }) => {
       feedback: n(c.feedbackDeleted),
       // A result stored before 139 has no such count.
       notifications: n(c.notificationsDeleted ?? 0),
+      // Nor, before 109, this one.
+      rateLimits: n(c.rateLimitsDeleted ?? 0),
     });
   }
   return (

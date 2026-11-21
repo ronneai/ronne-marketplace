@@ -2,8 +2,9 @@ import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
+import { memoryRateLimiter } from "../../../rate-limit/memory-store";
 import { listAuditEvents } from "../../audit/actions/audit";
-import { LoginRateLimiter } from "../models/login-rate-limiter";
+import { BACKUP_CODES_LIMIT, LOGIN_LIMIT } from "../models/login-rate-limiter";
 import type { AppAuth } from "../repositories/auth-instance";
 import { SESSION_EXPIRES_IN } from "../repositories/better-auth";
 import { betterAuthSessionStore } from "../repositories/better-auth-session-store";
@@ -29,7 +30,10 @@ const password = "correct horse battery";
 
 beforeEach(async () => {
   t = await createTestDb();
-  app = testAppAuth(t, { trustProxy: true, limiter: new LoginRateLimiter({ max: 1000 }) });
+  app = testAppAuth(t, {
+    trustProxy: true,
+    limiter: memoryRateLimiter({ ...LOGIN_LIMIT, max: 1000 }),
+  });
   userId = await createTestUser(app, { email, password });
 });
 afterEach(async () => {
@@ -585,7 +589,8 @@ describe("used codes across servers (no shared queue)", () => {
     const deps: service.TwoFactorDeps = {
       sessions: betterAuthSessionStore(app.auth),
       repo: kyselyIdentityRepository(app.db, app.dialect),
-      limiter: new LoginRateLimiter({ max: 1000 }),
+      limiter: memoryRateLimiter({ ...LOGIN_LIMIT, max: 1000 }),
+      backupCodes: memoryRateLimiter(BACKUP_CODES_LIMIT),
       twoFactor: { ...store, spendCode: async () => false },
     };
     const before = await sessions();

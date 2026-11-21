@@ -512,6 +512,17 @@ export interface PluginFeedTable {
   warned_revision: number | null;
 }
 
+/** A rate limit's counter (migration 0044, 109): one limit and key, as a keyed hash. */
+export interface RateLimitTable {
+  /** HMAC-SHA256 of the limit's name and the key, hex (`rate-limit/key-hash.ts`). */
+  key_hash: string;
+  window_started_at: Timestamp;
+  /** Attempts counted in the window. */
+  hits: number;
+  /** When the window ends: then the next attempt starts a new one, and the purge may delete it. */
+  expires_at: Timestamp;
+}
+
 /** A scheduled job's row (102): its lease while a run holds it, and its last run. */
 export interface JobTable {
   name: string;
@@ -716,6 +727,7 @@ export interface Database {
   device_grants: DeviceGrantTable;
   audit_log: AuditLogTable;
   jobs: JobTable;
+  rate_limits: RateLimitTable;
   workspaces: WorkspaceTable;
   workspace_members: WorkspaceMemberTable;
   identity_providers: IdentityProviderTable;

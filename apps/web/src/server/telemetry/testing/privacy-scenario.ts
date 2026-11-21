@@ -248,7 +248,13 @@ export const run = async () => {
     authenticate: (value: string | null) => authenticateToken(value, app),
   };
   const drafts = apiRoute("/api/v1/drafts", (req: Request) =>
-    postDraft(req, { app, guard, limiter: createUploadLimiter(), storage, publicUrl: null }),
+    postDraft(req, {
+      app,
+      guard,
+      limiter: createUploadLimiter(app.rateLimits),
+      storage,
+      publicUrl: null,
+    }),
   );
   await request("POST /api/v1/drafts", () =>
     drafts(

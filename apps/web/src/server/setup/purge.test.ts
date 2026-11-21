@@ -11,6 +11,7 @@ describe("rmk-server purge's output (102)", () => {
         grantsDeleted: 9,
         feedbackDeleted: 6,
         notificationsDeleted: 15,
+        rateLimitsDeleted: 42,
       }),
     ).toEqual([
       "IP addresses cleared: 1,204 (audit log 1,180, sessions 20, device grants 4)",
@@ -19,6 +20,7 @@ describe("rmk-server purge's output (102)", () => {
       "Finished device grants deleted: 9",
       "Handled feedback deleted: 6",
       "Notifications deleted: 15",
+      "Rate limit counters deleted: 42",
     ]);
   });
 

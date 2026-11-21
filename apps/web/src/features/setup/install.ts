@@ -88,7 +88,10 @@ const config = (context: SetupContext): AppConfig =>
  * time, and the right one always passes. A wrong code counts against the limit and is logged,
  * without the code typed; past the limit, wrong codes get their own answer and no line.
  */
-const codeRefusal = (context: SetupContext, form: FormData): SetupError | undefined => {
+const codeRefusal = async (
+  context: SetupContext,
+  form: FormData,
+): Promise<SetupError | undefined> => {
   const log = context.log ?? logger.child({ domain: "setup" });
   const command = hostCommand("setup-code", context.env);
   const setup = setupCommand(context.env);
@@ -115,7 +118,7 @@ const codeRefusal = (context: SetupContext, form: FormData): SetupError | undefi
   if (checkSetupCode(typeof typed === "string" ? typed : "", stored)) return undefined;
   const ip = context.origin.ipAddress ?? null;
   // Past the limit, a wrong code gets its own answer and no line: the log can't be flooded.
-  if (!context.setupCode.limiter.check(ip).allowed)
+  if (!(await context.setupCode.limiter.check(ip)).allowed)
     return {
       code: "setup_code_rate_limited",
       section: "code",
@@ -123,10 +126,10 @@ const codeRefusal = (context: SetupContext, form: FormData): SetupError | undefi
       message: `Too many wrong setup codes, and that one is wrong too. This server's code is in its log, or run \`${command}\`.`,
       say: say("setup_code_rate_limited", { command }),
     };
-  context.setupCode.limiter.recordWrong(ip);
+  await context.setupCode.limiter.recordWrong(ip);
   log.event("setup.code_refused", { reason: "wrong" });
   // Once, as the limit is reached.
-  if (!context.setupCode.limiter.check(ip).allowed) log.event("setup.code_rate_limited");
+  if (!(await context.setupCode.limiter.check(ip)).allowed) log.event("setup.code_rate_limited");
   return {
     code: "setup_code_wrong",
     section: "code",
@@ -171,7 +174,7 @@ const refusal = async (
         say: say("database_unavailable"),
       },
     };
-  const refused = codeRefusal(context, form);
+  const refused = await codeRefusal(context, form);
   return refused ? { state: current, refused } : { state: current };
 };
 

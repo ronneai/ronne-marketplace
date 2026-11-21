@@ -18,6 +18,7 @@ import { postDraft } from "../http/drafts-api";
 import { health } from "../http/health";
 import { requireToken } from "../http/require-token";
 import { createUploadLimiter } from "../http/upload-rate-limit";
+import { createMemoryRateLimitStore } from "../rate-limit/memory-store";
 import { resetSetupCodeShown } from "../setup/announce-setup-code";
 import { prepareStart } from "../setup/prepare-start";
 import { formatSetupCode, readSetupCode } from "../setup/setup-code";
@@ -128,7 +129,7 @@ it("writes nothing secret or personal from sign-in, tokens, the API, uploads and
     postDraft(req, {
       app,
       guard,
-      limiter: createUploadLimiter(),
+      limiter: createUploadLimiter(createMemoryRateLimitStore()),
       storage: localStorage(storageRoot),
       publicUrl: null,
     }),

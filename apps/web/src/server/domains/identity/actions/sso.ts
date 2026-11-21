@@ -1,10 +1,10 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { logger } from "../../../log";
+import { createRateLimiter, type RateLimiter } from "../../../rate-limit/rate-limiter";
 import { ProviderFlowError, ProviderSecretUnreadableError } from "../exceptions/errors";
 import type { ProviderWithSecret } from "../models/auth-provider-type";
 import { clientIp } from "../models/client-ip";
 import { type IdentityProvider, redirectUriFor } from "../models/identity-provider";
-import { LoginRateLimiter } from "../models/login-rate-limiter";
 import type { ProviderTypeRegistry } from "../models/provider-types";
 import { safeNextPath } from "../models/route-guard";
 import { COOKIE_PREFIX } from "../models/session-cookie";
@@ -47,35 +47,37 @@ const log = logger.child({ domain: "identity" });
 // When the address isn't known (no trusted proxy), every start and every callback shares one
 // bucket for the instance (300 a minute each): a flood can't make Ronne call the provider or
 // write rows without end, at worst holding up provider sign-in for a minute (passwords still work).
+// Both are counted in the instance's database (109), so every replica shares them.
 const shared = globalThis as typeof globalThis & {
-  __ronneSsoLimiter?: LoginRateLimiter;
-  __ronneSsoSharedLimiter?: LoginRateLimiter;
   __ronneSsoPrunedAt?: number;
 };
-const appLimiter = () => {
-  if (!(shared.__ronneSsoLimiter instanceof LoginRateLimiter))
-    shared.__ronneSsoLimiter = new LoginRateLimiter({ max: 30 });
-  return shared.__ronneSsoLimiter;
-};
-const appSharedLimiter = () => {
-  if (!(shared.__ronneSsoSharedLimiter instanceof LoginRateLimiter))
-    shared.__ronneSsoSharedLimiter = new LoginRateLimiter({ max: 300 });
-  return shared.__ronneSsoSharedLimiter;
-};
+export const SSO_LIMIT = { name: "sso", max: 30, windowMs: 60_000 } as const;
+export const SSO_SHARED_LIMIT = { name: "sso-shared", max: 300, windowMs: 60_000 } as const;
 
 export type SsoOptions = {
   types?: ProviderTypeRegistry;
-  limiter?: LoginRateLimiter;
+  limiter?: RateLimiter;
   /** The instance's bucket for requests whose client address isn't known. */
-  sharedLimiter?: LoginRateLimiter;
+  sharedLimiter?: RateLimiter;
   now?: () => Date;
 };
 
 /** Whether this start or callback may go on: per client IP, or the shared bucket without one. */
-const allowed = (stage: "sso-start" | "sso-callback", ip: string | null, options: SsoOptions) =>
-  ip
-    ? (options.limiter ?? appLimiter()).consume([`${stage}:ip:${ip}`]).allowed
-    : (options.sharedLimiter ?? appSharedLimiter()).consume([`${stage}:unknown`]).allowed;
+const allowed = async (
+  stage: "sso-start" | "sso-callback",
+  ip: string | null,
+  options: SsoOptions,
+  app: AppAuth,
+): Promise<boolean> => {
+  const decision = ip
+    ? await (options.limiter ?? createRateLimiter({ store: app.rateLimits, ...SSO_LIMIT })).consume(
+        [`${stage}:ip:${ip}`],
+      )
+    : await (
+        options.sharedLimiter ?? createRateLimiter({ store: app.rateLimits, ...SSO_SHARED_LIMIT })
+      ).consume([`${stage}:unknown`]);
+  return decision.allowed;
+};
 
 /** Expired sign-ins in progress are deleted at most once a minute, by a start. */
 const PRUNE_EVERY_MS = 60_000;
@@ -145,7 +147,7 @@ export const startSsoSignIn = async (
 ): Promise<StartResult> => {
   const now = (options.now ?? (() => new Date()))();
   const ip = clientIp(headers, app.trustProxy);
-  if (!allowed("sso-start", ip, options)) return { ok: false, error: "rate_limited" };
+  if (!(await allowed("sso-start", ip, options, app))) return { ok: false, error: "rate_limited" };
   const providers = kyselyIdentityProviderRepository(app.db, app.dialect);
   const stored = typeof input.provider === "string" ? await providers.find(input.provider) : null;
   if (!stored || (!stored.provider.enabled && !input.test))
@@ -260,7 +262,7 @@ export const completeSsoSignIn = async (
     return redirect(`${baseURL}/sign-in?${query}`);
   };
 
-  if (!allowed("sso-callback", ip, options)) return fail("rate_limited");
+  if (!(await allowed("sso-callback", ip, options, app))) return fail("rate_limited");
 
   const url = new URL(request.url);
   const state = url.searchParams.get("state");

@@ -1,7 +1,8 @@
 import { logger } from "../../../log";
+import type { RateLimiter } from "../../../rate-limit/rate-limiter";
 import { TokenNameTakenError } from "../exceptions/errors";
 import { MAX_ACTIVE_TOKENS, TOKEN_NAME_MAX_LENGTH } from "../models/access-token";
-import { type LoginRateLimiter, loginRateLimitKeys } from "../models/login-rate-limiter";
+import { loginRateLimitKeys } from "../models/login-rate-limiter";
 import { PASSWORD_MAX_LENGTH } from "../models/password";
 import type { PasswordHasher } from "../models/password-hasher";
 import { normalizeEmail } from "../models/user";
@@ -20,7 +21,7 @@ export type ExchangeDeps = {
   identity: IdentityRepository;
   tokens: TokenDeps;
   hasher: PasswordHasher;
-  limiter: LoginRateLimiter;
+  limiter: RateLimiter;
   /** Who may sign in with a password now (106); everyone when left out. */
   passwordPolicy?: () => Promise<"everyone" | "root_only">;
   now?: () => Date;
@@ -119,7 +120,7 @@ export const exchangePasswordForToken = async (
   if (password.length === 0 || [...password].length > PASSWORD_MAX_LENGTH)
     return invalid("invalid");
 
-  const decision = deps.limiter.consume(loginRateLimitKeys(email, context.ip));
+  const decision = await deps.limiter.consume(loginRateLimitKeys(email, context.ip));
   if (!decision.allowed) {
     await failed("rate_limited");
     return { ok: false, error: "rate_limited", retryAfterSeconds: decision.retryAfterSeconds };

@@ -166,6 +166,7 @@ export const EVENTS = {
       "grantsDeleted",
       "feedbackDeleted",
       "notificationsDeleted",
+      "rateLimitsDeleted",
       "erasuresFinished",
     ],
   },

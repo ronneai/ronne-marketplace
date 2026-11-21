@@ -1,6 +1,7 @@
 import type { Kysely } from "kysely";
-import { toDbDate } from "../db/dates";
+import { fromDbDate, toDbDate } from "../db/dates";
 import { decodeJson, encodeJson } from "../db/json";
+import { forUpdate, retryOnDeadlock, writeTransaction } from "../db/locks";
 import type { Database } from "../db/schema";
 import type { DatabaseDialect } from "../db/url";
 import type { AuditMetadata } from "../domains/audit/models/audit-event";
@@ -28,6 +29,8 @@ export type PurgeCounts = {
   feedbackDeleted: number;
   /** Notifications older than their fixed 90 days, read or not, deleted (139). */
   notificationsDeleted: number;
+  /** Rate limit counters whose window had ended, deleted (109). */
+  rateLimitsDeleted: number;
 };
 
 export type PurgeOptions = {
@@ -372,6 +375,69 @@ const deleteOldNotifications = async (
   );
 };
 
+/**
+ * Deletes, of the counters `keys` names (109), those whose window ended before `now`, and returns
+ * how many it deleted. The rows are locked by key, in key order, the order an attempt locks them
+ * in (`rate-limit/database-store.ts`), and their windows read again under the lock: a counter an
+ * attempt started a new window on since the keys were read is kept. In `writeTransaction`, so on
+ * SQLite another process writing (the server, next to `rmk-server purge`) makes it wait, not fail.
+ */
+export const deleteExpiredRateLimitKeys = (
+  db: Db,
+  dialect: DatabaseDialect,
+  keys: readonly string[],
+  now: Date,
+): Promise<number> => {
+  if (keys.length === 0) return Promise.resolve(0);
+  const at = toDbDate(now, dialect);
+  return retryOnDeadlock(() =>
+    writeTransaction(db, dialect, async (trx) => {
+      const locked = await forUpdate(
+        trx
+          .selectFrom("rate_limits")
+          .select(["key_hash", "expires_at"])
+          .where("key_hash", "in", [...keys])
+          .orderBy("key_hash"),
+        dialect,
+      ).execute();
+      const ended = locked
+        .filter((row) => fromDbDate(row.expires_at).getTime() < now.getTime())
+        .map((row) => row.key_hash);
+      if (ended.length === 0) return 0;
+      const result = await trx
+        .deleteFrom("rate_limits")
+        .where("key_hash", "in", ended)
+        .where("expires_at", "<", at)
+        .executeTakeFirst();
+      return Number(result.numDeletedRows);
+    }),
+  );
+};
+
+/**
+ * Deletes rate limit counters (109) whose window ended before `now`: they hold a keyed hash, a
+ * count and two times, and nothing needs them once the window is over. A batch reads the keys
+ * without a lock, then `deleteExpiredRateLimitKeys` locks and checks them again. A batch that
+ * finds fewer than PURGE_BATCH still ended (an attempt restarted some) ends the run; the rest wait
+ * for the next.
+ */
+const deleteExpiredRateLimits = async (
+  db: Db,
+  dialect: DatabaseDialect,
+  now: Date,
+  o: PurgeOptions,
+) => {
+  const matching = (q: Db) =>
+    q.selectFrom("rate_limits").where("expires_at", "<", toDbDate(now, dialect));
+  if (o.dryRun) return count(matching(db).select((eb) => eb.fn.countAll().as("n")));
+  return inBatches(o, async () => {
+    const keys = (
+      await matching(db).select("key_hash").orderBy("key_hash").limit(PURGE_BATCH).execute()
+    ).map((r) => r.key_hash);
+    return deleteExpiredRateLimitKeys(db, dialect, keys, now);
+  });
+};
+
 /** One purge at `now`, by `policy`. The rules run in the spec's order; each ends before the next. */
 export const runRetentionPurge = async (
   db: Db,
@@ -404,6 +470,7 @@ export const runRetentionPurge = async (
   const notificationsDeleted = await rule((o) =>
     deleteOldNotifications(db, dialect, cutoff.notifications, o),
   );
+  const rateLimitsDeleted = await rule((o) => deleteExpiredRateLimits(db, dialect, now, o));
   return {
     ipsCleared: { auditLog, sessions, deviceGrants },
     emailsCleared,
@@ -411,5 +478,6 @@ export const runRetentionPurge = async (
     grantsDeleted,
     feedbackDeleted,
     notificationsDeleted,
+    rateLimitsDeleted,
   };
 };

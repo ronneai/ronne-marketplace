@@ -1,84 +1,17 @@
-export type RateLimitDecision = { allowed: true } | { allowed: false; retryAfterSeconds: number };
-
-type Bucket = { count: number; windowStart: number };
+// What sign-in counts (006, 105): the limits themselves are counted in the database (109,
+// `server/rate-limit/`).
 
 /**
- * Counts sign-in attempts in fixed windows, in memory (one Ronne instance, the MVP's model).
- *
- * Every attempt counts against each key it names: the email always, and the client IP when it can
- * be trusted. An attempt is refused when any of its keys is used up, and a refused attempt doesn't
- * count, so waiting out the window always works.
+ * Sign-in's limit (006): 5 attempts a minute per email, and per client IP when it can be trusted.
+ * Changing a password, two-factor changes and `rmk login` count against it too (105, 107).
  */
-export class LoginRateLimiter {
-  readonly #buckets = new Map<string, Bucket>();
-  readonly #max: number;
-  readonly #windowMs: number;
-  readonly #now: () => number;
+export const LOGIN_LIMIT = { name: "login", max: 5, windowMs: 60_000 } as const;
 
-  constructor({
-    max = 5,
-    windowMs = 60_000,
-    now = Date.now,
-  }: { max?: number; windowMs?: number; now?: () => number } = {}) {
-    this.#max = max;
-    this.#windowMs = windowMs;
-    this.#now = now;
-  }
+/** One new set of backup codes per person every 30 seconds (105): a double click makes one set. */
+export const BACKUP_CODES_LIMIT = { name: "backup-codes", max: 1, windowMs: 30_000 } as const;
 
-  /** Counts the attempt against each key, unless one is used up: then it's refused, uncounted. */
-  consume(keys: readonly string[]): RateLimitDecision {
-    const decision = this.check(keys);
-    if (decision.allowed) this.record(keys);
-    return decision;
-  }
-
-  /**
-   * Whether an attempt would be allowed, without counting it. With `record` after a failure, only
-   * failed attempts count (105's two-factor changes): normal use never fills the window, and once
-   * failures do, even a right attempt is refused.
-   */
-  check(keys: readonly string[]): RateLimitDecision {
-    const now = this.#now();
-    this.#prune(now);
-    const full = keys
-      .map((key) => this.#live(key, now))
-      .filter((bucket): bucket is Bucket => bucket !== null && bucket.count >= this.#max);
-    if (full.length === 0) return { allowed: true };
-    const resetsAt = Math.max(...full.map((bucket) => bucket.windowStart + this.#windowMs));
-    return { allowed: false, retryAfterSeconds: Math.ceil((resetsAt - now) / 1000) };
-  }
-
-  /** Counts one attempt against each key. */
-  record(keys: readonly string[]): void {
-    const now = this.#now();
-    for (const key of keys) {
-      const bucket = this.#live(key, now);
-      if (bucket) bucket.count += 1;
-      else this.#buckets.set(key, { count: 1, windowStart: now });
-    }
-  }
-
-  /** Takes back one attempt counted with `record`, as when it turned out not to count (107). */
-  release(keys: readonly string[]): void {
-    const now = this.#now();
-    for (const key of keys) {
-      const bucket = this.#live(key, now);
-      if (bucket && bucket.count > 0) bucket.count -= 1;
-    }
-  }
-
-  #live(key: string, now: number): Bucket | null {
-    const bucket = this.#buckets.get(key);
-    return bucket && now - bucket.windowStart < this.#windowMs ? bucket : null;
-  }
-
-  #prune(now: number) {
-    // Bounded by the attempts in one window, so a flood of new keys can't grow it for ever.
-    for (const [key, bucket] of this.#buckets) {
-      if (now - bucket.windowStart >= this.#windowMs) this.#buckets.delete(key);
-    }
-  }
-}
+/** The key the backup codes' limit counts for a person. */
+export const backupCodesKey = (userId: string): string => `user:${userId}`;
 
 /** The limiter keys for one attempt: the email, and the IP when it's known. */
 export const loginRateLimitKeys = (email: string, ip: string | null): string[] => {

@@ -2,14 +2,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { setLoggerForTests } from "../../../log";
+import { memoryRateLimiter } from "../../../rate-limit/memory-store";
 import { listAuditEvents } from "../../audit/actions/audit";
-import { LoginRateLimiter } from "../models/login-rate-limiter";
+import { BACKUP_CODES_LIMIT, LOGIN_LIMIT } from "../models/login-rate-limiter";
 import type { AppAuth } from "../repositories/auth-instance";
 import { betterAuthSessionStore } from "../repositories/better-auth-session-store";
 import { betterAuthTwoFactorStore } from "../repositories/better-auth-two-factor-store";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import * as service from "../services/two-factor";
-import { cookieHeaders, createTestUser, testAppAuth } from "../testing/test-auth";
+import {
+  cookieHeaders,
+  createTestUser,
+  testAppAuth,
+  testBackupCodesLimiter,
+  testLoginLimiter,
+} from "../testing/test-auth";
 import { totpCode } from "../testing/totp";
 import { signIn, signOut } from "./session";
 import {
@@ -39,7 +46,10 @@ beforeEach(async () => {
   setLoggerForTests();
   t = await createTestDb();
   // A roomy limit: these tests sign in and check passwords often. The limit's own tests set theirs.
-  app = testAppAuth(t, { trustProxy: true, limiter: new LoginRateLimiter({ max: 1000 }) });
+  app = testAppAuth(t, {
+    trustProxy: true,
+    limiter: memoryRateLimiter({ ...LOGIN_LIMIT, max: 1000 }),
+  });
   userId = await createTestUser(app, { email, password });
 });
 afterEach(async () => {
@@ -107,7 +117,7 @@ describe("startTwoFactor", () => {
   });
 
   it("counts every password check against the sign-in limit: once reached, the right one is refused too", async () => {
-    const limited = testAppAuth(t, { limiter: new LoginRateLimiter({ max: 2 }) });
+    const limited = testAppAuth(t, { limiter: testLoginLimiter(t, { max: 2 }) });
     const session = await signedIn();
     const attempt = (p: string) => startTwoFactor(session, { password: p }, limited);
     expect(await attempt("wrong horse battery")).toMatchObject({ error: "wrong_password" });
@@ -183,7 +193,8 @@ describe("startTwoFactor", () => {
     const deps: service.TwoFactorDeps = {
       sessions: betterAuthSessionStore(app.auth),
       repo: kyselyIdentityRepository(app.db, app.dialect),
-      limiter: new LoginRateLimiter({ max: 1000 }),
+      limiter: memoryRateLimiter({ ...LOGIN_LIMIT, max: 1000 }),
+      backupCodes: memoryRateLimiter(BACKUP_CODES_LIMIT),
       twoFactor: {
         ...store,
         // Another server's start lands between this one's and its read-back.
@@ -401,7 +412,7 @@ describe("confirmTwoFactor", () => {
   });
 
   it("counts wrong codes against the limit: once reached, the right code is refused too", async () => {
-    const limited = testAppAuth(t, { limiter: new LoginRateLimiter({ max: 2 }) });
+    const limited = testAppAuth(t, { limiter: testLoginLimiter(t, { max: 2 }) });
     const session = await signedIn();
     const started = await startTwoFactor(session, { password }, limited);
     if (!started.ok) throw new Error(started.error);
@@ -418,7 +429,7 @@ describe("confirmTwoFactor", () => {
 
   it("an ordinary setup (a reload, a typo) doesn't use up the limit", async () => {
     // The real limit: 5 a minute per email, shared with signing in.
-    const real = testAppAuth(t, { limiter: new LoginRateLimiter() });
+    const real = testAppAuth(t, { limiter: testLoginLimiter(t) });
     const signIn5 = async () => {
       const result = await signIn(
         withIp(new Headers()),
@@ -528,10 +539,94 @@ describe("regenerateBackupCodes", () => {
   });
 });
 
+describe("regenerateBackupCodes' gap, in the database (109)", () => {
+  // Two app instances on one database, as two replicas: each counts in the shared table.
+  const server = () =>
+    testAppAuth(t, {
+      limiter: testLoginLimiter(t, { max: 1000 }),
+      backupCodesLimiter: testBackupCodesLimiter(t),
+    });
+  const twoServers = () => [server(), server()] as const;
+
+  it("a second set within 30 seconds is refused on another server too", async () => {
+    const { session } = await enrol(await signedIn());
+    // Two copies of the service, as two replicas have: each its own one-at-a-time queue, so the
+    // two clicks really run side by side, and only the gap in the database keeps it to one set.
+    const copy = async () => {
+      vi.resetModules();
+      return (await import("../services/two-factor")) as typeof service;
+    };
+    const one = await copy();
+    const two = await copy();
+    expect(one).not.toBe(two);
+    // Counts the sets each server really stores, not only what it answers.
+    let stored = 0;
+    const depsOf = (a: AppAuth): service.TwoFactorDeps => {
+      const store = betterAuthTwoFactorStore(a.auth, a.db, a.dialect);
+      return {
+        sessions: betterAuthSessionStore(a.auth),
+        twoFactor: {
+          ...store,
+          regenerateBackupCodes: async (...args) => {
+            const codes = await store.regenerateBackupCodes(...args);
+            if (Array.isArray(codes)) stored += 1;
+            return codes;
+          },
+        },
+        repo: kyselyIdentityRepository(a.db, a.dialect),
+        limiter: a.limiter,
+        backupCodes: a.backupCodesLimiter,
+      };
+    };
+    const [a, b] = twoServers();
+    const context = { headers: session, ip: "203.0.113.9" };
+    const results = await Promise.all([
+      one.regenerateBackupCodes(depsOf(a), context, { password }),
+      two.regenerateBackupCodes(depsOf(b), context, { password }),
+    ]);
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(results.find((r) => !r.ok)).toMatchObject({ error: "just_made" });
+    expect(stored).toBe(1);
+    expect(
+      (await twoFactorEvents()).filter((e) => e.action === "auth.backup_codes_regenerated"),
+    ).toHaveLength(1);
+    // The set shown is the one stored: it turns two-factor off.
+    const shown = results.find((r) => r.ok);
+    if (!shown?.ok) throw new Error("no set");
+    expect(
+      (await turnOffTwoFactor(session, { password, code: shown.backupCodes[0] ?? "" }, a)).ok,
+    ).toBe(true);
+  });
+
+  it("a wrong password gives the 30 seconds back", async () => {
+    const { session } = await enrol(await signedIn());
+    const [one, two] = twoServers();
+    expect(await regenerateBackupCodes(session, { password: "wrong horse battery" }, one)).toEqual({
+      ok: false,
+      error: "wrong_password",
+    });
+    expect((await regenerateBackupCodes(session, { password }, two)).ok).toBe(true);
+    expect(await regenerateBackupCodes(session, { password }, one)).toMatchObject({
+      error: "just_made",
+    });
+  });
+
+  it("turning two-factor off ends the gap, so turning it on again isn't held up", async () => {
+    const { session } = await enrol(await signedIn());
+    const [one, two] = twoServers();
+    const made = await regenerateBackupCodes(session, { password }, one);
+    if (!made.ok) throw new Error(made.error);
+    const off = await turnOffTwoFactor(session, { password, code: made.backupCodes[0] ?? "" }, two);
+    if (!off.ok) throw new Error(off.error);
+    const { session: again } = await enrol(withIp(cookieHeaders(off.headers.get("set-cookie"))));
+    expect((await regenerateBackupCodes(again, { password }, one)).ok).toBe(true);
+  });
+});
+
 describe("regenerateBackupCodes' limit", () => {
   it("counts wrong passwords: once reached, the right one is refused too", async () => {
     const { session } = await enrol(await signedIn());
-    const limited = testAppAuth(t, { limiter: new LoginRateLimiter({ max: 2 }) });
+    const limited = testAppAuth(t, { limiter: testLoginLimiter(t, { max: 2 }) });
     const attempt = (p: string) => regenerateBackupCodes(session, { password: p }, limited);
     expect(await attempt("wrong horse battery")).toMatchObject({ error: "wrong_password" });
     expect(await attempt("wrong horse battery")).toMatchObject({ error: "wrong_password" });
@@ -592,7 +687,7 @@ describe("turnOffTwoFactor", () => {
 
   it("counts every code check against the sign-in limit: once reached, a right code is refused too", async () => {
     const { session, started } = await enrol(await signedIn());
-    const limited = testAppAuth(t, { limiter: new LoginRateLimiter({ max: 2 }) });
+    const limited = testAppAuth(t, { limiter: testLoginLimiter(t, { max: 2 }) });
     const attempt = (code: string) => turnOffTwoFactor(session, { password, code }, limited);
     expect(await attempt("000000")).toMatchObject({ error: "wrong_code" });
     expect(await attempt("000001")).toMatchObject({ error: "wrong_code" });

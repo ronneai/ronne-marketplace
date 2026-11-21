@@ -2,9 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { setLoggerForTests } from "../../../log";
-import { LoginRateLimiter } from "../models/login-rate-limiter";
 import type { AppAuth } from "../repositories/auth-instance";
-import { cookieHeaders, createTestUser, testAppAuth } from "../testing/test-auth";
+import { cookieHeaders, createTestUser, testAppAuth, testLoginLimiter } from "../testing/test-auth";
 import { authenticateToken, createMyToken, exchangePassword, revokeMyToken } from "./access-tokens";
 import { signIn } from "./session";
 
@@ -60,7 +59,7 @@ describe("signing in", () => {
   });
 
   it("auth.rate_limited with the limit", async () => {
-    const limited = testAppAuth(t, { limiter: new LoginRateLimiter({ max: 1 }) });
+    const limited = testAppAuth(t, { limiter: testLoginLimiter(t, { max: 1 }) });
     await signIn(new Headers(), { email, password: "wrong", rememberMe: false }, limited);
     await signIn(new Headers(), { email, password, rememberMe: false }, limited);
     expect(events("auth.rate_limited")).toEqual([
@@ -82,7 +81,7 @@ describe("tokens", () => {
   });
 
   it("auth.rate_limited for the token exchange", async () => {
-    const limited = testAppAuth(t, { limiter: new LoginRateLimiter({ max: 1 }) });
+    const limited = testAppAuth(t, { limiter: testLoginLimiter(t, { max: 1 }) });
     await exchangePassword({ email, password: "wrong" }, new Headers(), limited);
     await exchangePassword({ email, password }, new Headers(), limited);
     expect(events("auth.rate_limited")).toEqual([

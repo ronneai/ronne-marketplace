@@ -3,7 +3,12 @@ import { toDbDate } from "../db/dates";
 import { newId } from "../db/ids";
 import { decodeJson } from "../db/json";
 import { createTestDb, type TestDb } from "../db/testing/test-db";
-import { PURGE_BATCH, purgeCutoffs, runRetentionPurge } from "./retention-purge";
+import {
+  deleteExpiredRateLimitKeys,
+  PURGE_BATCH,
+  purgeCutoffs,
+  runRetentionPurge,
+} from "./retention-purge";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 let t: TestDb;
@@ -204,6 +209,7 @@ describe("the retention purge (102)", () => {
       grantsDeleted: 2,
       feedbackDeleted: 0,
       notificationsDeleted: 0,
+      rateLimitsDeleted: 0,
     });
     expect((await auditRow(oldEvent)).ip_address).toBeNull();
     expect((await auditRow(newEvent)).ip_address).toBe("203.0.113.7");
@@ -262,6 +268,7 @@ describe("the retention purge (102)", () => {
       grantsDeleted: 0,
       feedbackDeleted: 0,
       notificationsDeleted: 0,
+      rateLimitsDeleted: 0,
     });
   });
 
@@ -287,6 +294,7 @@ describe("the retention purge (102)", () => {
       grantsDeleted: 1,
       feedbackDeleted: 0,
       notificationsDeleted: 0,
+      rateLimitsDeleted: 0,
     });
     expect((await auditRow(event)).ip_address).toBe("203.0.113.7");
     expect(decodeJson((await auditRow(failed)).metadata)).toHaveProperty("email");
@@ -654,5 +662,93 @@ describe("notifications (139)", () => {
     const before = await t.db.selectFrom("audit_log").select("id").execute();
     await runRetentionPurge(t.db, t.dialect, POLICY, NOW);
     expect(await t.db.selectFrom("audit_log").select("id").execute()).toEqual(before);
+  });
+});
+
+describe("rate limit counters (109)", () => {
+  const counter = async (hash: string, expiresAt: Date) => {
+    await t.db
+      .insertInto("rate_limits")
+      .values({
+        key_hash: hash.padEnd(64, "0"),
+        window_started_at: toDbDate(new Date(expiresAt.getTime() - 60_000), t.dialect),
+        hits: 3,
+        expires_at: toDbDate(expiresAt, t.dialect),
+      })
+      .execute();
+    return hash.padEnd(64, "0");
+  };
+  const left = async () =>
+    (await t.db.selectFrom("rate_limits").select("key_hash").execute())
+      .map((r) => r.key_hash)
+      .sort();
+
+  it("deletes counters whose window has ended, keeps the running ones, and counts them", async () => {
+    await counter("a", second(NOW, -3600));
+    await counter("b", second(NOW, -1));
+    // Ending exactly now is ended for an attempt too (its window runs while expires_at > now)…
+    const edge = await counter("c", NOW);
+    const running = await counter("d", second(NOW, 1));
+    const counts = await runRetentionPurge(t.db, t.dialect, POLICY, NOW);
+    expect(counts.rateLimitsDeleted).toBe(2);
+    // …but the purge, like the other rules, takes only what is strictly older.
+    expect(await left()).toEqual([edge, running].sort());
+    expect((await runRetentionPurge(t.db, t.dialect, POLICY, NOW)).rateLimitsDeleted).toBe(0);
+  });
+
+  it("counts without deleting on a dry run", async () => {
+    await counter("a", second(NOW, -60));
+    await counter("b", second(NOW, -60));
+    expect(
+      (await runRetentionPurge(t.db, t.dialect, POLICY, NOW, { dryRun: true })).rateLimitsDeleted,
+    ).toBe(2);
+    expect(await left()).toHaveLength(2);
+  });
+
+  it("deletes in batches, reporting each", async () => {
+    for (let i = 0; i < PURGE_BATCH + 5; i++)
+      await counter(i.toString(16).padStart(6, "0"), second(NOW, -60));
+    const reported: number[] = [];
+    const counts = await runRetentionPurge(t.db, t.dialect, POLICY, NOW, {
+      onBatch: (done) => {
+        reported.push(done);
+      },
+    });
+    expect(counts.rateLimitsDeleted).toBe(PURGE_BATCH + 5);
+    expect(reported.at(-1)).toBe(PURGE_BATCH + 5);
+    expect(reported.length).toBeGreaterThanOrEqual(2);
+    expect(await left()).toEqual([]);
+  });
+
+  it("keeps a counter whose window an attempt restarted after the keys were read", async () => {
+    // The batch read both keys as ended; one has since had a new window started on it.
+    const ended = await counter("a", second(NOW, -60));
+    const restarted = await counter("b", second(NOW, 60));
+    expect(await deleteExpiredRateLimitKeys(t.db, t.dialect, [ended, restarted], NOW)).toBe(1);
+    expect(await left()).toEqual([restarted]);
+  });
+
+  it("runs a batch again when the database ended a deadlock", async () => {
+    const key = await counter("a", second(NOW, -60));
+    // The first transaction the batch opens is chosen as a deadlock's victim.
+    let failed = false;
+    const deadlock = () => {
+      failed = true;
+      return Object.assign(new Error("deadlock detected"), { code: "40P01" });
+    };
+    const once = new Proxy(t.db, {
+      get: (target, prop, receiver) => {
+        const value = Reflect.get(target, prop, receiver);
+        if ((prop !== "transaction" && prop !== "connection") || failed)
+          return typeof value === "function" ? value.bind(target) : value;
+        return () => ({
+          setIsolationLevel: () => ({ execute: () => Promise.reject(deadlock()) }),
+          execute: () => Promise.reject(deadlock()),
+        });
+      },
+    });
+    expect(await deleteExpiredRateLimitKeys(once, t.dialect, [key], NOW)).toBe(1);
+    expect(failed).toBe(true);
+    expect(await left()).toEqual([]);
   });
 });

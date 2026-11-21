@@ -5,11 +5,14 @@ import { createTestDb, type TestDb } from "../db/testing/test-db";
 import { listAuditEvents } from "../domains/audit/actions/audit";
 import { authenticateToken } from "../domains/identity/actions/access-tokens";
 import { hashToken, MAX_ACTIVE_TOKENS } from "../domains/identity/models/access-token";
-import { LoginRateLimiter } from "../domains/identity/models/login-rate-limiter";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { kyselyTokenRepository } from "../domains/identity/repositories/kysely-token-repository";
 import { tokenNameFromUserAgent } from "../domains/identity/services/token-exchange";
-import { createTestUser, testAppAuth } from "../domains/identity/testing/test-auth";
+import {
+  createTestUser,
+  testAppAuth,
+  testLoginLimiter,
+} from "../domains/identity/testing/test-auth";
 import { kyselySettingsRepository } from "../domains/settings/repositories/kysely-settings-repository";
 import { deleteToken, getMe, getWorkspaces, postToken } from "./api-v1";
 import { getScopes } from "./drafts-api";
@@ -229,7 +232,7 @@ describe("POST /api/v1/auth/token", () => {
   });
 
   it("answers 429 once the sign-in limit is used up", async () => {
-    const limited = testAppAuth(t, { limiter: new LoginRateLimiter({ max: 2 }) });
+    const limited = testAppAuth(t, { limiter: testLoginLimiter(t, { max: 2 }) });
     await login({ email, password: "wrong horse battery" }, {}, limited);
     await login({ email, password: "wrong horse battery" }, {}, limited);
     const response = await login({ email, password }, {}, limited);

@@ -1,5 +1,6 @@
 import { logger } from "../../../log";
-import { type LoginRateLimiter, loginRateLimitKeys } from "../models/login-rate-limiter";
+import type { RateLimiter } from "../../../rate-limit/rate-limiter";
+import { backupCodesKey, loginRateLimitKeys } from "../models/login-rate-limiter";
 import { PASSWORD_MAX_LENGTH } from "../models/password";
 import { requirePermission } from "../models/permissions";
 import { qrSvg } from "../models/qr";
@@ -19,7 +20,9 @@ export type TwoFactorDeps = {
   sessions: SessionStore;
   twoFactor: TwoFactorStore;
   repo: IdentityRepository;
-  limiter: LoginRateLimiter;
+  limiter: RateLimiter;
+  /** The gap between new backup codes: one set per person every 30 seconds (109). */
+  backupCodes: RateLimiter;
   /** Who may sign in with a password now (106); everyone when left out. */
   passwordPolicy?: () => Promise<"everyone" | "root_only">;
   now?: () => Date;
@@ -51,10 +54,6 @@ const oneAtATime = async <T>(key: string, work: () => Promise<T>): Promise<T> =>
     if (queues.get(key) === run) queues.delete(key);
   }
 };
-
-/** When someone last got new backup codes, in this process: a second within this is refused. */
-const REGENERATE_GAP_MS = 30_000;
-const regenerated = new Map<string, number>();
 
 /** The signed-in user who can change their own two-factor, and the session they're using. */
 const signedIn = async (
@@ -93,18 +92,18 @@ const asSignedIn = async <T>(
  * a typo, then the right code) never fills it.
  */
 const keys = (user: CurrentUser) => loginRateLimitKeys(user.email, null);
-const blocked = (
+const blocked = async (
   deps: TwoFactorDeps,
   user: CurrentUser,
-): { ok: false; error: "rate_limited"; retryAfterSeconds: number } | null => {
-  const decision = deps.limiter.check(keys(user));
+): Promise<{ ok: false; error: "rate_limited"; retryAfterSeconds: number } | null> => {
+  const decision = await deps.limiter.check(keys(user));
   return decision.allowed
     ? null
     : { ok: false, error: "rate_limited", retryAfterSeconds: decision.retryAfterSeconds };
 };
 /** Counts a wrong password or code, and gives back the refusal to answer with. */
-const failed = <T>(deps: TwoFactorDeps, user: CurrentUser, result: T): T => {
-  deps.limiter.record(keys(user));
+const failed = async <T>(deps: TwoFactorDeps, user: CurrentUser, result: T): Promise<T> => {
+  await deps.limiter.record(keys(user));
   return result;
 };
 
@@ -146,7 +145,7 @@ export const startTwoFactor = (
   asSignedIn(deps, context, async (user, sessionId): Promise<StartTwoFactorResult> => {
     if (!(await hasPassword(deps, user))) return { ok: false, error: "no_password" };
     if ((await deps.twoFactor.status(user.id)).enabled) return { ok: false, error: "already_on" };
-    const refused = blocked(deps, user);
+    const refused = await blocked(deps, user);
     if (refused) return refused;
     if (
       badPassword(input.password) ||
@@ -202,7 +201,7 @@ export const confirmTwoFactor = (
   asSignedIn(deps, context, async (user): Promise<ConfirmTwoFactorResult> => {
     if ((await deps.twoFactor.status(user.id)).enabled) return { ok: false, error: "already_on" };
     if (!(await deps.twoFactor.holds(user.id, input.uri))) return { ok: false, error: "replaced" };
-    const refused = blocked(deps, user);
+    const refused = await blocked(deps, user);
     if (refused) return refused;
     const code = input.code.replace(/\s+/g, "");
     if (!/^\d{6}$/.test(code))
@@ -237,7 +236,9 @@ export type RegenerateBackupCodesResult =
 /**
  * Ten new backup codes, shown once; the old ones stop working. Needs the password. Audited. A
  * second within 30 seconds is refused (`just_made`): a double click would otherwise show codes
- * the second click had already replaced.
+ * the second click had already replaced. The 30 seconds are taken before the work, in the
+ * database, so two clicks reaching two replicas still make one set (109), and given back when no
+ * set was made.
  */
 export const regenerateBackupCodes = (
   deps: TwoFactorDeps,
@@ -246,31 +247,36 @@ export const regenerateBackupCodes = (
 ): Promise<RegenerateBackupCodesResult> =>
   asSignedIn(deps, context, async (user): Promise<RegenerateBackupCodesResult> => {
     if (!(await deps.twoFactor.status(user.id)).enabled) return { ok: false, error: "not_enabled" };
-    const last = regenerated.get(user.id);
-    if (last !== undefined && now(deps).getTime() - last < REGENERATE_GAP_MS)
-      return { ok: false, error: "just_made" };
-    const refused = blocked(deps, user);
-    if (refused) return refused;
-    if (
-      badPassword(input.password) ||
-      !(await deps.twoFactor.checkPassword(user.id, input.password))
-    )
-      return failed(deps, user, { ok: false, error: "wrong_password" } as const);
-    const codes = await deps.twoFactor.regenerateBackupCodes(context.headers, input.password);
-    if (codes === "signed_out") return { ok: false, error: "not_signed_in" };
-    if (!codes) return failed(deps, user, { ok: false, error: "wrong_password" } as const);
-    regenerated.set(user.id, now(deps).getTime());
-    await deps.repo.recordAudit(
-      {
-        actorId: user.id,
-        action: "auth.backup_codes_regenerated",
-        target: { type: "user", id: user.id },
-        metadata: { count: codes.length },
-        ipAddress: context.ip,
-      },
-      now(deps),
-    );
-    return { ok: true, backupCodes: codes };
+    const gap = [backupCodesKey(user.id)];
+    if (!(await deps.backupCodes.consume(gap)).allowed) return { ok: false, error: "just_made" };
+    let made = false;
+    try {
+      const refused = await blocked(deps, user);
+      if (refused) return refused;
+      if (
+        badPassword(input.password) ||
+        !(await deps.twoFactor.checkPassword(user.id, input.password))
+      )
+        return await failed(deps, user, { ok: false, error: "wrong_password" } as const);
+      const codes = await deps.twoFactor.regenerateBackupCodes(context.headers, input.password);
+      if (codes === "signed_out") return { ok: false, error: "not_signed_in" };
+      if (!codes) return await failed(deps, user, { ok: false, error: "wrong_password" } as const);
+      made = true;
+      await deps.repo.recordAudit(
+        {
+          actorId: user.id,
+          action: "auth.backup_codes_regenerated",
+          target: { type: "user", id: user.id },
+          metadata: { count: codes.length },
+          ipAddress: context.ip,
+        },
+        now(deps),
+      );
+      return { ok: true, backupCodes: codes };
+    } finally {
+      // No set made (a refusal, or an error): the next try needn't wait.
+      if (!made) await deps.backupCodes.release(gap);
+    }
   });
 
 export type TurnOffTwoFactorResult =
@@ -289,7 +295,7 @@ export const turnOffTwoFactor = (
 ): Promise<TurnOffTwoFactorResult> =>
   asSignedIn(deps, context, async (user): Promise<TurnOffTwoFactorResult> => {
     if (!(await deps.twoFactor.status(user.id)).enabled) return { ok: false, error: "not_enabled" };
-    const refused = blocked(deps, user);
+    const refused = await blocked(deps, user);
     if (refused) return refused;
     // The password first, so a wrong one never uses up a backup code.
     if (
@@ -312,7 +318,8 @@ export const turnOffTwoFactor = (
     const headers = await deps.twoFactor.disable(context.headers, input.password);
     if (headers === "signed_out") return { ok: false, error: "not_signed_in" };
     if (!headers) return failed(deps, user, { ok: false, error: "wrong_password" } as const);
-    regenerated.delete(user.id);
+    // Turned off: turning it on again gives new codes at once, so the gap goes too.
+    await deps.backupCodes.release([backupCodesKey(user.id)]);
     await deps.repo.recordAudit(
       {
         actorId: user.id,

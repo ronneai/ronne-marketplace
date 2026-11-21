@@ -20,12 +20,13 @@ export type {
  * `app` defaults to the running server's instance; tests pass their own.
  */
 const deps = (app: AppAuth): service.TwoFactorDeps => {
-  const { auth, db, dialect, limiter } = app;
+  const { auth, db, dialect, limiter, backupCodesLimiter } = app;
   return {
     sessions: betterAuthSessionStore(auth),
     twoFactor: betterAuthTwoFactorStore(auth, db, dialect),
     repo: kyselyIdentityRepository(db, dialect),
     limiter,
+    backupCodes: backupCodesLimiter,
     passwordPolicy: () => effectivePasswordPolicy(app),
   };
 };

@@ -15,7 +15,7 @@ import {
   rotateScimToken,
   type ScimTokenDeps,
 } from "../domains/identity/services/scim-tokens";
-import { testAppAuth } from "../domains/identity/testing/test-auth";
+import { testAppAuth, testRateLimitStore } from "../domains/identity/testing/test-auth";
 import { setLoggerForTests } from "../log";
 import { handleScim, type ScimResources } from "./scim-api";
 
@@ -80,7 +80,7 @@ beforeEach(async () => {
   t = await createTestDb();
   app = testAppAuth(t);
   clock = new Date("2026-10-18T12:00:00.000Z");
-  limiters = createScimLimiters(() => clock.getTime());
+  limiters = createScimLimiters(testRateLimitStore(t), () => clock.getTime());
   reached.length = 0;
   const a = await createRoot(t.db, t.dialect, {
     email: "root@example.com",

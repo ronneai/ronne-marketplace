@@ -14,6 +14,7 @@ import {
   createTestUser,
   setWorkspaceRole,
   testAppAuth,
+  testRateLimitStore,
 } from "../domains/identity/testing/test-auth";
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scope-repository";
@@ -66,8 +67,8 @@ beforeEach(async () => {
   deps = {
     app,
     guard: { ready: async () => true, authenticate: (value) => authenticateToken(value, app) },
-    limiter: createUploadLimiter(),
-    submitLimiter: createSubmitLimiter(),
+    limiter: createUploadLimiter(testRateLimitStore(t)),
+    submitLimiter: createSubmitLimiter(testRateLimitStore(t)),
     publicUrl: "https://ronne.example/",
   };
   ({ id: rootId } = await createRoot(t.db, t.dialect, {
@@ -376,6 +377,22 @@ describe("POST /drafts", () => {
       { limit: 50 },
     ]);
     expect((await postDraft(post(upload(), tokens.moderator), deps)).status).toBe(201);
+  });
+
+  it("counts uploads in the database, so a second server refuses the 31st too (109)", async () => {
+    // Two app instances on one database, each with the limits the running app uses.
+    const server = (): DraftsApiDeps => {
+      const a = testAppAuth(t, { rateLimits: testRateLimitStore(t) });
+      return {
+        app: a,
+        guard: { ready: async () => true, authenticate: (value) => authenticateToken(value, a) },
+        publicUrl: null,
+      };
+    };
+    const servers = [server(), server()];
+    for (let i = 0; i < 30; i += 1)
+      expect((await postDraft(post("not json"), servers[i % 2])).status).toBe(400);
+    expect((await postDraft(post(upload()), servers[1])).status).toBe(429);
   });
 
   it("refuses the 31st upload in 10 minutes from one user, with retry-after", async () => {
@@ -772,6 +789,25 @@ describe("POST /drafts/check and /drafts/submit (052)", () => {
       deps,
     );
     expect(anonymous.status).toBe(401);
+  });
+
+  it("counts submits in the database, shared by every server (109)", async () => {
+    const server = (): DraftsApiDeps => {
+      const a = testAppAuth(t, { rateLimits: testRateLimitStore(t) });
+      return {
+        app: a,
+        guard: { ready: async () => true, authenticate: (value) => authenticateToken(value, a) },
+        publicUrl: null,
+      };
+    };
+    const servers = [server(), server()];
+    for (let i = 0; i < 10; i += 1)
+      expect(
+        (await submitDrafts(post("/drafts/submit", { ids: ["x"] }), servers[i % 2])).status,
+      ).toBe(200);
+    expect((await submitDrafts(post("/drafts/submit", { ids: ["x"] }), servers[0])).status).toBe(
+      429,
+    );
   });
 
   it("refuses the 11th submit request in 10 minutes, with retry-after", async () => {

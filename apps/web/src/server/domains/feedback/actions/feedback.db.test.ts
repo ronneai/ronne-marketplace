@@ -5,7 +5,12 @@ import { createRoot } from "../../identity/actions/root-account";
 import { signIn } from "../../identity/actions/session";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
-import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
+import {
+  cookieHeaders,
+  createTestUser,
+  testAppAuth,
+  testRateLimitStore,
+} from "../../identity/testing/test-auth";
 import { FeedbackError, FeedbackLimitError, InvalidFeedbackError } from "../exceptions/errors";
 import { FEEDBACK_PER_HOUR, FEEDBACK_WINDOW_MS } from "../models/feedback";
 import { kyselyFeedbackRepository } from "../repositories/kysely-feedback-repository";
@@ -101,10 +106,24 @@ describe("sending", () => {
   });
 });
 
+describe("the limit across servers (109)", () => {
+  it("counts in the database: a second server refuses the 11th in an hour", async () => {
+    const servers = [
+      testAppAuth(t, { rateLimits: testRateLimitStore(t) }),
+      testAppAuth(t, { rateLimits: testRateLimitStore(t) }),
+    ];
+    for (let i = 0; i < FEEDBACK_PER_HOUR; i++)
+      await sendFeedback(asUser, { kind: "idea", message: `m${i}` }, servers[i % 2]);
+    await expect(
+      sendFeedback(asUser, { kind: "idea", message: "one too many" }, servers[1]),
+    ).rejects.toBeInstanceOf(FeedbackLimitError);
+  });
+});
+
 describe("the limit", () => {
   const deps = (now: () => number) => ({
     feedback: kyselyFeedbackRepository(t.db, t.dialect),
-    limiter: createFeedbackLimiter(now),
+    limiter: createFeedbackLimiter(testRateLimitStore(t), now),
     version: "1.0.0",
   });
   const actor = () => ({

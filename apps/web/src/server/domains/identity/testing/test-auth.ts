@@ -1,18 +1,55 @@
 import { toDbDate } from "../../../db/dates";
 import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import type { TestDb } from "../../../db/testing/test-db";
-import { LoginRateLimiter } from "../models/login-rate-limiter";
+import { createDatabaseRateLimitStore } from "../../../rate-limit/database-store";
+import { createMemoryRateLimitStore, memoryRateLimiter } from "../../../rate-limit/memory-store";
+import {
+  createRateLimiter,
+  type RateLimiter,
+  type RateLimitStore,
+} from "../../../rate-limit/rate-limiter";
+import { BACKUP_CODES_LIMIT, LOGIN_LIMIT } from "../models/login-rate-limiter";
 import type { AppAuth } from "../repositories/auth-instance";
 import { createAuth } from "../repositories/better-auth";
 
 export const TEST_BASE_URL = "http://localhost:3000";
+
+/** The AUTH_SECRET test apps sign with, unless a test passes another. */
+export const TEST_SECRET = "test-secret-test-secret-test-secret-00";
+
+/** The database store (109) on a test database, as the server has it on its own. */
+export const testRateLimitStore = (t: TestDb, authSecret = TEST_SECRET): RateLimitStore =>
+  createDatabaseRateLimitStore(() => ({ db: t.db, dialect: t.dialect, authSecret }));
+
+/**
+ * Sign-in's limiter counted in the test's database, as on the server (109): the real 5 a minute
+ * unless `max` says otherwise. Two made on one database share their counts, as replicas do.
+ */
+export const testLoginLimiter = (t: TestDb, options: { max?: number } = {}): RateLimiter =>
+  createRateLimiter({ store: testRateLimitStore(t), ...LOGIN_LIMIT, ...options });
+
+/** Any limit counted in the test's database (109), with another `max` when given. */
+export const testLimiter = (
+  t: TestDb,
+  limit: { name: string; max: number; windowMs: number },
+  max: number = limit.max,
+): RateLimiter => createRateLimiter({ store: testRateLimitStore(t), ...limit, max });
+
+/** The gap between new backup codes counted in the test's database (109). */
+export const testBackupCodesLimiter = (t: TestDb): RateLimiter =>
+  createRateLimiter({ store: testRateLimitStore(t), ...BACKUP_CODES_LIMIT });
 
 /** An AppAuth on a test database, like the one getAppAuth() builds for the server. */
 export const testAppAuth = (
   t: TestDb,
   options: {
     trustProxy?: boolean;
-    limiter?: LoginRateLimiter;
+    /** Sign-in's limiter; by default one of its own in memory, so tests don't share counts. */
+    limiter?: RateLimiter;
+    /** The backup codes' gap; in memory by default too. */
+    backupCodesLimiter?: RateLimiter;
+    /** Where the other limits count (SSO, device codes, SCIM); memory by default. */
+    rateLimits?: RateLimitStore;
     baseURL?: string;
     /** Another AUTH_SECRET, as after `rotate-secret` and a restart (098). */
     secret?: string;
@@ -23,7 +60,7 @@ export const testAppAuth = (
     auth: createAuth({
       db: t.db,
       dialect: t.dialect,
-      secret: options.secret ?? "test-secret-test-secret-test-secret-00",
+      secret: options.secret ?? TEST_SECRET,
       baseURL: options.baseURL ?? TEST_BASE_URL,
       trustProxy,
       // A query Better Auth starts and nobody waits for: it could still hold a connection when the
@@ -33,7 +70,9 @@ export const testAppAuth = (
     db: t.db,
     dialect: t.dialect,
     trustProxy,
-    limiter: options.limiter ?? new LoginRateLimiter(),
+    limiter: options.limiter ?? memoryRateLimiter(LOGIN_LIMIT),
+    backupCodesLimiter: options.backupCodesLimiter ?? memoryRateLimiter(BACKUP_CODES_LIMIT),
+    rateLimits: options.rateLimits ?? createMemoryRateLimitStore(),
   };
 };
 
