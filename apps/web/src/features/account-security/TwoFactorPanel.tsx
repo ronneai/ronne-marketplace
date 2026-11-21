@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
@@ -70,6 +71,8 @@ export const TwoFactorPanel = ({
             <Badge tone={enabled ? "accent" : "muted"}>
               {enabled ? t("panel.on") : t("panel.off")}
             </Badge>
+            {/* Changes here send a security notice when the instance sends email (189). */}
+            <Help id="email-notices" />
           </div>
           {!status.hasPassword ? (
             <Notice kind="info" title={t("panel.companyTitle")}>

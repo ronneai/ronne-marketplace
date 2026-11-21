@@ -299,6 +299,18 @@
     "question": "Informação ou Aviso?",
     "answer": "Informação é para novidades e contexto, como “esta é uma demonstração”. Aviso é para algo que pede cuidado, como “os dados da demonstração são redefinidos na sexta” ou uma janela de manutenção."
   },
+  "email-setup": {
+    "question": "Qual transporte devo escolher?",
+    "answer": "A API web de um provedor (Amazon SES, Mailgun, Postmark ou Resend) funciona onde as portas SMTP de saída estão bloqueadas, como costuma acontecer na nuvem; outro servidor SMTP é o do seu provedor ou da sua empresa. Seja qual for a escolha, dê ao Ronne uma chave que só possa enviar e depois envie um e-mail de teste para você mesmo."
+  },
+  "email-domain": {
+    "question": "Por que os meus e-mails caem no spam?",
+    "answer": "Os provedores de e-mail confiam numa mensagem quando o domínio do remetente tem registros SPF, DKIM e DMARC que correspondem ao serviço que a enviou. O seu provedor de e-mail diz quais registros DNS adicionar; o Ronne não assina os e-mails."
+  },
+  "email-notices": {
+    "question": "Vou ser avisado de mudanças como esta?",
+    "answer": "Quando esta instância envia e-mails, uma mudança na forma de entrar na sua conta (a senha, a autenticação de dois fatores, os códigos de backup ou um login da sua empresa) envia um aviso para o endereço da sua conta. Se receber um por uma mudança que você não fez, fale com o seu administrador imediatamente."
+  },
   "update-checking": {
     "question": "O que a verificação envia?",
     "answer": "Nada sobre esta instância: uma vez por dia o servidor pergunta ao GitHub qual é a última versão, com um nome fixo e sem versão, endereço, conta ou id. Se não for possível acessar o GitHub, nada mais acontece. Desative aqui, ou com RONNE_UPDATE_CHECK=off no servidor."

@@ -107,7 +107,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     - §5 for what's out (bounces, DKIM by Ronne).
   - *Done when:* the threat model says what the feature does, and `pnpm docs:check` passes.
 
-- [ ] **10. Documentation and helpers.**
+- [x] **10. Documentation and helpers.**
   - ronne-web, in a branch that goes live with the release: the new `email` topic in three
     languages, with `privacy`, `security#encryption` and `account`.
   - `topics.ts` in both repositories; the helpers on the Email tab and the Account page.

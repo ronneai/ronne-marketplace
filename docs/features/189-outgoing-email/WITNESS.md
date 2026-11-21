@@ -704,3 +704,25 @@ Witnessed: 2026-11-21 14:43 EST, by a fresh agent (blind). Commit: b9702a7f + wo
 | 4 | `pnpm docs:check` passes | no | confirmed | exit 0 |
 
 **Overall:** met.
+
+## Task 10 — Documentation and helpers
+
+Witnessed: 2026-11-21 15:06 EST, by a fresh agent (blind). Commit: e937c3dc + working-tree diff (marketplace); ronne-web ba2ca0d on `docs/marketplace-189-outgoing-email`. Machine: macOS (Darwin 27.2.0), Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The `email` topic in en, pt, fr, with the spec's six sections | no | confirmed | `{en,pt,fr}/email.tsx` typed `TopicCopy<"email">`; `tsc --noEmit` exit 0 |
+| 2 | The section ids match in both `topics.ts`; `pnpm docs:links` passes | no | confirmed | "Compared 38 topics with the website's."; a renamed id → exit 1 |
+| 3 | The website's tests pass | no | confirmed | 33 files, 198 tests; Biome clean |
+| 4 | The three helpers point at sections that exist | no | confirmed | `Help.tsx`; help.json in three languages; 467 tests passed |
+| 5 | Each helper where it belongs | no | confirmed | `EmailForm.tsx` title and From hint; `TwoFactorPanel.tsx:75` |
+| 6 | Labels quoted as the app shows them | no | confirmed | probe `labels.py` against `admin.json` and `common.json` |
+| 7 | Facts on the email page match the code | no | confirmed | retries, cap, test limit, ports, TLS, Retry-After 6 h, SES binding, notices, UTC, log events, tab order |
+| 8 | `privacy`: the outbox and the provider as a processor | no | confirmed | `retention-purge.ts`, export and erase repositories |
+| 9 | `security#encryption` | no | confirmed | `setup/rotate-secret.ts:149-230` |
+| 10 | `account`: a sentence on notices | no | confirmed | `en/account.tsx:131-139` |
+| 11 | install.md's `RONNE_MAIL_HOSTS` | no | confirmed | `endpoint.ts:49-55`, `smtp.ts:146`, `config.ts:95` |
+| 12 | MVP.md's rows no longer say planned | no | confirmed | diff and grep |
+| 13 | pt and fr read correctly, glossary followed | no | confirmed | full read of both |
+
+**Overall:** met. Note: "the helper opens its section" checked from the code and docs:links, not in a browser (the branch isn't deployed).

@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { inputClasses, Label, selectClasses } from "@/components/ui/Field";
 import { useKeptActionState } from "@/components/ui/kept-form";
@@ -143,7 +144,10 @@ export const EmailForm = ({
       noValidate
     >
       <div className="grid gap-1">
-        <h2 className="text-base font-semibold text-fg">{t("title")}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-semibold text-fg">{t("title")}</h2>
+          <Help id="email-setup" />
+        </div>
         <p className="text-sm text-muted">{t("intro")}</p>
       </div>
 
@@ -162,7 +166,11 @@ export const EmailForm = ({
           name="fromAddress"
           type="email"
           label={t("fromAddress.label")}
-          hint={t("fromAddress.hint")}
+          hint={
+            <>
+              {t("fromAddress.hint")} <Help id="email-domain" />
+            </>
+          }
           value={v.fromAddress}
           onChange={set("fromAddress")}
           invalid={invalid("fromAddress")}
