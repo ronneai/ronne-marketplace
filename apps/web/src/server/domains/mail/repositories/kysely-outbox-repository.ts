@@ -80,6 +80,50 @@ export const kyselyOutboxRepository = (db: Db, dialect: DatabaseDialect) => {
       return Number(row?.n ?? 0);
     },
 
+    /** Root's test emails since `since` (189's 5 in 10 minutes), whatever became of them. */
+    async countTests(userId: string, since: Date): Promise<number> {
+      const row = await db
+        .selectFrom("mail_outbox")
+        .select((eb) => eb.fn.countAll().as("n"))
+        .where("template", "=", "test")
+        .where("user_id", "=", userId)
+        .where("created_at", ">", at(since))
+        .executeTakeFirst();
+      return Number(row?.n ?? 0);
+    },
+
+    /** A test email, sent at once rather than queued: its row, already ended and without a body. */
+    async recordTest(row: {
+      id: string;
+      locale: string;
+      recipientHmac: string;
+      userId: string;
+      status: "sent" | "failed";
+      lastError: string | null;
+      at: Date;
+    }): Promise<void> {
+      await db
+        .insertInto("mail_outbox")
+        .values({
+          id: row.id,
+          template: "test",
+          locale: row.locale,
+          recipient_hmac: row.recipientHmac,
+          user_id: row.userId,
+          body_enc: null,
+          status: row.status,
+          attempts: 1,
+          next_attempt_at: at(row.at),
+          claimed_until: null,
+          claim_id: null,
+          expires_at: null,
+          last_error: row.lastError,
+          created_at: at(row.at),
+          sent_at: row.status === "sent" ? at(row.at) : null,
+        })
+        .execute();
+    },
+
     /** Rows due now: queued and their time come, or a claim that ran out. Oldest first. */
     async dueIds(now: Date, limit: number): Promise<string[]> {
       const rows = await db

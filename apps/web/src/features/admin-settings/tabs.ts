@@ -5,6 +5,7 @@ export const SETTINGS_TABS = [
   { id: "usage", href: "/admin/settings" },
   { id: "feeds", href: "/admin/settings?tab=feeds" },
   { id: "authentication", href: "/admin/settings?tab=authentication" },
+  { id: "email", href: "/admin/settings?tab=email" },
   { id: "privacy", href: "/admin/settings?tab=privacy" },
   { id: "notice", href: "/admin/settings?tab=notice" },
   { id: "scan", href: "/admin/settings?tab=scan" },

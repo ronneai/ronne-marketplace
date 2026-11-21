@@ -170,5 +170,12 @@
   "FindingNotFoundError": "That finding no longer exists, or you can't see it.",
   "FindingDismissedError": "That finding is already marked, as a false positive or an accepted risk.",
   "NotScanReviewerError": "Only the submission's reviewers mark findings as false positives, never its author.",
-  "DismissalKindError": "Mark it as a false positive or as an accepted risk."
+  "DismissalKindError": "Mark it as a false positive or as an accepted risk.",
+  "InvalidMailSetupError": "{field, select, transport {Choose how email leaves the server.} fromAddress {The sender is an email address, ASCII only.} fromName {The sender's name is 100 characters at most, on one line.} replyTo {Reply-To is an email address, ASCII only, and it's required.} contact {The instance contact is an email address or an https:// address without a user name, 500 characters at most.} smtpHost {The SMTP host is a host name or an address.} smtpPort {The port is a whole number from 1 to 65535.} smtpTls {Choose TLS, STARTTLS, or no TLS for a relay the operator lists.} smtpUser {The user name is 256 characters at most, on one line.} secret {Type the credential: this transport needs one, and none is saved for it.} secretInvalid {The credential is 4,096 characters at most, on one line.} secretWithoutUser {A password is kept only with a user name: type the user name too.} noAuthSecret {The server has no AUTH_SECRET to seal the credential with: set it, then save again.} region {Choose the provider's region.} domain {The sending domain is a domain name, such as mg.example.com.} sesAccessKeyId {The access key ID is 16 to 128 capital letters and digits.} other {This field can't be saved as typed.}}",
+  "MailHostInternalError": "That host is on a private network. A relay there works only once the operator lists it in RONNE_MAIL_HOSTS on the server.",
+  "MailHostUnresolvedError": "That host name doesn't resolve.",
+  "MailPlainSmtpError": "No TLS is only for a relay the operator lists in RONNE_MAIL_HOSTS, and never with a user name and password.",
+  "MailNotSetUpError": "Email isn't set up: choose a transport and save first.",
+  "MailCredentialsUnreadableError": "The saved credential can't be read (an older AUTH_SECRET): type it again and save.",
+  "MailTestLimitError": "At most {limit} test emails in 10 minutes: wait a few minutes, then try again."
 }

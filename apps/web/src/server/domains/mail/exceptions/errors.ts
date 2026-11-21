@@ -73,6 +73,30 @@ export class MailHostUnresolvedError extends MailError {
   }
 }
 
+/** Email isn't set up: there's no transport to send through. */
+export class MailNotSetUpError extends MailError {
+  override readonly name: string = "MailNotSetUpError";
+  constructor() {
+    super("Email isn't set up: choose a transport and save first.");
+  }
+}
+
+/** The saved credential can't be opened with this AUTH_SECRET. */
+export class MailCredentialsUnreadableError extends MailError {
+  override readonly name: string = "MailCredentialsUnreadableError";
+  constructor() {
+    super("The saved credential can't be read (an older AUTH_SECRET): type it again and save.");
+  }
+}
+
+/** Too many test emails in a short time. */
+export class MailTestLimitError extends MailError {
+  override readonly name: string = "MailTestLimitError";
+  constructor(readonly limit: number) {
+    super(`At most ${limit} test emails in 10 minutes: wait a few minutes, then try again.`);
+  }
+}
+
 /** Plain SMTP is only for a relay the operator lists, and never with a user name. */
 export class MailPlainSmtpError extends MailError {
   override readonly name: string = "MailPlainSmtpError";

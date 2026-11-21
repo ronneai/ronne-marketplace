@@ -482,3 +482,40 @@ Witnessed: 2026-11-21 12:46 EST, by a fresh agent (blind). Commit: 9234f04d + wo
 | 6 | Template and i18n tests pass | no | confirmed | 21 files, 438 passed |
 
 **Overall:** met. Remarks: en says "Root sent" in the test email and "A root…" in the notices; the Email tab's pt and fr labels (task 7) should be "E-mail" and "Courriel", as `test.body` names them.
+
+## Task 7 — The Email tab
+
+Witnessed: 2026-11-21 13:06 EST, by a fresh agent (blind). Commit: f38ee589 + working-tree diff. Machine: macOS (Darwin 27.2.0), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `email` in `SETTINGS_TABS` after Authentication; root only | no | confirmed | `tabs.ts:8`; `page.tsx:55`; `requirePermission` in each service; "is root's only" passes |
+| 2 | Each status | no | confirmed | 60/60 across 5 files; mutation `"untested"`→`"xx"` → fails |
+| 3 | Each transport's fields and 3 steps | no | confirmed | `email.test.tsx:117-138` |
+| 4 | Write-only secrets; a new transport or target asks again; no secret reaches the page | no | confirmed | `typing = true` → 2 fail; target mutation → fails; probe `mailSetup` has no secret value |
+| 5 | A relay host refused unless listed; the form points at the host | no | confirmed | `fieldOf` mutation → fails; probe 10.0.0.5 refused, saved when listed |
+| 6 | Instance contact: address or `https://`; `http://` and a user name refused; empty allowed | no | confirmed | component test; probe of `instanceContact` and the save |
+| 7 | `mailReadiness()` for 190 and 194 | no | confirmed | probe before setup, after save, after stop; no repo test |
+| 8 | Reply-To required, filled from the contact, on every message | no | confirmed | probe; fill test and its mutation; `mail-admin.ts:88`, `outbox.ts:188` |
+| 9 | The test goes to root's own address; success and failure shown | no | confirmed | `to: user.email`; no address field; `detail` mutation → fails |
+| 10 | 5 per root in 10 minutes | no | confirmed | 6/6 on each server; `>=`→`>` → fails |
+| 11 | Stop sending: a second click, transport and status cleared, queued mail dropped, the rest kept | no | confirmed | `confirming` state, no `confirm()`; db test on 4 dialects |
+| 12 | Screen text in three languages, every field code | no | confirmed | probe: all 16 codes worded in pt and fr; `errors.test.ts`; no-English test |
+| 13 | No server-only value in client components; arrows; no raw colours | no | confirmed | grep: type imports only, plus `isMailAddress` from a module with no imports |
+| 14 | The phone sweep passes on the tab | no | can't check here | `e2e/pages.ts:189` lists it; Playwright not run (brief) |
+
+**Overall:** not met (row 14 unchecked). Notes: `mailReadiness()` has no repo test; the test limit isn't atomic; a transient test result sets *Failing*, which the spec read as "failed for good".
+
+Fixes after the pass: a db test of `mailReadiness()` (set up, stopped, nothing saved); the spec says a test email that doesn't go, transient or not, sets *Failing*, and that the test count isn't locked (racing clicks only reach root's own inbox).
+
+### Re-check 1
+
+Witnessed: 2026-11-21 13:04 EST, by a fresh agent (blind). Commit: f38ee589 + working-tree diff. Machine: macOS 27.2.1, Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The phone sweep passes on the Email tab, in en, pt and fr | no | confirmed | `e2e/pages.ts:189` lists the tab; `pnpm exec next build`, then `pnpm exec playwright test e2e/mobile-sweep.mobile.e2e.ts --project phone -g "as root"` → 3 passed (28.3s) |
+| 2 | `mailReadiness()` has a test that catches `sending: true` without a transport | no | confirmed | 7/7; mutation `sending: true` → fails at line 212; `cmp` after restore |
+| 3 | The spec's status and test-limit wording matches `mail-admin.ts` | no | confirmed | `SPEC.md:77-78` and `:95-97` against `mail-admin.ts:70-72,103-118` |
+
+**Overall:** met. With the first pass's rows 1–13 confirmed, every row is met.

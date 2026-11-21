@@ -884,6 +884,7 @@
       "usage": "Usage",
       "feeds": "Plugin feeds",
       "authentication": "Authentication",
+      "email": "Email",
       "privacy": "Privacy",
       "notice": "Notice",
       "scan": "Security scan",
@@ -1317,6 +1318,148 @@
         "label": "Score that blocks approval",
         "hint": "A submission whose scan scores at or above it, or that has no finished scan, can't be approved; only root can override. Leave it empty to only advise.",
         "range": "Enter a whole number from 1 to 100, or leave it empty."
+      }
+    },
+    "email": {
+      "title": "Email",
+      "intro": "How Ronne sends email: the security notices people get when the way they sign in changes, and the test below. Everything is set here and kept in the database; credentials are sealed and never shown again.",
+      "status": {
+        "title": "Status",
+        "notSetUp": "Not set up: Ronne sends no email, and features that need it stay off.",
+        "untested": "Set up, not tested yet: send a test email below.",
+        "working": "Working: the last test or delivery succeeded, <date></date>.",
+        "failing": "Failing: the last delivery didn't go ({reason}), <date></date>."
+      },
+      "reasons": {
+        "connection": "the server couldn't be reached",
+        "timeout": "the server didn't answer in time",
+        "tls": "TLS failed",
+        "auth": "the credentials were refused",
+        "rate_limited": "the provider asked to slow down",
+        "server": "the provider failed on its side",
+        "rejected": "the provider refused the message",
+        "config": "the setup can't work as it is",
+        "credentials": "the saved credential can't be read",
+        "interrupted": "each try was cut off",
+        "other": "another reason"
+      },
+      "contact": {
+        "label": "Instance contact",
+        "hint": "Whom people tell when they didn't make a change: an address such as it-help@acme.com, or an https:// page. It's printed in every security notice."
+      },
+      "fromAddress": {
+        "label": "From address",
+        "hint": "The sender, such as marketplace@acme.com. Its domain needs the provider's SPF, DKIM and DMARC records."
+      },
+      "fromName": {
+        "label": "From name",
+        "hint": "Optional, such as Acme Marketplace: it says which instance wrote."
+      },
+      "replyTo": {
+        "label": "Reply-To",
+        "hint": "Where replies go, so a no-reply sender never swallows an answer. It starts as the instance contact when that's an address."
+      },
+      "transport": {
+        "label": "Transport",
+        "choose": "Choose…",
+        "smtp": "Other SMTP server",
+        "ses": "Amazon SES (web API)",
+        "mailgun": "Mailgun",
+        "postmark": "Postmark",
+        "resend": "Resend"
+      },
+      "smtp": {
+        "host": "Host",
+        "hostHint": "The server's name. One on the server's own network works only once the operator lists it in RONNE_MAIL_HOSTS.",
+        "relays": "Relays the operator allows on this server: {hosts}.",
+        "tls": "Security",
+        "tlsOptions": {
+          "starttls": "STARTTLS (port 587)",
+          "tls": "TLS (port 465)",
+          "none": "No TLS (a listed relay only)"
+        },
+        "port": "Port",
+        "portHint": "Empty takes the usual one for the security chosen.",
+        "user": "User name",
+        "userHint": "Empty for a relay that takes mail without signing in.",
+        "password": "Password"
+      },
+      "ses": {
+        "region": "Region",
+        "regionHint": "The AWS region of your SES identity, such as eu-west-1.",
+        "accessKeyId": "Access key ID",
+        "secret": "Secret access key"
+      },
+      "mailgun": {
+        "region": "Region",
+        "regions": {
+          "us": "US",
+          "eu": "EU"
+        },
+        "domain": "Sending domain",
+        "domainHint": "The domain verified in Mailgun, such as mg.acme.com."
+      },
+      "postmark": {
+        "token": "Server API token"
+      },
+      "apiKey": "API key",
+      "secret": {
+        "hint": "Write-only: it's sealed on save and never shown again.",
+        "replaceHint": "Type a new one to replace the saved one; empty keeps it.",
+        "saved": "Saved",
+        "replace": "Replace",
+        "moves": "Kept only for this transport and target: a new host, domain, region or access key ID asks for it again.",
+        "unreadable": "The saved credential can't be read (an older AUTH_SECRET): type it again and save."
+      },
+      "steps": {
+        "title": "Steps",
+        "smtp": {
+          "step1": "Get the server's host, port and security from whoever runs it: your provider or your IT team.",
+          "step2": "STARTTLS uses port 587 and TLS port 465. No TLS is only for a relay the operator lists on the server, without a user name.",
+          "step3": "Type the user name and password if the server asks for them, save, then send a test email."
+        },
+        "ses": {
+          "step1": "In Amazon SES, verify the From address's domain in the region you'll use, and ask AWS to leave the sandbox (until then, only verified addresses get mail).",
+          "step2": "Create an IAM user allowed only ses:SendEmail from that identity, and an access key for it.",
+          "step3": "Type the region, the access key ID and the secret access key, save, then send a test email."
+        },
+        "mailgun": {
+          "step1": "In Mailgun, add your sending domain in the US or EU region and verify its DNS records.",
+          "step2": "Create a sending API key for that domain.",
+          "step3": "Choose the region, type the domain and the key, save, then send a test email."
+        },
+        "postmark": {
+          "step1": "In Postmark, create a server and verify the From address's domain, or the address itself as a sender signature.",
+          "step2": "Copy the server's API token from its API Tokens tab.",
+          "step3": "Paste it here, save, then send a test email."
+        },
+        "resend": {
+          "step1": "In Resend, add the From address's domain and verify its DNS records.",
+          "step2": "Create an API key with sending access.",
+          "step3": "Paste it here, save, then send a test email."
+        }
+      },
+      "save": "Save",
+      "done": {
+        "saved": "Email setup saved.",
+        "unchanged": "Nothing changed."
+      },
+      "test": {
+        "title": "Send test email",
+        "intro": "Sends one email now to your own address, {to}: never to an address typed here. At most 5 in 10 minutes.",
+        "button": "Send test email",
+        "sent": "Sent to {to}: check that inbox, and its spam folder.",
+        "failed": "It didn't go: {reason}.",
+        "answer": "The server answered:"
+      },
+      "stop": {
+        "title": "Stop sending",
+        "intro": "Clears the transport: Ronne sends nothing more, and the messages still waiting are dropped. The rest of the setup stays, to pick a transport again.",
+        "button": "Stop sending",
+        "confirm": "Stop sending email? Messages still waiting are dropped, and features that need email turn off.",
+        "confirmButton": "Stop sending",
+        "cancel": "Cancel",
+        "done": "Email stopped. {count, plural, =0 {Nothing was waiting.} one {# waiting message was dropped.} other {# waiting messages were dropped.}}"
       }
     }
   },

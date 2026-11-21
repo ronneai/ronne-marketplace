@@ -76,7 +76,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the i18n key and placeholder tests pass for `mail`; snapshot tests show each
     template in each language as text and HTML; a test shows no template holds a sign-in link.
 
-- [ ] **7. The Email tab.**
+- [x] **7. The Email tab.**
   - `email` in `SETTINGS_TABS`; the status, sender, transport with presets and steps, the write-only
     secrets; the **Instance contact** field (`mail_contact`), validated as an email address or an `https://` URL, and
     `instanceContact()` for 190 and 194 to check before their switches turn on; the required

@@ -72,8 +72,10 @@ possible, and follow the standards (owner, 2026-11-20).
   `settings.manage`). It holds:
   - **Status:**
     - *Not set up*;
+    - *Set up, not tested yet*: saved, with no test or delivery since;
     - *Working*: the last test or delivery succeeded, and when;
-    - *Failing*: the last delivery failed for good, with its reason category and time (never the
+    - *Failing*: the last delivery failed for good, or the last test email didn't go (a test is
+      one try, so a provider's "try later" counts), with its reason category and time (never the
       address).
   - **Instance contact:** an email address or an `https://` URL that tells people whom to contact
     about their account, such as `it-help@acme.com` or the company's help page. It's printed in
@@ -88,11 +90,16 @@ possible, and follow the standards (owner, 2026-11-20).
     filled with the instance contact when that is an email address. Every message carries it.
   - **Transport:** a choice, then the transport's fields, with the preset's steps beside them.
   - **Send test email:** it goes to the signed-in root's own address, never one typed in, so the tab
-    can't be used to send mail to strangers. It's sent at once rather than queued. The result
-    shows the server's or API's answer, cleaned of credentials. Each root may send 5 in 10 minutes,
-    counted from the outbox's rows.
-  - **Stop sending:** clears the transport. The queued messages are dropped (their bodies deleted),
-    and features that need email say it's off.
+    can't be used to send mail to strangers. It's sent at once rather than queued, in root's
+    language. The result shows the server's or API's answer, cleaned of credentials, and sets the
+    status. Each root may send 5 in 10 minutes, counted from the outbox's rows: each test leaves
+    one, already ended and without a body. The count isn't locked: clicks racing at the same
+    instant can pass it, which costs nothing beyond root's own inbox.
+  - **Stop sending:** clears the transport and the status, after a second click on the page (no
+    browser dialog). The queued messages are dropped (their bodies deleted) in the same
+    transaction, and features that need email say it's off. The rest of the setup stays, for root
+    to pick a transport again. `mailReadiness()` answers whether email can go out and what the
+    instance contact is: what 190 and 194 check before their switches turn on.
 - **The outbox** (`mail_outbox`). Every message is queued in the same transaction as the change that
   causes it (a transactional outbox), so a notice exists if and only if its change does. Then:
   - **A row holds:** the template, the locale, a `recipient_hmac`, the `user_id` when there is one,

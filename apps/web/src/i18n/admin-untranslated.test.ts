@@ -55,6 +55,14 @@ const SAME: Record<string, readonly string[]> = {
   "audit.sentences.parts.mailTransports.mailgun": ["pt", "fr"],
   "audit.sentences.parts.mailTransports.postmark": ["pt", "fr"],
   "audit.sentences.parts.mailTransports.resend": ["pt", "fr"],
+  // 189: the Email tab's provider names, and French words that are the English ones.
+  "settings.email.transport.mailgun": ["pt", "fr"],
+  "settings.email.transport.postmark": ["pt", "fr"],
+  "settings.email.transport.resend": ["pt", "fr"],
+  "settings.email.transport.label": ["fr"],
+  "settings.email.smtp.port": ["fr"],
+  "settings.email.smtp.tlsOptions.starttls": ["fr"],
+  "settings.email.smtp.tlsOptions.tls": ["fr"],
   // 156: example addresses, the same in every language.
   "settings.scan.address.placeholder": ["pt", "fr"],
   "settings.scan.address.semanticPlaceholder": ["pt", "fr"],

@@ -185,6 +185,8 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
       "/admin/settings",
       "/admin/settings?tab=feeds",
       "/admin/settings?tab=authentication",
+      // The Email tab (189), not set up: the status and the form.
+      "/admin/settings?tab=email",
       "/admin/settings?tab=privacy",
       // The Notice tab (124): the first tab written in messages.
       "/admin/settings?tab=notice",
