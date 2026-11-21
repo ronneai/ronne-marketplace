@@ -194,3 +194,109 @@ Witnessed: 2026-11-21 10:28 EST, by a fresh agent (adversarial; a fourth, short 
 | 6 | PLAN Notes: plain text sent with the STARTTLS yes is retried as a timeout after the greeting timeout (10 s), nothing sent | yes | confirmed | `together-timing.test.ts` (greeting 1700, connection 4000, socket 6000) → `retry/timeout`, `received=0`, 1727 ms; `SMTP_TIMEOUTS.greeting` 10 000 |
 
 **Overall:** met. With re-check 3 (blind) met, both latest passes are met.
+
+## Task 4 — Settings and secrets
+
+Witnessed: 2026-11-21 10:45 EST, by a fresh agent (blind). Commit: 31dcddaf + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The `mail_*` keys match SPEC Data | no | confirmed | `mail-settings.ts:9-26` lists all 16 keys of SPEC.md:236-240; `parseLastStatus` holds status, time, reason |
+| 2 | The secrets are `_enc` keys sealed through `instance-secrets.ts`, bound to their key | no | confirmed | `sealMailSecret`/`openMailSecret` use `sealSetting`/`openSetting`; an apiKey value opened as `smtpPassword` → `unreadable`; the row matches `^v1.` without the key |
+| 3 | Each transport saves and builds a sender | no | confirmed | `mail-setup.db.test.ts` 15 passed on SQLite, and 15/15 on PostgreSQL, MySQL, MariaDB |
+| 4 | A secret is never read back | no | confirmed | `mail-setup.ts:84` strips the three; the view and the audit row hold no key; `summary()` leaves out the user name and the access key ID |
+| 5 | An unopenable secret → `credentials_unreadable`, `secretProblem: "unreadable"` | no | confirmed | db test; saving under another AUTH_SECRET without retyping is refused, retyping works |
+| 6 | `rotate-secret` re-seals the mail secrets | no | confirmed | `endSessionsForNewSecret` → old secret unreadable, new ok; M3 (key off `_enc`) fails it |
+| 7 | A kept secret is dropped when its transport or target changes | no | confirmed | Resend → Postmark, another SMTP host, Mailgun domain or region, SES region each refused without a secret; host letter case keeps it. M1, M5 fail "drops a kept secret…" |
+| 8 | CR/LF refused in the From name and address, Reply-To, contact, SMTP user and secret | no | confirmed | `\n`, `\r`, U+2028, U+0085, NUL, a comma list → `InvalidMailSetupError`; M2 fails "refuses a line break…" |
+| 9 | Non-ASCII addresses refused | no | confirmed | `ä@acme.example`, `a@bü.example`, `help@bücher.example` |
+| 10 | The contact is an address or an https URL without credentials, optional; Reply-To required | no | confirmed | `http://`, `https://user:pw@`, `javascript:`, `https://u@…`, "not a contact", empty Reply-To refused. `https://@help.example` (empty userinfo) is accepted, harmless |
+| 11 | The SMTP host checked on save | no | confirmed | "refuses an SMTP host on a private network…", "refuses plain SMTP…" |
+| 12 | Root alone manages it; only `RONNE_MAIL_HOSTS` read from the server | no | confirmed | Only `config.ts:95` reads a mail env var; `loadConfig({env:{RONNE_MAIL_HOSTS}})` → it; non-root → `ForbiddenError` |
+| 13 | `settings.mail` and `mail.test_sent` with sentences in en/pt/fr, a secret only as set/replaced/removed | no | confirmed | 72 passed; probe sentences read "…the transport to Amazon SES, the sender to m@a.example, a credential set", "Sent a test email, which failed (credentials refused)" |
+| 14 | `audit-event.test.ts` knows the two actions | no | confirmed | Its "groups cover every action" test does; M4 (no `mail` group) fails it. The fixture's rich `settings.mail` reads "nothing": no repo test runs the mail metadata |
+
+**Overall:** met. Remarks: with no AUTH_SECRET, `mailSetup` shows `secretProblem: null` where `mailSender` says unreadable; no test of the `settings.mail` sentence with real metadata; `https://@host` accepted.
+
+### Adversarial pass
+
+Witnessed: 2026-11-21 10:47 EST, by a fresh agent (adversarial). Commit: 31dcddaf + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Each transport saves, clears the others' fields, builds a sender | no | confirmed | 72 passed; 15/15 on each server |
+| 2 | A secret is never read back | no | confirmed | View, audit dump and fixed refusal messages hold no secret, user name or key ID |
+| 3 | An unreadable secret sends nothing | no | confirmed | Crafted sealed `{value:5}` and `"plain"` → `credentials_unreadable`; M12 fails 2 tests |
+| 4 | `rotate-secret` re-seals every mail secret, and leaves one it can't open untouched | no | confirmed | All three open under the new secret; a wrong `from` leaves the row; M9 fails the rotate test |
+| 5 | A kept secret dropped when its transport or target changes, only then | no | partly | Holds (host case, trailing dot, brackets keep it; IP spellings, Mailgun region, SES region, resend→postmark drop it). M10 (Mailgun target without region) and M11 (SES unbound) survive |
+| 6 | A value copied between `_enc` keys, or a transport switched under the old secret, doesn't open | no | confirmed | Both → `credentials_unreadable`, `secretSaved:false` |
+| 7 | CR/LF and other line breaks refused in the From name and address | no | confirmed | CR, LF, NUL, U+2028, U+0085 refused. M4 (no `CONTROL`) survives: the non-CR/LF controls untested |
+| 8 | The contact: an address or an https URL without credentials, bounded | no | partly | Every bad scheme or credential refused; **unbounded:** a 70,000-character contact → `AuditMetadataTooLargeError` (SQLite, PostgreSQL) or `Data too long` (MySQL, MariaDB); `https:/a.example`, `https:\\a.example` stored as typed |
+| 9 | SMTP refuses what the transport would, and plain text with credentials | no | confirmed | Ports `0`, `65536`, `-1`, `25.0`, `1e3` refused; `none` to unlisted or with a user refused; M5 fails |
+| 10 | Only root saves or reads | no | confirmed | Moderator and user → `ForbiddenError`; M6 fails |
+| 11 | Two saves at once can't leave a setup a save would refuse | no | partly | **On PostgreSQL, MySQL, MariaDB a parallel A (public host + user + password) and B (listed relay, `none`) end as `smtp.example.com`, `none`, user and password**: each save wrote only the fields differing from its stale read. Caught at send (`smtp.ts:142`) |
+| 12 | The audit records what changed, the secret only as a change kind | no | partly | **`credentialChange: "removed"` recorded when none existed** (SMTP without a user, a password typed, none saved; the typed one silently dropped) |
+| 13 | The sentences in en, pt, fr say what changed | no | partly | Only the transport, sender and credential named: a contact, host, port, TLS, region or domain change reads "nothing" |
+| 14 | `audit-event.test.ts` knows the two actions | no | confirmed | M8 fails "cover every action"; the fixture has both |
+| 15 | `RONNE_MAIL_HOSTS` read in `config.ts`, the only mail setting from the server | no | partly | Read as a raw string; nothing parses it into a normalised set, and no test covers it |
+| 16 | `mail_last_status` kept and read back safely | no | confirmed | JSON with no address; `parseLastStatus` returns null on bad input |
+| 17 | Mutations of the secret code fail a test | no | partly | M1–M3, M5–M9, M12 fail; M4, M10, M11 survive |
+
+**Overall:** not met (rows 5, 7, 8, 11, 12, 13, 15, 17). Also: a refused secret got the "none is saved" message. For the record: binding SES to its region was over-strict (its endpoint is always AWS's), its access key ID unbound; U+202E accepted in the From name (display spoofing, not injection).
+
+### Re-check 1
+
+Witnessed: 2026-11-21 10:53 EST, by a fresh agent (blind). Commit: 31dcddaf + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| R1 | With no AUTH_SECRET, `mailSetup` shows `secretProblem: "unreadable"` | no | confirmed | `mail-setup.ts:88-95`; probe on SQLite and PostgreSQL. Test gap: M7 (only when an AUTH_SECRET exists) survives |
+| R2 | A test runs the `settings.mail` sentence with real metadata | no | confirmed | `sentences.test.ts` "names each part that changed…"; M6 fails it; six real saved rows render every part in en/pt/fr, no secret in the dump |
+| R3 | `https://@help.example` refused | no | confirmed | `null` for it, `HTTPS://@…`, `https://:pw@…`; `https://:@…` stored as `https://help.example/` (harmless) |
+| 1–2 | Keys and sealed `_enc` secrets bound to their key | no | confirmed | A value copied into another `_enc` key → unreadable; M3 fails the rotate test |
+| 3 | Each transport saves and builds a sender | no | confirmed | 155 passed (SQLite); `mail-setup.db.test.ts` + probe 27/27 on SQLite and PostgreSQL |
+| 4 | A secret never read back | no | confirmed | `mail-setup.ts:81`; no secret or key ID in the view or the audit |
+| 5–6 | Unreadable → `credentials_unreadable`; `rotate-secret` re-seals | no | confirmed | db tests; M3 |
+| 7 | A kept secret dropped when its transport or target changes (SES bound to the access key ID) | no | confirmed | SES region change keeps it, a new ID drops it; Mailgun region or domain refused; M1, M5 fail 3 tests |
+| 8–9 | CR/LF, control characters, non-ASCII addresses refused | no | confirmed | All injection variants refused; M2 fails 2 |
+| 10–11 | Contact rules; SMTP host checked | no | confirmed | `javascript:`, `https://u@` refused; db tests pass |
+| 12 | Root alone; only `RONNE_MAIL_HOSTS` from the server | no | confirmed | `loadConfig` probe; db tests |
+| 13–14 | The two actions' sentences; `audit-event.test.ts` knows both | no | confirmed | M4 fails "cover every action…" |
+
+**Overall:** met. Remarks: no repo test of the no-AUTH_SECRET view (M7); the sentence doesn't name a new SES access key ID; Resend → SMTP with a new password reads "a credential set".
+
+### Adversarial re-check 1
+
+Witnessed: 2026-11-21 10:51 EST, by a fresh agent (adversarial). Commit: 31dcddaf + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | A kept secret dropped when its transport or target changes, only then | no | confirmed | SES: a region change keeps it, a new ID refused, an ID changed in the DB → unreadable, ses→resend→ses drops it. M10, M11, M11b each fail their test |
+| 5a | The SES binding change is sound | no | confirmed | The target is the checked ID (`^[A-Z0-9]{16,128}$`); the secret never goes on the wire (SigV4), the endpoint is always AWS's |
+| 7 | Control characters refused in the From name and address | no | confirmed | M4 fails "refuses every line break and control character…" |
+| 8 | The contact bounded, `https://` only, stored as parsed | no | confirmed | 500 saved, 501 and 70k → `InvalidMailSetupError` on all 4 dialects; mended spellings and full-width `ｈttps` refused; stored as `href` (IDN as punycode). Mlen, Mhref, Mmend fail |
+| 11 | Two saves at once end as one save's whole setup | no | confirmed | 6 races each on PostgreSQL, MySQL, MariaDB: always A, B or C whole, no deadlock. Mwrite fails the race test 2 of 2 on each server (it can't bite on SQLite, which serialises writes) |
+| 12 | `credentialChange: "removed"` only when one existed | no | confirmed | A password without a user → `secretWithoutUser`; the audit kinds right over a sequence. Mnouser fails (Mfalse is an equivalent mutant) |
+| 13 | The sentences name the sender's name, Reply-To, contact, SMTP server, region, domain | no | confirmed | en, pt, fr all name them. Remark: a TLS-only change doesn't name TLS |
+| 15 | `RONNE_MAIL_HOSTS` parsed into a normalised set, tested | no | confirmed | `parseMailRelays` normalises; the test at `mail-setup.db.test.ts:392`. Its caller is the Email tab (task 7) |
+| 17 | Mutations of the secret code fail a test | no | confirmed | M4, M10, M11, M11b |
+| 18 | The diff's other changes are pinned | no | partly | **Mview** (no AUTH_SECRET → `"elsewhere"`) and **Minvalid** (`secretInvalid` back to `secret`) survive |
+| — | mail-setup tests on every dialect | no | confirmed | 26/26 on each of the four |
+
+**Overall:** not met (row 18). Also: typing a secret with no AUTH_SECRET said "none is saved"; a TLS-only change unnamed.
+
+Since then (not yet witnessed): tests "says the saved secret can't be read when the server has no AUTH_SECRET" and "names the field for a secret that can't be kept, or can't be sealed" (Mview and Minvalid each fail one now, 24 passed otherwise); a `noAuthSecret` field and message; the SMTP part of the sentence names the TLS mode. Note: during this pass Node 26's `pnpm` and `pnpx` links had been repointed to Corepack's shim (which can't start pnpm 12); they were restored to the npm-installed pnpm 12.21.0.
+
+### Adversarial re-check 2
+
+Witnessed: 2026-11-21 10:58 EST, by a fresh agent (adversarial). Commit: 31dcddaf + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1 (pnpm 12.6.0, the repository's `packageManager`).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 18a | With no AUTH_SECRET a saved secret shows as unreadable | no | confirmed | Mview (`mail-setup.ts:93` → `"elsewhere"`) → "says the saved secret can't be read when the server has no AUTH_SECRET" fails |
+| 18b | A too-long or multi-line secret names `secretInvalid` | no | confirmed | Minvalid → "names the field for a secret that can't be kept, or can't be sealed" fails |
+| 18c | A secret typed with no AUTH_SECRET is refused as `noAuthSecret` | no | confirmed | `mail-setup.ts:233`; MnoAuth and MnoAuthDel each fail the same test; message at `exceptions/errors.ts:36-37` |
+| 13 | The SMTP part of the sentence names the TLS mode, a TLS-only change included | no | confirmed | `host:port (tls)`; `sentences.test.ts` 12/12; Mtls fails "names each part that changed, in each language" |
+| — | The suite passes on SQLite and one server | no | confirmed | `mail-setup.db.test.ts` 24/24 on SQLite and PostgreSQL |
+
+**Overall:** met. With re-check 1 (blind) met, both latest passes are met. Remark: the field messages are English in `errors.ts`; the Email tab (task 7) turns field codes into screen text in three languages.

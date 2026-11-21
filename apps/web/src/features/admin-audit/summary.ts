@@ -518,6 +518,42 @@ export const SUMMARIES: Record<AuditAction, Build> = {
       );
     return { changes: changes.join(", ") || h.part("retention.nothing") };
   },
+  "settings.mail": (m, _e, h) => {
+    // `{ setup: { from, to }, credentialChange? }` (189): the transport, the sender, and the secret.
+    const setup = record(m.setup);
+    const from = record(setup.from);
+    const to = record(setup.to);
+    const changes = [
+      text(from.transport) !== text(to.transport)
+        ? h.part("mail.transport", { to: h.word("mailTransports", text(to.transport) || "none") })
+        : null,
+      text(from.from) !== text(to.from) ? h.part("mail.sender", { to: text(to.from) }) : null,
+      text(from.fromName) !== text(to.fromName) ? h.part("mail.fromName") : null,
+      text(from.replyTo) !== text(to.replyTo)
+        ? h.part("mail.replyTo", { to: text(to.replyTo) })
+        : null,
+      text(from.contact) !== text(to.contact) ? h.part("mail.contact") : null,
+      ["smtpHost", "smtpPort", "smtpTls"].some((k) => text(from[k]) !== text(to[k])) &&
+      text(to.smtpHost)
+        ? h.part("mail.smtp", {
+            to: `${text(to.smtpHost)}:${text(to.smtpPort)} (${text(to.smtpTls)})`,
+          })
+        : null,
+      text(from.region) !== text(to.region) && text(to.region)
+        ? h.part("mail.region", { to: text(to.region) })
+        : null,
+      text(from.domain) !== text(to.domain) && text(to.domain)
+        ? h.part("mail.domain", { to: text(to.domain) })
+        : null,
+      h.tryWord("mailSecrets", text(m.credentialChange)) ?? null,
+    ].filter((part): part is string => part !== null);
+    return { changes: changes.join(", ") || h.part("mail.nothing") };
+  },
+  "mail.test_sent": (m, _e, h) => ({
+    // `{ result: sent | retry | failed, reason? }` (189): never the address or the answer.
+    result: ["sent", "retry", "failed"].includes(text(m.result)) ? text(m.result) : "other",
+    reason: h.word("mailReasons", text(m.reason)),
+  }),
   "settings.skill_scan": (m, _e, h) => {
     // `{ from: { enabled, types, analysis }, to: { … } }` (135): only what changed.
     const from = record(m.from);

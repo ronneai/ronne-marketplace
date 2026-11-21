@@ -31,6 +31,12 @@ export type AppConfig = {
   /** RONNE_UPDATE_CHECK as given (140): `off` stops the daily request to GitHub for good. */
   updateCheck?: string;
   /**
+   * RONNE_MAIL_HOSTS as given (189): the internal relays the operator allows, which skip the SMTP
+   * host check and may use plain SMTP. The only mail setting read from the server: the rest of the
+   * setup is root's, on the Email tab.
+   */
+  mailHosts?: string;
+  /**
    * The security scan (135): RONNE_SKILL_SCANNER and RONNE_SKILL_SCANNER_TIMEOUT as given, and every
    * RONNE_SKILL_SCANNER_ENV_* setting (the environment's over the file's). domains/scans reads them.
    */
@@ -86,6 +92,7 @@ export const loadConfig = (options: { appDir?: string; env?: Env } = {}): AppCon
     logFormat: value("LOG_FORMAT"),
     jobs: value("RONNE_JOBS"),
     updateCheck: value("RONNE_UPDATE_CHECK"),
+    mailHosts: value("RONNE_MAIL_HOSTS"),
     otel: withPrefix("OTEL_"),
     skillScanner: {
       command: value("RONNE_SKILL_SCANNER"),

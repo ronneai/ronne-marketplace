@@ -102,6 +102,7 @@ export const AUDIT_ACTIONS = [
   "settings.update_check",
   "settings.languages",
   "settings.skill_scan",
+  "settings.mail",
   "scan.finding_dismissed",
   "scan.finding_restored",
   "pin.added",
@@ -109,6 +110,7 @@ export const AUDIT_ACTIONS = [
   "pin.reordered",
   "feedback.handled",
   "feedback.deleted",
+  "mail.test_sent",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
@@ -128,6 +130,7 @@ export const AUDIT_ACTION_GROUPS = [
   "pin",
   "feedback",
   "settings",
+  "mail",
   "instance",
   "scim",
 ] as const;

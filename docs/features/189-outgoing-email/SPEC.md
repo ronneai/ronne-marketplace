@@ -56,13 +56,18 @@ possible, and follow the standards (owner, 2026-11-20).
   `mail_api_key_enc`, `mail_ses_secret_access_key_enc`), sealed by
   `settings/models/instance-secrets.ts` as 136 seals the scan key, so `rotate-secret` re-seals
   them. They are write-only: the tab shows *Saved* and a **Replace** button, never the value.
-- **The environment wins, all or nothing.** When the operator sets `RONNE_MAIL_TRANSPORT`, the whole
-  setup comes from `RONNE_MAIL_*` variables: `RONNE_MAIL_FROM`, `RONNE_MAIL_FROM_NAME`,
-  `RONNE_MAIL_SMTP_HOST`, `_PORT`, `_TLS`, `_USER` and `_PASSWORD`, `RONNE_MAIL_API_KEY`,
-  `RONNE_MAIL_REGION`, `RONNE_MAIL_DOMAIN` (Mailgun), `RONNE_MAIL_CONTACT`, `RONNE_MAIL_SES_ACCESS_KEY_ID` and
-  `RONNE_MAIL_SES_SECRET_ACCESS_KEY`. The tab then shows every field as *Set on the server*,
-  read-only, as 136 does. This is for operators who keep secrets out of the database. They're read
-  by `server/config.ts` with the others, the environment's over the settings file's.
+  Each is sealed together with what it was typed for, the transport and its target (the SMTP
+  host, the Mailgun domain and region, the SES access key ID it pairs with; SES's endpoint is
+  always AWS's own, so a region change keeps it), and opens only for those: switching from Resend to
+  Postmark, or changing the SMTP host, drops a kept secret, so it never goes where it wasn't typed
+  for (136's rule for the scan key).
+- **Root manages it all on the page** (owner, 2026-11-21). The whole setup (transport,
+  credentials, sender, Reply-To, instance contact) is set on the Email tab and kept in the
+  database, the secrets sealed; there are no `RONNE_MAIL_*` variables for it and no settings file
+  to edit. The one thing left on the server is `RONNE_MAIL_HOSTS`, the internal relays the
+  operator allows: it's the only setting that lets a web form reach the server's own network, so
+  a stolen root session can't use it to probe that network (as 136 keeps the scanner's internal
+  hosts on the server).
 - **The Email tab** in Admin › Settings (`SETTINGS_TABS`, after Authentication; root only,
   `settings.manage`). It holds:
   - **Status:**
@@ -174,9 +179,10 @@ possible, and follow the standards (owner, 2026-11-20).
 The test arrives in root's inbox, and the status says *Working, tested 2 minutes ago*. The audit
 log shows `settings.mail` (secret: replaced) and `mail.test_sent`.
 
-**An operator keeps secrets out of the database.** The Docker host's `.env` sets
-`RONNE_MAIL_TRANSPORT=smtp`, the host, `RONNE_MAIL_SMTP_TLS=starttls`, the user and password. The
-tab shows every field *Set on the server*, and **Send test email** still works.
+**A company relay on the same network.** The operator adds `relay.corp.internal` to
+`RONNE_MAIL_HOSTS` once. Root then picks *Other SMTP server* on the tab, types that host, port 25
+and *No TLS*, with no user name, and **Send test email** works. Without the operator's entry the
+save is refused: the host resolves to a private address.
 
 **A notice.** Ana turns off two-factor on her Account page. In the same transaction, the outbox
 gets a row. A second later it's sent: "Two-factor sign-in was turned off for your account on
@@ -231,9 +237,8 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
 - **`instance_settings` keys:** `mail_transport`, `mail_from_address`, `mail_from_name`,
   `mail_smtp_host`, `mail_smtp_port`, `mail_smtp_tls`, `mail_smtp_user`, `mail_smtp_password_enc`,
   `mail_api_key_enc`, `mail_region`, `mail_domain`, `mail_ses_access_key_id`,
-  `mail_ses_secret_access_key_enc`, `mail_contact` (the instance contact; also
-  `RONNE_MAIL_CONTACT` when the environment sets the email setup), `mail_reply_to` (also
-  `RONNE_MAIL_REPLY_TO`), and `mail_last_status` (JSON: status, time, reason category).
+  `mail_ses_secret_access_key_enc`, `mail_contact` (the instance contact), `mail_reply_to`, and
+  `mail_last_status` (JSON: status, time, reason category).
 - **`jobs` row:** `mail_outbox`.
 
 ## Documentation
@@ -242,7 +247,7 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
   - `setup`: the tab, the transports, the test;
   - `providers`: a guide per preset and API, with the least-privilege credentials;
   - `domain`: SPF, DKIM and DMARC for the From domain, with each provider's own pages;
-  - `environment`: the `RONNE_MAIL_*` variables and `RONNE_MAIL_HOSTS`;
+  - `relays`: `RONNE_MAIL_HOSTS`, the operator's internal relays, and why it stays on the server;
   - `notices`: which security notices go out, and why they can't be turned off;
   - `troubleshooting`: blocked ports, unverified senders, TLS errors.
 - **`privacy`:** the outbox, what it keeps and for how long; the email provider as a processor
@@ -262,7 +267,7 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
   host resolving to a private address is refused unless listed.
 - [ ] Secrets are sealed, never shown, never in logs or audit rows. `rotate-secret` re-seals them and
   the queued bodies.
-- [ ] `RONNE_MAIL_TRANSPORT` makes the whole tab read-only from the environment.
+- [ ] Every part of the setup is set on the tab and kept in the database; only `RONNE_MAIL_HOSTS` is read from the server.
 - [ ] A message is queued in its change's transaction; a rolled-back change queues nothing.
 - [ ] A sent, failed or dropped row has no body. An expired code's email is dropped, not sent.
 - [ ] Retries follow the schedule. Permanent errors don't retry, and `429` waits for `Retry-After`.
@@ -287,9 +292,10 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
    has no dependencies, is maintained, and is on 10.x (Node.js 20 or later). Its licence is
    **MIT-0**, MIT without the attribution clause, as permissive as 0BSD, which is already allowed.
    Task 2 adds MIT-0 to the dependency policy §1 and to `license-policy.json`.
-3. **The environment wins, all or nothing** (Claude). This is 136's rule (the operator's settings
-   win). Taking the whole setup from one place avoids a half-environment, half-database transport
-   that nobody can reason about.
+3. **Root manages the setup on the page, not in files** (owner, 2026-11-21, replacing "the
+   environment wins"). Everything root needs is on the Email tab, kept sealed in the database.
+   Only `RONNE_MAIL_HOSTS` stays on the server, as the one setting that lets a web form reach the
+   server's own network.
 4. **A transactional outbox with sealed bodies, deleted once sent** (Claude, from the owner's data
    protection rule). A notice can't be lost to a crash, and a code can't be read from the database
    or a backup after it's sent.

@@ -693,6 +693,40 @@
           "choiceOff": "as pessoas não podem escolher",
           "offered": "oferecidos: {list}",
           "nothing": "nada"
+        },
+        "mail": {
+          "transport": "o transporte para {to}",
+          "sender": "o remetente para {to}",
+          "nothing": "nada",
+          "fromName": "o nome do remetente",
+          "replyTo": "o Reply-To para {to}",
+          "contact": "o contato da instância",
+          "smtp": "o servidor SMTP para {to}",
+          "region": "a região para {to}",
+          "domain": "o domínio para {to}"
+        },
+        "mailTransports": {
+          "smtp": "SMTP",
+          "ses": "Amazon SES",
+          "mailgun": "Mailgun",
+          "postmark": "Postmark",
+          "resend": "Resend",
+          "none": "nenhum"
+        },
+        "mailSecrets": {
+          "set": "uma credencial definida",
+          "replaced": "a credencial substituída",
+          "removed": "a credencial removida"
+        },
+        "mailReasons": {
+          "connection": "não conectou",
+          "timeout": "sem resposta a tempo",
+          "tls": "o TLS falhou",
+          "auth": "credenciais recusadas",
+          "rate_limited": "envios demais",
+          "server": "o provedor falhou",
+          "rejected": "recusado",
+          "config": "a configuração não funciona"
         }
       },
       "actions": {
@@ -827,7 +861,11 @@
           "notice": "Alterou o comunicado da instância: {changes}",
           "skill_scan": "Alterou a verificação de segurança: {changes}",
           "update_check": "Alterou a verificação de atualizações: {state, select, on {ativada} off {desativada} other {alterada}}",
-          "languages": "Alterou os idiomas: {changes}"
+          "languages": "Alterou os idiomas: {changes}",
+          "mail": "Alterou o envio de e-mail: {changes}"
+        },
+        "mail": {
+          "test_sent": "Enviou um e-mail de teste{result, select, sent {, aceito pelo provedor} retry {, que ainda não foi ({reason})} failed {, que falhou ({reason})} other {}}"
         }
       }
     },

@@ -40,14 +40,16 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     - the SigV4 signer passes AWS's published test vectors;
     - no test output, log or error text carries a credential.
 
-- [ ] **4. Settings and secrets.** [risky]
+- [x] **4. Settings and secrets.** [risky]
   - The `mail_*` keys, the `_enc` secrets through `instance-secrets.ts`, `rotate-secret` re-sealing
     them, and `mail_last_status`.
-  - The `RONNE_MAIL_*` variables in `server/config.ts`, all or nothing.
+  - `RONNE_MAIL_HOSTS` in `server/config.ts`, the only mail setting read from the server: every
+    other part of the setup is on the tab (owner, 2026-11-21).
   - Header-injection checks on the From name and address.
   - `settings.mail` and `mail.test_sent` in the audit actions, secrets as *replaced*.
   - *Done when:* db tests cover saving each transport, a secret never read back, an unreadable
-    secret, `rotate-secret`, the environment taking over, and a CR/LF refused; `audit-event.test.ts`
+    secret, `rotate-secret`, a kept secret dropped when its transport or host changes, and a CR/LF
+    refused; `audit-event.test.ts`
     knows the two actions.
 
 - [ ] **5. The outbox.** [risky]
@@ -76,15 +78,15 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 - [ ] **7. The Email tab.**
   - `email` in `SETTINGS_TABS`; the status, sender, transport with presets and steps, the write-only
-    secrets and *Set on the server*; the **Instance contact** field (`mail_contact`, or
-    `RONNE_MAIL_CONTACT`), validated as an email address or an `https://` URL, and
+    secrets; the **Instance contact** field (`mail_contact`), validated as an email address or an `https://` URL, and
     `instanceContact()` for 190 and 194 to check before their switches turn on; the required
-    **Reply-To** field (`mail_reply_to`, or `RONNE_MAIL_REPLY_TO`), filled from the contact when
+    **Reply-To** field (`mail_reply_to`), filled from the contact when
     that is an email address, and set on every message.
   - **Send test email** (to root only, 5 in 10 minutes) and **Stop sending**.
-  - Screen text through messages in three languages.
+  - Screen text through messages in three languages, including each `InvalidMailSetupError`
+    field code (`mail/exceptions/errors.ts`), whose English there is only the server's default.
   - *Done when:* component tests cover each status, each transport's fields, a secret saved and
-    replaced, the environment's read-only view, the instance contact (valid, `http://`, with a user
+    replaced, a relay host refused unless the operator lists it, the instance contact (valid, `http://`, with a user
     name, empty), the test's success, failure and limit, and Stop sending; the phone sweep passes on the tab.
 
 - [ ] **8. Security notices.** [risky]

@@ -693,6 +693,40 @@
           "choiceOff": "people can't choose",
           "offered": "offered: {list}",
           "nothing": "nothing"
+        },
+        "mail": {
+          "transport": "the transport to {to}",
+          "sender": "the sender to {to}",
+          "nothing": "nothing",
+          "fromName": "the sender's name",
+          "replyTo": "the Reply-To to {to}",
+          "contact": "the instance contact",
+          "smtp": "the SMTP server to {to}",
+          "region": "the region to {to}",
+          "domain": "the domain to {to}"
+        },
+        "mailTransports": {
+          "smtp": "SMTP",
+          "ses": "Amazon SES",
+          "mailgun": "Mailgun",
+          "postmark": "Postmark",
+          "resend": "Resend",
+          "none": "none"
+        },
+        "mailSecrets": {
+          "set": "a credential set",
+          "replaced": "the credential replaced",
+          "removed": "the credential removed"
+        },
+        "mailReasons": {
+          "connection": "couldn't connect",
+          "timeout": "no answer in time",
+          "tls": "TLS failed",
+          "auth": "credentials refused",
+          "rate_limited": "too many sent",
+          "server": "the provider failed",
+          "rejected": "refused",
+          "config": "the setup can't work"
         }
       },
       "actions": {
@@ -827,7 +861,11 @@
           "notice": "Changed the instance notice: {changes}",
           "skill_scan": "Changed the security scan: {changes}",
           "update_check": "Changed the check for updates: {state, select, on {turned on} off {turned off} other {changed}}",
-          "languages": "Changed the languages: {changes}"
+          "languages": "Changed the languages: {changes}",
+          "mail": "Changed outgoing email: {changes}"
+        },
+        "mail": {
+          "test_sent": "Sent a test email{result, select, sent {, which the provider took} retry {, which didn't go yet ({reason})} failed {, which failed ({reason})} other {}}"
         }
       }
     },

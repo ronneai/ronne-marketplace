@@ -693,6 +693,40 @@
           "choiceOff": "les gens ne peuvent pas choisir",
           "offered": "offertes : {list}",
           "nothing": "rien"
+        },
+        "mail": {
+          "transport": "le transport à {to}",
+          "sender": "l’expéditeur à {to}",
+          "nothing": "rien",
+          "fromName": "le nom de l’expéditeur",
+          "replyTo": "le Reply-To à {to}",
+          "contact": "le contact de l’instance",
+          "smtp": "le serveur SMTP à {to}",
+          "region": "la région à {to}",
+          "domain": "le domaine à {to}"
+        },
+        "mailTransports": {
+          "smtp": "SMTP",
+          "ses": "Amazon SES",
+          "mailgun": "Mailgun",
+          "postmark": "Postmark",
+          "resend": "Resend",
+          "none": "aucun"
+        },
+        "mailSecrets": {
+          "set": "un identifiant défini",
+          "replaced": "l’identifiant remplacé",
+          "removed": "l’identifiant retiré"
+        },
+        "mailReasons": {
+          "connection": "connexion impossible",
+          "timeout": "pas de réponse à temps",
+          "tls": "le TLS a échoué",
+          "auth": "identifiants refusés",
+          "rate_limited": "trop d’envois",
+          "server": "le fournisseur a échoué",
+          "rejected": "refusé",
+          "config": "la configuration ne peut pas marcher"
         }
       },
       "actions": {
@@ -827,7 +861,11 @@
           "notice": "A changé l’avis de l’instance : {changes}",
           "skill_scan": "A modifié l’analyse de sécurité : {changes}",
           "update_check": "A modifié la vérification des mises à jour : {state, select, on {activée} off {désactivée} other {modifiée}}",
-          "languages": "A modifié les langues : {changes}"
+          "languages": "A modifié les langues : {changes}",
+          "mail": "A modifié l’envoi de courriels : {changes}"
+        },
+        "mail": {
+          "test_sent": "A envoyé un courriel d’essai{result, select, sent {, accepté par le fournisseur} retry {, pas encore parti ({reason})} failed {, qui a échoué ({reason})} other {}}"
         }
       }
     },
