@@ -20,3 +20,14 @@ the `<p>` and the `<Help>`. Every helper in the app is placed this way.
 So 047's line "Usage appears once…" shipped with its helper inside a `<p>` and broke only in
 `pnpm dev`. `item-page.test.tsx` now fails when a `<details>` appears inside a `<p>` on the
 Overview; do the same where you add a helper next to text.
+
+## A helper passed into a component
+
+`help-not-in-paragraph.test.ts` reads the sources, so it sees a `<Help>` written inside a `<p>`,
+but not one passed as a prop (a `hint={…}` or a `label={…}`) to a component that wraps that prop
+in a `<p>`. 189's Email tab did that: the From address field's `hint` held `<Help id="email-domain">`
+and the field drew its hint in a `<p>`, so the tab failed to hydrate in `pnpm dev` while every test
+passed. A component that takes text which may hold a helper draws it in a `<div>` (or a `<span>`
+for one line), and its tests parse the rendered markup for a block inside a `<p>`, as
+`email.test.tsx` does (`p div, p p, p ul, p ol`). The guard's own regex also matches a literal `<p>`
+in a comment, so a comment there says "paragraph", not the tag.
