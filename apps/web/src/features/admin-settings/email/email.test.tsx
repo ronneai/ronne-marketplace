@@ -329,6 +329,18 @@ describe("Send test email and Stop sending (189)", () => {
   });
 });
 
+describe("the Email tab's markup (189)", () => {
+  it("never puts a block inside a paragraph, so the page hydrates as the server drew it", () => {
+    const page = html(<EmailForm setup={{ ...SETUP, transport: "smtp", status: "untested" }} />);
+    const doc = new DOMParser().parseFromString(page, "text/html");
+    expect([...doc.querySelectorAll("p div, p p, p ul, p ol")].map((el) => el.outerHTML)).toEqual(
+      [],
+    );
+    // The From address's hint holds its helper.
+    expect(doc.querySelector("#mail-fromAddress-hint button")).not.toBeNull();
+  });
+});
+
 describe("the Email tab in Portuguese and French (189)", () => {
   it("shows no English, whatever the transport", async () => {
     for (const locale of ["pt", "fr"] as const)

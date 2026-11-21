@@ -68,9 +68,11 @@ const Field = ({
       className={`${inputClasses}${mono ? " font-mono" : ""}`}
     />
     {hint ? (
-      <p id={`mail-${name}-hint`} className="text-xs text-muted">
+      // A div, never a paragraph: a hint may hold a helper, which renders blocks
+      // (docs/knowledge/help-tips-and-paragraphs.md).
+      <div id={`mail-${name}-hint`} className="text-xs text-muted">
         {hint}
-      </p>
+      </div>
     ) : null}
   </div>
 );
