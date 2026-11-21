@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as identityErrors from "@/server/domains/identity/exceptions/errors";
 import * as itemsErrors from "@/server/domains/items/exceptions/errors";
+import * as mailErrors from "@/server/domains/mail/exceptions/errors";
 import * as scansErrors from "@/server/domains/scans/exceptions/errors";
 import * as settingsErrors from "@/server/domains/settings/exceptions/errors";
 import * as shelvesErrors from "@/server/domains/shelves/exceptions/errors";
@@ -23,6 +24,15 @@ const {
   TokenNotFoundError,
   NoPasswordError,
 } = identityErrors;
+const {
+  InvalidMailSetupError,
+  MailHostInternalError,
+  MailHostUnresolvedError,
+  MailPlainSmtpError,
+  MailNotSetUpError,
+  MailCredentialsUnreadableError,
+  MailTestLimitError,
+} = mailErrors;
 
 type L = "en" | "pt" | "fr";
 const text = (locale: L, error: Error) => inLocale(locale, () => errorText(error));
@@ -92,6 +102,70 @@ describe("domain errors in three languages (129)", () => {
         pt: "Esta conta não tem senha (ela entra por um provedor), então não há senha para trocar.",
         fr: "Ce compte n’a pas de mot de passe (il se connecte par un fournisseur); il n’y a donc rien à remplacer.",
       },
+    ], // 189: the Email tab's errors, a field's code worded by `InvalidMailSetupError`'s select.
+    [
+      new InvalidMailSetupError("contact"),
+      {
+        en: "The instance contact is an email address or an https:// address without a user name, 500 characters at most.",
+        pt: "O contato da instância é um endereço de e-mail ou um endereço https:// sem nome de usuário, com no máximo 500 caracteres.",
+        fr: "Le contact de l’instance est une adresse courriel ou une adresse https:// sans nom d’utilisateur, d’au plus 500 caractères.",
+      },
+    ],
+    [
+      new InvalidMailSetupError("replyTo"),
+      {
+        en: "Reply-To is an email address, ASCII only, and it's required.",
+        pt: "O Reply-To é um endereço de e-mail, só em ASCII, e é obrigatório.",
+        fr: "Le Reply-To est une adresse courriel, en ASCII seulement, et il est obligatoire.",
+      },
+    ],
+    [
+      new MailHostInternalError(),
+      {
+        en: "That host is on a private network. A relay there works only once the operator lists it in RONNE_MAIL_HOSTS on the server.",
+        pt: "Esse servidor está numa rede privada. Um relay ali só funciona depois que o operador o inclui em RONNE_MAIL_HOSTS no servidor.",
+        fr: "Ce serveur est sur un réseau privé. Un relais à cet endroit ne fonctionne qu’une fois que l’opérateur l’a inscrit dans RONNE_MAIL_HOSTS sur le serveur.",
+      },
+    ],
+    [
+      new MailHostUnresolvedError(),
+      {
+        en: "That host name doesn't resolve.",
+        pt: "Esse nome de servidor não resolve.",
+        fr: "Ce nom de serveur ne se résout pas.",
+      },
+    ],
+    [
+      new MailPlainSmtpError(),
+      {
+        en: "No TLS is only for a relay the operator lists in RONNE_MAIL_HOSTS, and never with a user name and password.",
+        pt: "Sem TLS é só para um relay que o operador inclui em RONNE_MAIL_HOSTS, e nunca com nome de usuário e senha.",
+        fr: "Sans TLS ne sert qu’à un relais que l’opérateur inscrit dans RONNE_MAIL_HOSTS, et jamais avec un nom d’utilisateur et un mot de passe.",
+      },
+    ],
+    [
+      new MailNotSetUpError(),
+      {
+        en: "Email isn't set up: choose a transport and save first.",
+        pt: "O e-mail não está configurado: escolha um transporte e salve primeiro.",
+        fr: "Le courriel n’est pas configuré : choisissez un transport et enregistrez d’abord.",
+      },
+    ],
+    [
+      new MailCredentialsUnreadableError(),
+      {
+        en: "The saved credential can't be read (an older AUTH_SECRET): type it again and save.",
+        pt: "Não é possível ler a credencial salva (um AUTH_SECRET antigo): digite-a de novo e salve.",
+        fr: "L’identifiant enregistré est illisible (un ancien AUTH_SECRET) : tapez-le de nouveau et enregistrez.",
+      },
+    ],
+    [
+      new MailTestLimitError(5),
+      {
+        en: "At most 5 test emails in 10 minutes: wait a few minutes, then try again.",
+        pt: "No máximo 5 e-mails de teste em 10 minutos: espere alguns minutos e tente de novo.",
+        fr: "Au plus 5 courriels d’essai en 10 minutes : attendez quelques minutes, puis réessayez.",
+      },
     ],
   ];
 
@@ -148,6 +222,7 @@ describe("domain errors in three languages (129)", () => {
       itemsErrors,
       settingsErrors,
       scansErrors,
+      mailErrors,
     ];
     for (const key of Object.keys(en))
       expect(

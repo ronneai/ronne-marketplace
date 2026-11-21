@@ -57,6 +57,8 @@ export interface EraseRepository {
    * and by then it is the pseudonym. Returns how many.
    */
   deleteNotifications(userId: string): Promise<number>;
+  /** The emails sent or queued to them (189), with what's left of their bodies. Returns the rows. */
+  deleteMail(userId: string): Promise<number>;
   /** Live links and tombstones (108), and the provider groups' memberships. Returns the links. */
   deleteScimRows(userId: string): Promise<number>;
   /** Every workspace membership, the personal one's included. Returns how many. */

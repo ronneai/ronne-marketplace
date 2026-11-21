@@ -91,6 +91,8 @@ export const resetRootPassword = async (
     if (root.disabledAt) await repo.enableUser(root.id, now);
     // The terminal stays the last way in: a lost phone too (105).
     const twoFactorReset = await repo.resetTwoFactor(root.id, now);
+    // Sent once the command's transaction commits, by the command itself (189).
+    await repo.queueSecurityNotice(root.id, "password_reset", now);
     await repo.recordAudit(
       {
         actorId: null,
@@ -138,6 +140,7 @@ export const resetTwoFactorFromCli = async (
     const sessionsEnded = await repo.deleteSessions(user.id);
     // As the web reset does (162): the tokens stop with the sessions.
     const tokensRevoked = await repo.revokeAccessTokens(user.id, now);
+    await repo.queueSecurityNotice(user.id, "two_factor_reset", now);
     await repo.recordAudit(
       {
         actorId: null,

@@ -5,6 +5,7 @@ import { PageHeader, Panel } from "@/components/ui/Panel";
 import { TabLinks } from "@/components/ui/TabLinks";
 import { AuthenticationTab } from "@/features/admin-settings/authentication/AuthenticationTab";
 import { ProviderPage } from "@/features/admin-settings/authentication/providers/ProviderPage";
+import { EmailTab } from "@/features/admin-settings/email/EmailTab";
 import { PluginFeedsPanel } from "@/features/admin-settings/feeds/PluginFeedsPanel";
 import { LanguagesTab } from "@/features/admin-settings/languages/LanguagesTab";
 import { NoticeTab } from "@/features/admin-settings/notice/NoticeTab";
@@ -27,7 +28,7 @@ export const generateMetadata = settingsTitle;
 /**
  * Root only (`settings.manage`): anyone else gets a 404. In tabs (122), by `?tab=`: Usage (046's
  * policy and 047's minimum, the default), Plugin feeds (079's last builds) and Authentication,
- * whose identity providers each have a page (`&provider=`, 106), Privacy (102's retention) and
+ * whose identity providers each have a page (`&provider=`, 106), Email (189), Privacy (102's retention) and
 
  * Notice (124's message for every signed-in page), Security scan (135), Updates (140) and Languages (141).
  * Only the tab shown reads its data.
@@ -51,6 +52,7 @@ const AdminSettings = async ({ searchParams }: { searchParams: Promise<SearchPar
     if (tab === "authentication" && provider)
       return await ProviderPage({ id: provider, test: one(query.test), preset: one(query.preset) });
     if (tab === "authentication") return await AuthenticationTab();
+    if (tab === "email") return await EmailTab();
     if (tab === "privacy") return await PrivacyTab();
     if (tab === "notice") return await NoticeTab();
     if (tab === "scan") return await ScanTab();

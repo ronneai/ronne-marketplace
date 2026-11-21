@@ -2,6 +2,7 @@
   "$comment": "Read by packages/repo-tools/src/check-licenses.js. The rules and every exception are explained in docs/policies/dependencies.md (§1 and §5). Change both together.",
   "allowed": [
     "MIT",
+    "MIT-0",
     "ISC",
     "BSD-2-Clause",
     "BSD-3-Clause",

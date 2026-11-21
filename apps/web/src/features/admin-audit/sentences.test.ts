@@ -63,6 +63,39 @@ describe("every audit action has a sentence in each language (132)", () => {
   });
 });
 
+describe("the email setup's sentence (189)", () => {
+  it("names each part that changed, in each language", () => {
+    const metadata = {
+      setup: {
+        from: {
+          transport: "resend",
+          from: "a@acme.example",
+          contact: null,
+          replyTo: "r@acme.example",
+        },
+        to: {
+          transport: "smtp",
+          from: "b@acme.example",
+          contact: "https://help.acme.example/",
+          replyTo: "r@acme.example",
+          smtpHost: "smtp.acme.example",
+          smtpPort: "587",
+          smtpTls: "starttls",
+        },
+      },
+      credentialChange: "replaced",
+    };
+    expect(line("en", "settings.mail", metadata)).toBe(
+      "Changed outgoing email: the transport to SMTP, the sender to b@acme.example, the instance contact, the SMTP server to smtp.acme.example:587 (starttls), the credential replaced",
+    );
+    expect(line("pt", "settings.mail", metadata)).toContain("o contato da instância");
+    expect(line("fr", "settings.mail", metadata)).toContain("le contact de l’instance");
+    expect(line("en", "mail.test_sent", { result: "failed", reason: "auth" })).toBe(
+      "Sent a test email, which failed (credentials refused)",
+    );
+  });
+});
+
 describe("audit sentences in Portuguese and French (132)", () => {
   it("reads a few events in the language", () => {
     expect(line("pt", "auth.signed_in", { remember: true })).toBe(

@@ -170,5 +170,12 @@
   "FindingNotFoundError": "Ce résultat n’existe plus, ou vous ne pouvez pas le voir.",
   "FindingDismissedError": "Ce résultat est déjà marqué, comme faux positif ou risque accepté.",
   "NotScanReviewerError": "Seules les personnes qui révisent la soumission marquent des résultats comme faux positifs, jamais son auteur.",
-  "DismissalKindError": "Marquez-le comme faux positif ou comme risque accepté."
+  "DismissalKindError": "Marquez-le comme faux positif ou comme risque accepté.",
+  "InvalidMailSetupError": "{field, select, transport {Choisissez comment les courriels sortent du serveur.} fromAddress {L’expéditeur est une adresse courriel, en ASCII seulement.} fromName {Le nom de l’expéditeur compte au plus 100 caractères, sur une ligne.} replyTo {Le Reply-To est une adresse courriel, en ASCII seulement, et il est obligatoire.} contact {Le contact de l’instance est une adresse courriel ou une adresse https:// sans nom d’utilisateur, d’au plus 500 caractères.} smtpHost {Le serveur SMTP est un nom d’hôte ou une adresse.} smtpPort {Le port est un nombre entier de 1 à 65535.} smtpTls {Choisissez TLS, STARTTLS, ou sans TLS pour un relais que l’opérateur inscrit.} smtpUser {Le nom d’utilisateur compte au plus 256 caractères, sur une ligne.} secret {Tapez l’identifiant : ce transport en demande un, et aucun n’est enregistré pour lui.} secretInvalid {L’identifiant compte au plus 4 096 caractères, sur une ligne.} secretWithoutUser {Un mot de passe n’est gardé qu’avec un nom d’utilisateur : tapez aussi le nom d’utilisateur.} noAuthSecret {Le serveur n’a pas d’AUTH_SECRET pour sceller l’identifiant : définissez-le, puis enregistrez de nouveau.} region {Choisissez la région du fournisseur.} domain {Le domaine d’envoi est un nom de domaine, comme mg.example.com.} sesAccessKeyId {L’ID de clé d’accès compte de 16 à 128 lettres majuscules et chiffres.} other {Ce champ ne peut pas être enregistré tel quel.}}",
+  "MailHostInternalError": "Ce serveur est sur un réseau privé. Un relais à cet endroit ne fonctionne qu’une fois que l’opérateur l’a inscrit dans RONNE_MAIL_HOSTS sur le serveur.",
+  "MailHostUnresolvedError": "Ce nom de serveur ne se résout pas.",
+  "MailPlainSmtpError": "Sans TLS ne sert qu’à un relais que l’opérateur inscrit dans RONNE_MAIL_HOSTS, et jamais avec un nom d’utilisateur et un mot de passe.",
+  "MailNotSetUpError": "Le courriel n’est pas configuré : choisissez un transport et enregistrez d’abord.",
+  "MailCredentialsUnreadableError": "L’identifiant enregistré est illisible (un ancien AUTH_SECRET) : tapez-le de nouveau et enregistrez.",
+  "MailTestLimitError": "Au plus {limit} courriels d’essai en 10 minutes : attendez quelques minutes, puis réessayez."
 }

@@ -2,6 +2,7 @@
   "pt": {
     "account:security.setup.step1": "Names the 1Password app.",
     "admin:done.users.erased": "Names the stored pseudonym deleted-user, which is data.",
+    "admin:settings.email.contact.hint": "Names the example address it-help@acme.com, which is data.",
     "admin:settings.providers.intro": "Names Google Workspace, a product.",
     "admin:settings.scim.steps.okta.s1": "Quotes Okta's own screen labels, which are in English.",
     "admin:settings.scim.steps.okta.s2": "Quotes Okta's own screen labels, which are in English.",
@@ -23,6 +24,7 @@
   "fr": {
     "account:security.setup.step1": "Names the 1Password app.",
     "admin:done.users.erased": "Names the stored pseudonym deleted-user, which is data.",
+    "admin:settings.email.contact.hint": "Names the example address it-help@acme.com, which is data.",
     "admin:settings.providers.intro": "Names Google Workspace, a product.",
     "admin:settings.scim.steps.okta.s1": "Quotes Okta's own screen labels, which are in English.",
     "admin:settings.scim.steps.okta.s2": "Quotes Okta's own screen labels, which are in English.",

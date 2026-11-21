@@ -4,6 +4,7 @@ import {
   EVERY_MS,
   FIRST_RUN_MS,
   jobsOff,
+  kickMailOutbox,
   kickSkillScans,
   SCAN_SCHEDULE,
   startJobsIfOn,
@@ -217,6 +218,71 @@ describe("the security scan's schedule and kicks (135)", () => {
     } finally {
       stopJobs();
     }
+  });
+
+  it("starts the outbox 30 seconds after start, then every 30 seconds, and not with RONNE_JOBS=off", async () => {
+    const clock = fakeTimers();
+    let runs = 0;
+    const quiet = {
+      runScans: async () => undefined,
+      runRetention: async () => undefined,
+      runUpdates: async () => undefined,
+    };
+    startJobsIfOn(
+      {},
+      {
+        timers: clock.timers,
+        ...quiet,
+        runMail: async () => {
+          runs++;
+        },
+      },
+    );
+    try {
+      await clock.advanceTo(29_999);
+      expect(runs).toBe(0);
+      await clock.advanceTo(30_000);
+      expect(runs).toBe(1);
+      for (let tick = 2; tick <= 4; tick++) await clock.advanceTo(tick * 30_000);
+      expect(runs).toBe(4);
+    } finally {
+      stopJobs();
+    }
+    const off = fakeTimers();
+    startJobsIfOn(
+      { RONNE_JOBS: "off" },
+      {
+        timers: off.timers,
+        ...quiet,
+        runMail: async () => {
+          runs++;
+        },
+      },
+    );
+    try {
+      await off.advanceTo(3_600_000);
+      expect(runs).toBe(4);
+    } finally {
+      stopJobs();
+    }
+  });
+
+  it("sends kicked mail with RONNE_JOBS=off, only the rows kicked, folding kicks during a run", async () => {
+    const batches: string[][] = [];
+    let release = () => {};
+    const gate = new Promise<void>((done) => {
+      release = done;
+    });
+    const run = async (_env: Record<string, string | undefined>, ids: readonly string[]) => {
+      batches.push([...ids]);
+      if (batches.length === 1) await gate;
+    };
+    const first = kickMailOutbox(["a"], { RONNE_JOBS: "off" }, run);
+    kickMailOutbox(["b"], { RONNE_JOBS: "off" }, run);
+    kickMailOutbox(["c", "b"], { RONNE_JOBS: "off" }, run);
+    release();
+    await first;
+    expect(batches).toEqual([["a"], ["b", "c"]]);
   });
 
   it("runs nothing on a kick with RONNE_JOBS=off", async () => {

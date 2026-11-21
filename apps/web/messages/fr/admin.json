@@ -693,6 +693,40 @@
           "choiceOff": "les gens ne peuvent pas choisir",
           "offered": "offertes : {list}",
           "nothing": "rien"
+        },
+        "mail": {
+          "transport": "le transport à {to}",
+          "sender": "l’expéditeur à {to}",
+          "nothing": "rien",
+          "fromName": "le nom de l’expéditeur",
+          "replyTo": "le Reply-To à {to}",
+          "contact": "le contact de l’instance",
+          "smtp": "le serveur SMTP à {to}",
+          "region": "la région à {to}",
+          "domain": "le domaine à {to}"
+        },
+        "mailTransports": {
+          "smtp": "SMTP",
+          "ses": "Amazon SES",
+          "mailgun": "Mailgun",
+          "postmark": "Postmark",
+          "resend": "Resend",
+          "none": "aucun"
+        },
+        "mailSecrets": {
+          "set": "un identifiant défini",
+          "replaced": "l’identifiant remplacé",
+          "removed": "l’identifiant retiré"
+        },
+        "mailReasons": {
+          "connection": "connexion impossible",
+          "timeout": "pas de réponse à temps",
+          "tls": "le TLS a échoué",
+          "auth": "identifiants refusés",
+          "rate_limited": "trop d’envois",
+          "server": "le fournisseur a échoué",
+          "rejected": "refusé",
+          "config": "la configuration ne peut pas marcher"
         }
       },
       "actions": {
@@ -827,7 +861,11 @@
           "notice": "A changé l’avis de l’instance : {changes}",
           "skill_scan": "A modifié l’analyse de sécurité : {changes}",
           "update_check": "A modifié la vérification des mises à jour : {state, select, on {activée} off {désactivée} other {modifiée}}",
-          "languages": "A modifié les langues : {changes}"
+          "languages": "A modifié les langues : {changes}",
+          "mail": "A modifié l’envoi de courriels : {changes}"
+        },
+        "mail": {
+          "test_sent": "A envoyé un courriel d’essai{result, select, sent {, accepté par le fournisseur} retry {, pas encore parti ({reason})} failed {, qui a échoué ({reason})} other {}}"
         }
       }
     },
@@ -846,6 +884,7 @@
       "usage": "Utilisation",
       "feeds": "Flux de plugins",
       "authentication": "Authentification",
+      "email": "Courriel",
       "privacy": "Confidentialité",
       "notice": "Avis",
       "scan": "Analyse de sécurité",
@@ -1153,7 +1192,7 @@
         "schedulerOff": "Les tâches planifiées sont désactivées (RONNE_JOBS) : exécutez rmk-server purge depuis cron.",
         "firstRun": "La première exécution a lieu 5 minutes après le démarrage du serveur, puis toutes les 6 heures.",
         "failed": "La dernière exécution, le <date></date>, a échoué ({error}). Les journaux du serveur disent pourquoi; la prochaine exécution aura lieu comme prévu.",
-        "done": "Dernière exécution le <date></date> : {ips, plural, one {# adresse IP effacée} other {# adresses IP effacées}} et {emails, plural, one {# courriel de connexion échouée effacé} other {# courriels de connexions échouées effacés}}; {sessions, plural, one {# session expirée supprimée} other {# sessions expirées supprimées}}, {grants, plural, one {# approbation de connexion rmk terminée supprimée} other {# approbations de connexion rmk terminées supprimées}}, {feedback, plural, one {# message de commentaires traité supprimé} other {# messages de commentaires traités supprimés}}, {notifications, plural, one {# notification supprimée} other {# notifications supprimées}} et {rateLimits, plural, one {# compteur de limite de débit expiré supprimé} other {# compteurs de limite de débit expirés supprimés}}.",
+        "done": "Dernière exécution le <date></date> : {ips, plural, one {# adresse IP effacée} other {# adresses IP effacées}} et {emails, plural, one {# courriel de connexion échouée effacé} other {# courriels de connexions échouées effacés}}; {sessions, plural, one {# session expirée supprimée} other {# sessions expirées supprimées}}, {grants, plural, one {# approbation de connexion rmk terminée supprimée} other {# approbations de connexion rmk terminées supprimées}}, {feedback, plural, one {# message de commentaires traité supprimé} other {# messages de commentaires traités supprimés}}, {notifications, plural, one {# notification supprimée} other {# notifications supprimées}}, {rateLimits, plural, one {# compteur de limite de débit expiré supprimé} other {# compteurs de limite de débit expirés supprimés}} et {mail, plural, one {# trace de courriel supprimée} other {# traces de courriels supprimées}}.",
         "running": "Une exécution est en cours."
       },
       "erasures": {
@@ -1279,6 +1318,148 @@
         "label": "Score qui bloque l’approbation",
         "hint": "Une soumission dont l’analyse atteint ou dépasse ce score, ou qui n’a pas d’analyse terminée, ne peut pas être approuvée; seul root peut déroger. Laissez vide pour seulement indiquer.",
         "range": "Saisissez un nombre entier de 1 à 100, ou laissez vide."
+      }
+    },
+    "email": {
+      "title": "Courriel",
+      "intro": "Comment Ronne envoie des courriels : les avis de sécurité que les gens reçoivent quand la façon de se connecter change, et l’essai ci-dessous. Tout se règle ici et est gardé dans la base de données; les identifiants sont scellés et jamais réaffichés.",
+      "status": {
+        "title": "État",
+        "notSetUp": "Non configuré : Ronne n’envoie aucun courriel, et les fonctions qui en ont besoin restent désactivées.",
+        "untested": "Configuré, pas encore essayé : envoyez un courriel d’essai ci-dessous.",
+        "working": "Fonctionne : le dernier essai ou envoi a réussi, <date></date>.",
+        "failing": "En échec : le dernier envoi n’est pas parti ({reason}), <date></date>."
+      },
+      "reasons": {
+        "connection": "le serveur était injoignable",
+        "timeout": "le serveur n’a pas répondu à temps",
+        "tls": "le TLS a échoué",
+        "auth": "les identifiants ont été refusés",
+        "rate_limited": "le fournisseur a demandé de ralentir",
+        "server": "le fournisseur a eu une panne de son côté",
+        "rejected": "le fournisseur a refusé le message",
+        "config": "la configuration ne peut pas fonctionner telle quelle",
+        "credentials": "l’identifiant enregistré est illisible",
+        "interrupted": "chaque tentative a été interrompue",
+        "other": "une autre raison"
+      },
+      "contact": {
+        "label": "Contact de l’instance",
+        "hint": "À qui les gens s’adressent quand ils n’ont pas fait un changement : une adresse comme it-help@acme.com, ou une page https://. Il figure dans chaque avis de sécurité."
+      },
+      "fromAddress": {
+        "label": "Adresse d’expédition",
+        "hint": "L’expéditeur, comme marketplace@acme.com. Son domaine a besoin des enregistrements SPF, DKIM et DMARC du fournisseur."
+      },
+      "fromName": {
+        "label": "Nom d’expédition",
+        "hint": "Facultatif, comme Acme Marketplace : il indique quelle instance écrit."
+      },
+      "replyTo": {
+        "label": "Répondre à (Reply-To)",
+        "hint": "Où vont les réponses, pour qu’un expéditeur no-reply n’avale jamais une réponse. Il reprend d’abord le contact de l’instance quand c’est une adresse."
+      },
+      "transport": {
+        "label": "Transport",
+        "choose": "Choisir…",
+        "smtp": "Autre serveur SMTP",
+        "ses": "Amazon SES (API Web)",
+        "mailgun": "Mailgun",
+        "postmark": "Postmark",
+        "resend": "Resend"
+      },
+      "smtp": {
+        "host": "Serveur",
+        "hostHint": "Le nom du serveur. Un serveur du réseau du serveur lui-même ne fonctionne qu’une fois que l’opérateur l’a inscrit dans RONNE_MAIL_HOSTS.",
+        "relays": "Relais que l’opérateur permet sur ce serveur : {hosts}.",
+        "tls": "Sécurité",
+        "tlsOptions": {
+          "starttls": "STARTTLS (port 587)",
+          "tls": "TLS (port 465)",
+          "none": "Sans TLS (un relais inscrit seulement)"
+        },
+        "port": "Port",
+        "portHint": "Vide, prend le port habituel pour la sécurité choisie.",
+        "user": "Nom d’utilisateur",
+        "userHint": "Vide pour un relais qui accepte les courriels sans connexion.",
+        "password": "Mot de passe"
+      },
+      "ses": {
+        "region": "Région",
+        "regionHint": "La région AWS de votre identité SES, comme eu-west-1.",
+        "accessKeyId": "ID de clé d’accès",
+        "secret": "Clé d’accès secrète"
+      },
+      "mailgun": {
+        "region": "Région",
+        "regions": {
+          "us": "É.-U.",
+          "eu": "UE"
+        },
+        "domain": "Domaine d’envoi",
+        "domainHint": "Le domaine vérifié dans Mailgun, comme mg.acme.com."
+      },
+      "postmark": {
+        "token": "Jeton d’API du serveur"
+      },
+      "apiKey": "Clé d’API",
+      "secret": {
+        "hint": "En écriture seule : il est scellé à l’enregistrement et jamais réaffiché.",
+        "replaceHint": "Tapez-en un nouveau pour remplacer celui qui est enregistré; vide le garde.",
+        "saved": "Enregistré",
+        "replace": "Remplacer",
+        "moves": "Gardé seulement pour ce transport et cette cible : un nouveau serveur, domaine, région ou ID de clé d’accès le redemande.",
+        "unreadable": "L’identifiant enregistré est illisible (un ancien AUTH_SECRET) : tapez-le de nouveau et enregistrez."
+      },
+      "steps": {
+        "title": "Étapes",
+        "smtp": {
+          "step1": "Demandez le serveur, le port et la sécurité à qui l’exploite : votre fournisseur ou votre équipe TI.",
+          "step2": "STARTTLS utilise le port 587 et TLS le port 465. Sans TLS ne sert qu’à un relais que l’opérateur inscrit sur le serveur, sans nom d’utilisateur.",
+          "step3": "Tapez le nom d’utilisateur et le mot de passe si le serveur les demande, enregistrez, puis envoyez un courriel d’essai."
+        },
+        "ses": {
+          "step1": "Dans Amazon SES, vérifiez le domaine de l’adresse d’expédition dans la région choisie, et demandez à AWS de sortir du bac à sable (d’ici là, seules les adresses vérifiées reçoivent des courriels).",
+          "step2": "Créez un utilisateur IAM qui ne peut faire que ses:SendEmail depuis cette identité, et une clé d’accès pour lui.",
+          "step3": "Tapez la région, l’ID de clé d’accès et la clé d’accès secrète, enregistrez, puis envoyez un courriel d’essai."
+        },
+        "mailgun": {
+          "step1": "Dans Mailgun, ajoutez votre domaine d’envoi dans la région É.-U. ou UE et vérifiez ses enregistrements DNS.",
+          "step2": "Créez une clé d’API d’envoi pour ce domaine.",
+          "step3": "Choisissez la région, tapez le domaine et la clé, enregistrez, puis envoyez un courriel d’essai."
+        },
+        "postmark": {
+          "step1": "Dans Postmark, créez un serveur et vérifiez le domaine de l’adresse d’expédition, ou l’adresse elle-même comme signature d’expéditeur.",
+          "step2": "Copiez le jeton d’API du serveur dans son onglet API Tokens.",
+          "step3": "Collez-le ici, enregistrez, puis envoyez un courriel d’essai."
+        },
+        "resend": {
+          "step1": "Dans Resend, ajoutez le domaine de l’adresse d’expédition et vérifiez ses enregistrements DNS.",
+          "step2": "Créez une clé d’API avec l’accès en envoi.",
+          "step3": "Collez-la ici, enregistrez, puis envoyez un courriel d’essai."
+        }
+      },
+      "save": "Enregistrer",
+      "done": {
+        "saved": "Configuration du courriel enregistrée.",
+        "unchanged": "Rien n’a changé."
+      },
+      "test": {
+        "title": "Envoyer un courriel d’essai",
+        "intro": "Envoie maintenant un courriel à votre propre adresse, {to} : jamais à une adresse tapée ici. Au plus 5 en 10 minutes.",
+        "button": "Envoyer un courriel d’essai",
+        "sent": "Envoyé à {to} : vérifiez cette boîte de réception et son dossier de pourriels.",
+        "failed": "Il n’est pas parti : {reason}.",
+        "answer": "Le serveur a répondu :"
+      },
+      "stop": {
+        "title": "Arrêter l’envoi",
+        "intro": "Retire le transport : Ronne n’envoie plus rien, et les messages encore en attente sont abandonnés. Le reste de la configuration reste, pour choisir un transport de nouveau.",
+        "button": "Arrêter l’envoi",
+        "confirm": "Arrêter l’envoi des courriels? Les messages encore en attente sont abandonnés, et les fonctions qui ont besoin du courriel se désactivent.",
+        "confirmButton": "Arrêter l’envoi",
+        "cancel": "Annuler",
+        "done": "Envoi des courriels arrêté. {count, plural, =0 {Rien n’était en attente.} one {# message en attente a été abandonné.} other {# messages en attente ont été abandonnés.}}"
       }
     }
   },

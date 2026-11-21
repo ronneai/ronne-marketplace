@@ -368,6 +368,8 @@ describe("rotate-secret's sessions (098)", () => {
       settingSecrets: 0,
       unreadable: 0,
       settingUnreadable: 0,
+      mailResealed: 0,
+      mailDropped: 0,
     });
 
     expect(wrote).toBe(true);

@@ -693,6 +693,40 @@
           "choiceOff": "as pessoas não podem escolher",
           "offered": "oferecidos: {list}",
           "nothing": "nada"
+        },
+        "mail": {
+          "transport": "o transporte para {to}",
+          "sender": "o remetente para {to}",
+          "nothing": "nada",
+          "fromName": "o nome do remetente",
+          "replyTo": "o Reply-To para {to}",
+          "contact": "o contato da instância",
+          "smtp": "o servidor SMTP para {to}",
+          "region": "a região para {to}",
+          "domain": "o domínio para {to}"
+        },
+        "mailTransports": {
+          "smtp": "SMTP",
+          "ses": "Amazon SES",
+          "mailgun": "Mailgun",
+          "postmark": "Postmark",
+          "resend": "Resend",
+          "none": "nenhum"
+        },
+        "mailSecrets": {
+          "set": "uma credencial definida",
+          "replaced": "a credencial substituída",
+          "removed": "a credencial removida"
+        },
+        "mailReasons": {
+          "connection": "não conectou",
+          "timeout": "sem resposta a tempo",
+          "tls": "o TLS falhou",
+          "auth": "credenciais recusadas",
+          "rate_limited": "envios demais",
+          "server": "o provedor falhou",
+          "rejected": "recusado",
+          "config": "a configuração não funciona"
         }
       },
       "actions": {
@@ -827,7 +861,11 @@
           "notice": "Alterou o comunicado da instância: {changes}",
           "skill_scan": "Alterou a verificação de segurança: {changes}",
           "update_check": "Alterou a verificação de atualizações: {state, select, on {ativada} off {desativada} other {alterada}}",
-          "languages": "Alterou os idiomas: {changes}"
+          "languages": "Alterou os idiomas: {changes}",
+          "mail": "Alterou o envio de e-mail: {changes}"
+        },
+        "mail": {
+          "test_sent": "Enviou um e-mail de teste{result, select, sent {, aceito pelo provedor} retry {, que ainda não foi ({reason})} failed {, que falhou ({reason})} other {}}"
         }
       }
     },
@@ -846,6 +884,7 @@
       "usage": "Uso",
       "feeds": "Feeds de plugins",
       "authentication": "Autenticação",
+      "email": "E-mail",
       "privacy": "Privacidade",
       "notice": "Comunicado",
       "scan": "Verificação de segurança",
@@ -1153,7 +1192,7 @@
         "schedulerOff": "As tarefas agendadas estão desligadas (RONNE_JOBS): rode rmk-server purge pelo cron.",
         "firstRun": "A primeira execução é 5 minutos depois que o servidor inicia, e depois a cada 6 horas.",
         "failed": "A última execução, em <date></date>, falhou ({error}). Os logs do servidor dizem o motivo; a próxima execução acontece no horário previsto.",
-        "done": "Última execução em <date></date>: apagou {ips, plural, one {# endereço IP} other {# endereços IP}} e {emails, plural, one {# e-mail de acesso que falhou} other {# e-mails de acessos que falharam}}; excluiu {sessions, plural, one {# sessão expirada} other {# sessões expiradas}}, {grants, plural, one {# aprovação de login do rmk concluída} other {# aprovações de login do rmk concluídas}}, {feedback, plural, one {# mensagem de feedback tratada} other {# mensagens de feedback tratadas}}, {notifications, plural, one {# notificação} other {# notificações}} e {rateLimits, plural, one {# contador de limite de taxa expirado} other {# contadores de limite de taxa expirados}}.",
+        "done": "Última execução em <date></date>: apagou {ips, plural, one {# endereço IP} other {# endereços IP}} e {emails, plural, one {# e-mail de acesso que falhou} other {# e-mails de acessos que falharam}}; excluiu {sessions, plural, one {# sessão expirada} other {# sessões expiradas}}, {grants, plural, one {# aprovação de login do rmk concluída} other {# aprovações de login do rmk concluídas}}, {feedback, plural, one {# mensagem de feedback tratada} other {# mensagens de feedback tratadas}}, {notifications, plural, one {# notificação} other {# notificações}}, {rateLimits, plural, one {# contador de limite de taxa expirado} other {# contadores de limite de taxa expirados}} e {mail, plural, one {# registro de e-mail} other {# registros de e-mail}}.",
         "running": "Uma execução está em andamento."
       },
       "erasures": {
@@ -1279,6 +1318,148 @@
         "label": "Pontuação que bloqueia a aprovação",
         "hint": "Uma submissão cuja verificação chegar a essa pontuação ou passar dela, ou que não tiver verificação concluída, não pode ser aprovada; só o root pode abrir uma exceção. Deixe vazio para só indicar.",
         "range": "Informe um número inteiro de 1 a 100, ou deixe vazio."
+      }
+    },
+    "email": {
+      "title": "E-mail",
+      "intro": "Como o Ronne envia e-mails: os avisos de segurança que as pessoas recebem quando muda a forma de entrar na conta, e o teste abaixo. Tudo é configurado aqui e guardado no banco de dados; as credenciais são lacradas e nunca mais exibidas.",
+      "status": {
+        "title": "Situação",
+        "notSetUp": "Não configurado: o Ronne não envia e-mails, e os recursos que precisam deles ficam desativados.",
+        "untested": "Configurado, ainda não testado: envie um e-mail de teste abaixo.",
+        "working": "Funcionando: o último teste ou envio deu certo, <date></date>.",
+        "failing": "Com falha: o último envio não foi feito ({reason}), <date></date>."
+      },
+      "reasons": {
+        "connection": "não foi possível alcançar o servidor",
+        "timeout": "o servidor não respondeu a tempo",
+        "tls": "o TLS falhou",
+        "auth": "as credenciais foram recusadas",
+        "rate_limited": "o provedor pediu para ir mais devagar",
+        "server": "o provedor falhou do lado dele",
+        "rejected": "o provedor recusou a mensagem",
+        "config": "a configuração não funciona como está",
+        "credentials": "não é possível ler a credencial salva",
+        "interrupted": "todas as tentativas foram interrompidas",
+        "other": "outro motivo"
+      },
+      "contact": {
+        "label": "Contato da instância",
+        "hint": "A quem as pessoas avisam quando não fizeram uma alteração: um endereço como it-help@acme.com, ou uma página https://. Ele aparece em todos os avisos de segurança."
+      },
+      "fromAddress": {
+        "label": "Endereço do remetente",
+        "hint": "O remetente, como marketplace@acme.com. O domínio dele precisa dos registros SPF, DKIM e DMARC do provedor."
+      },
+      "fromName": {
+        "label": "Nome do remetente",
+        "hint": "Opcional, como Acme Marketplace: diz qual instância escreveu."
+      },
+      "replyTo": {
+        "label": "Responder para (Reply-To)",
+        "hint": "Para onde vão as respostas, para que um remetente no-reply nunca engula uma resposta. Começa como o contato da instância quando ele é um endereço."
+      },
+      "transport": {
+        "label": "Transporte",
+        "choose": "Escolha…",
+        "smtp": "Outro servidor SMTP",
+        "ses": "Amazon SES (API web)",
+        "mailgun": "Mailgun",
+        "postmark": "Postmark",
+        "resend": "Resend"
+      },
+      "smtp": {
+        "host": "Servidor",
+        "hostHint": "O nome do servidor. Um que esteja na rede do próprio servidor só funciona depois que o operador o inclui em RONNE_MAIL_HOSTS.",
+        "relays": "Relays que o operador permite neste servidor: {hosts}.",
+        "tls": "Segurança",
+        "tlsOptions": {
+          "starttls": "STARTTLS (porta 587)",
+          "tls": "TLS (porta 465)",
+          "none": "Sem TLS (só um relay da lista)"
+        },
+        "port": "Porta",
+        "portHint": "Vazia, usa a porta de costume para a segurança escolhida.",
+        "user": "Nome de usuário",
+        "userHint": "Vazio para um relay que aceita e-mails sem autenticação.",
+        "password": "Senha"
+      },
+      "ses": {
+        "region": "Região",
+        "regionHint": "A região da AWS da sua identidade no SES, como eu-west-1.",
+        "accessKeyId": "ID da chave de acesso",
+        "secret": "Chave de acesso secreta"
+      },
+      "mailgun": {
+        "region": "Região",
+        "regions": {
+          "us": "EUA",
+          "eu": "UE"
+        },
+        "domain": "Domínio de envio",
+        "domainHint": "O domínio verificado no Mailgun, como mg.acme.com."
+      },
+      "postmark": {
+        "token": "Token de API do servidor"
+      },
+      "apiKey": "Chave de API",
+      "secret": {
+        "hint": "Somente gravação: é lacrada ao salvar e nunca mais exibida.",
+        "replaceHint": "Digite uma nova para substituir a salva; vazio mantém a atual.",
+        "saved": "Salva",
+        "replace": "Substituir",
+        "moves": "Mantida só para este transporte e destino: um novo servidor, domínio, região ou ID de chave de acesso a pede de novo.",
+        "unreadable": "Não é possível ler a credencial salva (um AUTH_SECRET antigo): digite-a de novo e salve."
+      },
+      "steps": {
+        "title": "Passos",
+        "smtp": {
+          "step1": "Peça o servidor, a porta e a segurança a quem o mantém: o seu provedor ou a sua equipe de TI.",
+          "step2": "STARTTLS usa a porta 587, e TLS a porta 465. Sem TLS é só para um relay que o operador inclui no servidor, sem nome de usuário.",
+          "step3": "Digite o nome de usuário e a senha, se o servidor pedir, salve e envie um e-mail de teste."
+        },
+        "ses": {
+          "step1": "No Amazon SES, verifique o domínio do endereço do remetente na região que vai usar, e peça à AWS para sair do sandbox (até lá, só endereços verificados recebem e-mails).",
+          "step2": "Crie um usuário do IAM que só possa usar ses:SendEmail com essa identidade, e uma chave de acesso para ele.",
+          "step3": "Digite a região, o ID da chave de acesso e a chave de acesso secreta, salve e envie um e-mail de teste."
+        },
+        "mailgun": {
+          "step1": "No Mailgun, adicione o seu domínio de envio na região EUA ou UE e verifique os registros DNS dele.",
+          "step2": "Crie uma chave de API de envio para esse domínio.",
+          "step3": "Escolha a região, digite o domínio e a chave, salve e envie um e-mail de teste."
+        },
+        "postmark": {
+          "step1": "No Postmark, crie um servidor e verifique o domínio do endereço do remetente, ou o próprio endereço como assinatura de remetente.",
+          "step2": "Copie o token de API do servidor na aba API Tokens.",
+          "step3": "Cole-o aqui, salve e envie um e-mail de teste."
+        },
+        "resend": {
+          "step1": "No Resend, adicione o domínio do endereço do remetente e verifique os registros DNS dele.",
+          "step2": "Crie uma chave de API com acesso de envio.",
+          "step3": "Cole-a aqui, salve e envie um e-mail de teste."
+        }
+      },
+      "save": "Salvar",
+      "done": {
+        "saved": "Configuração de e-mail salva.",
+        "unchanged": "Nada mudou."
+      },
+      "test": {
+        "title": "Enviar e-mail de teste",
+        "intro": "Envia agora um e-mail para o seu próprio endereço, {to}: nunca para um endereço digitado aqui. No máximo 5 em 10 minutos.",
+        "button": "Enviar e-mail de teste",
+        "sent": "Enviado para {to}: confira essa caixa de entrada e a pasta de spam.",
+        "failed": "Não foi enviado: {reason}.",
+        "answer": "O servidor respondeu:"
+      },
+      "stop": {
+        "title": "Parar de enviar",
+        "intro": "Remove o transporte: o Ronne não envia mais nada, e as mensagens que ainda aguardam são descartadas. O resto da configuração fica, para escolher um transporte de novo.",
+        "button": "Parar de enviar",
+        "confirm": "Parar de enviar e-mails? As mensagens que ainda aguardam são descartadas, e os recursos que precisam de e-mail são desativados.",
+        "confirmButton": "Parar de enviar",
+        "cancel": "Cancelar",
+        "done": "Envio de e-mails parado. {count, plural, =0 {Nada aguardava.} one {# mensagem que aguardava foi descartada.} other {# mensagens que aguardavam foram descartadas.}}"
       }
     }
   },

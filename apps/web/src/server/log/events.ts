@@ -167,10 +167,32 @@ export const EVENTS = {
       "feedbackDeleted",
       "notificationsDeleted",
       "rateLimitsDeleted",
+      "mailDeleted",
+      "mailSent",
+      "mailRetried",
+      "mailFailed",
+      "mailDropped",
       "erasuresFinished",
     ],
   },
   "job.skipped": { level: "debug", msg: "Job skipped", fields: ["job", "reason"] },
+  // Outgoing email (189): the row, the template, the transport and why; never an address or body.
+  "mail.sent": { level: "info", msg: "Email sent", fields: ["outboxId", "template", "transport"] },
+  "mail.retry": {
+    level: "warn",
+    msg: "Email not sent yet, to be tried again",
+    fields: ["outboxId", "template", "transport", "reason"],
+  },
+  "mail.failed": {
+    level: "error",
+    msg: "Email failed for good",
+    fields: ["outboxId", "template", "transport", "reason"],
+  },
+  "mail.dropped": {
+    level: "warn",
+    msg: "Email dropped",
+    fields: ["outboxId", "template", "reason"],
+  },
   "job.failed": { level: "error", msg: "Job failed", fields: ["job", "ms", "err"] },
   "log.level_invalid": {
     level: "warn",

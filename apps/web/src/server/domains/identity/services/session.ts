@@ -236,6 +236,8 @@ const record = (
   return deps.repo.transaction(async (repo) => {
     if (required) await repo.setPasswordChangeRequired(userId, false, at);
     const tokensRevoked = change.revoke ? await repo.revokeAccessTokens(userId, at) : 0;
+    // The account's own address hears of it (189), so someone who didn't change it can act.
+    await repo.queueSecurityNotice(userId, "password_changed", at);
     await repo.recordAudit(
       {
         actorId: userId,

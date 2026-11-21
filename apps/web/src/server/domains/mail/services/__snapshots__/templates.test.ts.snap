@@ -1,0 +1,739 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`renderMail (189) > writes backup_codes_regenerated in en, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>New backup codes were made</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">New backup codes were made for your account on marketplace.acme.example. The old ones no longer work.</p>
+<p style="margin:0 0 16px">When: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">If this wasn&#39;t you, someone else may be signed in to your account. Contact your administrator at once.</p>
+<p style="margin:0 0 16px">To reach your administrator, reply to this email.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">This email was sent by Ronne at marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ronne sends one whenever the way you sign in to your account changes. These emails can&#39;t be turned off.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes backup_codes_regenerated in en, as text and HTML > text 1`] = `
+"New backup codes were made for your account on marketplace.acme.example. The old ones no longer work.
+
+When: 2026-11-21 16:32 UTC
+
+If this wasn't you, someone else may be signed in to your account. Contact your administrator at once.
+To reach your administrator, reply to this email.
+
+-- 
+This email was sent by Ronne at marketplace.acme.example.
+Ronne sends one whenever the way you sign in to your account changes. These emails can't be turned off.
+"
+`;
+
+exports[`renderMail (189) > writes backup_codes_regenerated in fr, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>De nouveaux codes de secours ont été créés</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">De nouveaux codes de secours ont été créés pour votre compte sur marketplace.acme.example. Les anciens ne fonctionnent plus.</p>
+<p style="margin:0 0 16px">Quand : 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Si ce n’était pas vous, quelqu’un d’autre est peut-être connecté à votre compte. Communiquez sans tarder avec votre administrateur.</p>
+<p style="margin:0 0 16px">Pour joindre votre administrateur, répondez à ce courriel.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ce courriel a été envoyé par Ronne sur marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes backup_codes_regenerated in fr, as text and HTML > text 1`] = `
+"De nouveaux codes de secours ont été créés pour votre compte sur marketplace.acme.example. Les anciens ne fonctionnent plus.
+
+Quand : 2026-11-21 16:32 UTC
+
+Si ce n’était pas vous, quelqu’un d’autre est peut-être connecté à votre compte. Communiquez sans tarder avec votre administrateur.
+Pour joindre votre administrateur, répondez à ce courriel.
+
+-- 
+Ce courriel a été envoyé par Ronne sur marketplace.acme.example.
+Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.
+"
+`;
+
+exports[`renderMail (189) > writes backup_codes_regenerated in pt, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="pt">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Novos códigos de backup foram gerados</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Novos códigos de backup foram gerados para a sua conta em marketplace.acme.example. Os antigos não funcionam mais.</p>
+<p style="margin:0 0 16px">Quando: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Se não foi você, outra pessoa pode estar conectada à sua conta. Fale com o seu administrador imediatamente.</p>
+<p style="margin:0 0 16px">Para falar com o seu administrador, responda a este e-mail.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Este e-mail foi enviado pelo Ronne em marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes backup_codes_regenerated in pt, as text and HTML > text 1`] = `
+"Novos códigos de backup foram gerados para a sua conta em marketplace.acme.example. Os antigos não funcionam mais.
+
+Quando: 2026-11-21 16:32 UTC
+
+Se não foi você, outra pessoa pode estar conectada à sua conta. Fale com o seu administrador imediatamente.
+Para falar com o seu administrador, responda a este e-mail.
+
+-- 
+Este e-mail foi enviado pelo Ronne em marketplace.acme.example.
+O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.
+"
+`;
+
+exports[`renderMail (189) > writes password_changed in en, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Your password was changed</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">The password of your account on marketplace.acme.example was changed.</p>
+<p style="margin:0 0 16px">When: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">If this wasn&#39;t you, someone else may know your password. Contact your administrator at once.</p>
+<p style="margin:0 0 16px">To reach your administrator, reply to this email.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">This email was sent by Ronne at marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ronne sends one whenever the way you sign in to your account changes. These emails can&#39;t be turned off.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes password_changed in en, as text and HTML > text 1`] = `
+"The password of your account on marketplace.acme.example was changed.
+
+When: 2026-11-21 16:32 UTC
+
+If this wasn't you, someone else may know your password. Contact your administrator at once.
+To reach your administrator, reply to this email.
+
+-- 
+This email was sent by Ronne at marketplace.acme.example.
+Ronne sends one whenever the way you sign in to your account changes. These emails can't be turned off.
+"
+`;
+
+exports[`renderMail (189) > writes password_changed in fr, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Votre mot de passe a été changé</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Le mot de passe de votre compte sur marketplace.acme.example a été changé.</p>
+<p style="margin:0 0 16px">Quand : 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Si ce n’était pas vous, quelqu’un d’autre connaît peut-être votre mot de passe. Communiquez sans tarder avec votre administrateur.</p>
+<p style="margin:0 0 16px">Pour joindre votre administrateur, répondez à ce courriel.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ce courriel a été envoyé par Ronne sur marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes password_changed in fr, as text and HTML > text 1`] = `
+"Le mot de passe de votre compte sur marketplace.acme.example a été changé.
+
+Quand : 2026-11-21 16:32 UTC
+
+Si ce n’était pas vous, quelqu’un d’autre connaît peut-être votre mot de passe. Communiquez sans tarder avec votre administrateur.
+Pour joindre votre administrateur, répondez à ce courriel.
+
+-- 
+Ce courriel a été envoyé par Ronne sur marketplace.acme.example.
+Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.
+"
+`;
+
+exports[`renderMail (189) > writes password_changed in pt, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="pt">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>A sua senha foi alterada</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">A senha da sua conta em marketplace.acme.example foi alterada.</p>
+<p style="margin:0 0 16px">Quando: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Se não foi você, outra pessoa pode saber a sua senha. Fale com o seu administrador imediatamente.</p>
+<p style="margin:0 0 16px">Para falar com o seu administrador, responda a este e-mail.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Este e-mail foi enviado pelo Ronne em marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes password_changed in pt, as text and HTML > text 1`] = `
+"A senha da sua conta em marketplace.acme.example foi alterada.
+
+Quando: 2026-11-21 16:32 UTC
+
+Se não foi você, outra pessoa pode saber a sua senha. Fale com o seu administrador imediatamente.
+Para falar com o seu administrador, responda a este e-mail.
+
+-- 
+Este e-mail foi enviado pelo Ronne em marketplace.acme.example.
+O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.
+"
+`;
+
+exports[`renderMail (189) > writes password_reset in en, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>A root set a new password for you</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">A root set a new password for your account on marketplace.acme.example. Your old password no longer works.</p>
+<p style="margin:0 0 16px">When: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">If you didn&#39;t ask for this, contact your administrator at once.</p>
+<p style="margin:0 0 16px">To reach your administrator, reply to this email.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">This email was sent by Ronne at marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ronne sends one whenever the way you sign in to your account changes. These emails can&#39;t be turned off.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes password_reset in en, as text and HTML > text 1`] = `
+"A root set a new password for your account on marketplace.acme.example. Your old password no longer works.
+
+When: 2026-11-21 16:32 UTC
+
+If you didn't ask for this, contact your administrator at once.
+To reach your administrator, reply to this email.
+
+-- 
+This email was sent by Ronne at marketplace.acme.example.
+Ronne sends one whenever the way you sign in to your account changes. These emails can't be turned off.
+"
+`;
+
+exports[`renderMail (189) > writes password_reset in fr, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Un root a défini un nouveau mot de passe pour vous</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Un root a défini un nouveau mot de passe pour votre compte sur marketplace.acme.example. L’ancien ne fonctionne plus.</p>
+<p style="margin:0 0 16px">Quand : 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Si vous ne l’avez pas demandé, communiquez sans tarder avec votre administrateur.</p>
+<p style="margin:0 0 16px">Pour joindre votre administrateur, répondez à ce courriel.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ce courriel a été envoyé par Ronne sur marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes password_reset in fr, as text and HTML > text 1`] = `
+"Un root a défini un nouveau mot de passe pour votre compte sur marketplace.acme.example. L’ancien ne fonctionne plus.
+
+Quand : 2026-11-21 16:32 UTC
+
+Si vous ne l’avez pas demandé, communiquez sans tarder avec votre administrateur.
+Pour joindre votre administrateur, répondez à ce courriel.
+
+-- 
+Ce courriel a été envoyé par Ronne sur marketplace.acme.example.
+Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.
+"
+`;
+
+exports[`renderMail (189) > writes password_reset in pt, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="pt">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Um root definiu uma nova senha para você</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Um root definiu uma nova senha para a sua conta em marketplace.acme.example. A senha antiga não funciona mais.</p>
+<p style="margin:0 0 16px">Quando: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Se você não pediu isso, fale com o seu administrador imediatamente.</p>
+<p style="margin:0 0 16px">Para falar com o seu administrador, responda a este e-mail.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Este e-mail foi enviado pelo Ronne em marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes password_reset in pt, as text and HTML > text 1`] = `
+"Um root definiu uma nova senha para a sua conta em marketplace.acme.example. A senha antiga não funciona mais.
+
+Quando: 2026-11-21 16:32 UTC
+
+Se você não pediu isso, fale com o seu administrador imediatamente.
+Para falar com o seu administrador, responda a este e-mail.
+
+-- 
+Este e-mail foi enviado pelo Ronne em marketplace.acme.example.
+O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.
+"
+`;
+
+exports[`renderMail (189) > writes sso_linked in en, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>A company sign-in was linked to your account</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Your account on marketplace.acme.example can now be signed in to with Acme SSO.</p>
+<p style="margin:0 0 16px">When: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">If this wasn&#39;t you, contact your administrator at once.</p>
+<p style="margin:0 0 16px">To reach your administrator, reply to this email.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">This email was sent by Ronne at marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ronne sends one whenever the way you sign in to your account changes. These emails can&#39;t be turned off.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes sso_linked in en, as text and HTML > text 1`] = `
+"Your account on marketplace.acme.example can now be signed in to with Acme SSO.
+
+When: 2026-11-21 16:32 UTC
+
+If this wasn't you, contact your administrator at once.
+To reach your administrator, reply to this email.
+
+-- 
+This email was sent by Ronne at marketplace.acme.example.
+Ronne sends one whenever the way you sign in to your account changes. These emails can't be turned off.
+"
+`;
+
+exports[`renderMail (189) > writes sso_linked in fr, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Une connexion d’entreprise a été liée à votre compte</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Il est maintenant possible de se connecter à votre compte sur marketplace.acme.example avec Acme SSO.</p>
+<p style="margin:0 0 16px">Quand : 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Si ce n’était pas vous, communiquez sans tarder avec votre administrateur.</p>
+<p style="margin:0 0 16px">Pour joindre votre administrateur, répondez à ce courriel.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ce courriel a été envoyé par Ronne sur marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes sso_linked in fr, as text and HTML > text 1`] = `
+"Il est maintenant possible de se connecter à votre compte sur marketplace.acme.example avec Acme SSO.
+
+Quand : 2026-11-21 16:32 UTC
+
+Si ce n’était pas vous, communiquez sans tarder avec votre administrateur.
+Pour joindre votre administrateur, répondez à ce courriel.
+
+-- 
+Ce courriel a été envoyé par Ronne sur marketplace.acme.example.
+Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.
+"
+`;
+
+exports[`renderMail (189) > writes sso_linked in pt, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="pt">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Um login da sua empresa foi vinculado à sua conta</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Agora é possível entrar na sua conta em marketplace.acme.example com Acme SSO.</p>
+<p style="margin:0 0 16px">Quando: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Se não foi você, fale com o seu administrador imediatamente.</p>
+<p style="margin:0 0 16px">Para falar com o seu administrador, responda a este e-mail.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Este e-mail foi enviado pelo Ronne em marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes sso_linked in pt, as text and HTML > text 1`] = `
+"Agora é possível entrar na sua conta em marketplace.acme.example com Acme SSO.
+
+Quando: 2026-11-21 16:32 UTC
+
+Se não foi você, fale com o seu administrador imediatamente.
+Para falar com o seu administrador, responda a este e-mail.
+
+-- 
+Este e-mail foi enviado pelo Ronne em marketplace.acme.example.
+O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.
+"
+`;
+
+exports[`renderMail (189) > writes test in en, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Test email from Ronne at marketplace.acme.example</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Root sent this test email from Admin › Settings › Email. It reached you, so Ronne can send email.</p>
+<p style="margin:0 0 16px">When: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">If you didn&#39;t expect it, you can ignore it: nothing about your account changed.</p>
+<p style="margin:0 0 16px">To reach your administrator, reply to this email.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">This email was sent by Ronne at marketplace.acme.example.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes test in en, as text and HTML > text 1`] = `
+"Root sent this test email from Admin › Settings › Email. It reached you, so Ronne can send email.
+
+When: 2026-11-21 16:32 UTC
+
+If you didn't expect it, you can ignore it: nothing about your account changed.
+To reach your administrator, reply to this email.
+
+-- 
+This email was sent by Ronne at marketplace.acme.example.
+"
+`;
+
+exports[`renderMail (189) > writes test in fr, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Courriel d’essai de Ronne sur marketplace.acme.example</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Un root a envoyé ce courriel d’essai depuis Admin › Réglages › Courriel. Il vous est parvenu : Ronne peut donc envoyer des courriels.</p>
+<p style="margin:0 0 16px">Quand : 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Si vous ne l’attendiez pas, vous pouvez l’ignorer : rien n’a changé dans votre compte.</p>
+<p style="margin:0 0 16px">Pour joindre votre administrateur, répondez à ce courriel.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ce courriel a été envoyé par Ronne sur marketplace.acme.example.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes test in fr, as text and HTML > text 1`] = `
+"Un root a envoyé ce courriel d’essai depuis Admin › Réglages › Courriel. Il vous est parvenu : Ronne peut donc envoyer des courriels.
+
+Quand : 2026-11-21 16:32 UTC
+
+Si vous ne l’attendiez pas, vous pouvez l’ignorer : rien n’a changé dans votre compte.
+Pour joindre votre administrateur, répondez à ce courriel.
+
+-- 
+Ce courriel a été envoyé par Ronne sur marketplace.acme.example.
+"
+`;
+
+exports[`renderMail (189) > writes test in pt, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="pt">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>E-mail de teste do Ronne em marketplace.acme.example</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Um root enviou este e-mail de teste em Admin › Configurações › E-mail. Ele chegou até você, então o Ronne consegue enviar e-mails.</p>
+<p style="margin:0 0 16px">Quando: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Se você não esperava por ele, pode ignorá-lo: nada mudou na sua conta.</p>
+<p style="margin:0 0 16px">Para falar com o seu administrador, responda a este e-mail.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Este e-mail foi enviado pelo Ronne em marketplace.acme.example.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes test in pt, as text and HTML > text 1`] = `
+"Um root enviou este e-mail de teste em Admin › Configurações › E-mail. Ele chegou até você, então o Ronne consegue enviar e-mails.
+
+Quando: 2026-11-21 16:32 UTC
+
+Se você não esperava por ele, pode ignorá-lo: nada mudou na sua conta.
+Para falar com o seu administrador, responda a este e-mail.
+
+-- 
+Este e-mail foi enviado pelo Ronne em marketplace.acme.example.
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_disabled in en, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Two-factor sign-in was turned off</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Two-factor sign-in was turned off for your account on marketplace.acme.example. Signing in now asks for your password only.</p>
+<p style="margin:0 0 16px">When: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">If this wasn&#39;t you, someone else may be signed in to your account. Contact your administrator at once.</p>
+<p style="margin:0 0 16px">To reach your administrator, reply to this email.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">This email was sent by Ronne at marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ronne sends one whenever the way you sign in to your account changes. These emails can&#39;t be turned off.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_disabled in en, as text and HTML > text 1`] = `
+"Two-factor sign-in was turned off for your account on marketplace.acme.example. Signing in now asks for your password only.
+
+When: 2026-11-21 16:32 UTC
+
+If this wasn't you, someone else may be signed in to your account. Contact your administrator at once.
+To reach your administrator, reply to this email.
+
+-- 
+This email was sent by Ronne at marketplace.acme.example.
+Ronne sends one whenever the way you sign in to your account changes. These emails can't be turned off.
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_disabled in fr, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>La double authentification a été désactivée</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">La double authentification a été désactivée pour votre compte sur marketplace.acme.example. La connexion ne demande maintenant que votre mot de passe.</p>
+<p style="margin:0 0 16px">Quand : 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Si ce n’était pas vous, quelqu’un d’autre est peut-être connecté à votre compte. Communiquez sans tarder avec votre administrateur.</p>
+<p style="margin:0 0 16px">Pour joindre votre administrateur, répondez à ce courriel.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ce courriel a été envoyé par Ronne sur marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_disabled in fr, as text and HTML > text 1`] = `
+"La double authentification a été désactivée pour votre compte sur marketplace.acme.example. La connexion ne demande maintenant que votre mot de passe.
+
+Quand : 2026-11-21 16:32 UTC
+
+Si ce n’était pas vous, quelqu’un d’autre est peut-être connecté à votre compte. Communiquez sans tarder avec votre administrateur.
+Pour joindre votre administrateur, répondez à ce courriel.
+
+-- 
+Ce courriel a été envoyé par Ronne sur marketplace.acme.example.
+Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_disabled in pt, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="pt">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>A autenticação de dois fatores foi desativada</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">A autenticação de dois fatores foi desativada para a sua conta em marketplace.acme.example. Ao entrar, agora só é pedida a sua senha.</p>
+<p style="margin:0 0 16px">Quando: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Se não foi você, outra pessoa pode estar conectada à sua conta. Fale com o seu administrador imediatamente.</p>
+<p style="margin:0 0 16px">Para falar com o seu administrador, responda a este e-mail.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Este e-mail foi enviado pelo Ronne em marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_disabled in pt, as text and HTML > text 1`] = `
+"A autenticação de dois fatores foi desativada para a sua conta em marketplace.acme.example. Ao entrar, agora só é pedida a sua senha.
+
+Quando: 2026-11-21 16:32 UTC
+
+Se não foi você, outra pessoa pode estar conectada à sua conta. Fale com o seu administrador imediatamente.
+Para falar com o seu administrador, responda a este e-mail.
+
+-- 
+Este e-mail foi enviado pelo Ronne em marketplace.acme.example.
+O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_enabled in en, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Two-factor sign-in was turned on</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Two-factor sign-in was turned on for your account on marketplace.acme.example. Signing in now also asks for a code from an authenticator app.</p>
+<p style="margin:0 0 16px">When: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">If this wasn&#39;t you, someone else may be signed in to your account. Contact your administrator at once.</p>
+<p style="margin:0 0 16px">To reach your administrator, reply to this email.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">This email was sent by Ronne at marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ronne sends one whenever the way you sign in to your account changes. These emails can&#39;t be turned off.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_enabled in en, as text and HTML > text 1`] = `
+"Two-factor sign-in was turned on for your account on marketplace.acme.example. Signing in now also asks for a code from an authenticator app.
+
+When: 2026-11-21 16:32 UTC
+
+If this wasn't you, someone else may be signed in to your account. Contact your administrator at once.
+To reach your administrator, reply to this email.
+
+-- 
+This email was sent by Ronne at marketplace.acme.example.
+Ronne sends one whenever the way you sign in to your account changes. These emails can't be turned off.
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_enabled in fr, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>La double authentification a été activée</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">La double authentification a été activée pour votre compte sur marketplace.acme.example. La connexion demande maintenant aussi un code d’une application d’authentification.</p>
+<p style="margin:0 0 16px">Quand : 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Si ce n’était pas vous, quelqu’un d’autre est peut-être connecté à votre compte. Communiquez sans tarder avec votre administrateur.</p>
+<p style="margin:0 0 16px">Pour joindre votre administrateur, répondez à ce courriel.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ce courriel a été envoyé par Ronne sur marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_enabled in fr, as text and HTML > text 1`] = `
+"La double authentification a été activée pour votre compte sur marketplace.acme.example. La connexion demande maintenant aussi un code d’une application d’authentification.
+
+Quand : 2026-11-21 16:32 UTC
+
+Si ce n’était pas vous, quelqu’un d’autre est peut-être connecté à votre compte. Communiquez sans tarder avec votre administrateur.
+Pour joindre votre administrateur, répondez à ce courriel.
+
+-- 
+Ce courriel a été envoyé par Ronne sur marketplace.acme.example.
+Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_enabled in pt, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="pt">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>A autenticação de dois fatores foi ativada</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">A autenticação de dois fatores foi ativada para a sua conta em marketplace.acme.example. Ao entrar, agora também é pedido um código de um aplicativo autenticador.</p>
+<p style="margin:0 0 16px">Quando: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Se não foi você, outra pessoa pode estar conectada à sua conta. Fale com o seu administrador imediatamente.</p>
+<p style="margin:0 0 16px">Para falar com o seu administrador, responda a este e-mail.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Este e-mail foi enviado pelo Ronne em marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_enabled in pt, as text and HTML > text 1`] = `
+"A autenticação de dois fatores foi ativada para a sua conta em marketplace.acme.example. Ao entrar, agora também é pedido um código de um aplicativo autenticador.
+
+Quando: 2026-11-21 16:32 UTC
+
+Se não foi você, outra pessoa pode estar conectada à sua conta. Fale com o seu administrador imediatamente.
+Para falar com o seu administrador, responda a este e-mail.
+
+-- 
+Este e-mail foi enviado pelo Ronne em marketplace.acme.example.
+O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_reset in en, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>A root turned off your two-factor sign-in</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">A root turned off two-factor sign-in for your account on marketplace.acme.example. Signing in now asks for your password only, until you turn it on again.</p>
+<p style="margin:0 0 16px">When: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">If you didn&#39;t ask for this, contact your administrator at once.</p>
+<p style="margin:0 0 16px">To reach your administrator, reply to this email.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">This email was sent by Ronne at marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ronne sends one whenever the way you sign in to your account changes. These emails can&#39;t be turned off.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_reset in en, as text and HTML > text 1`] = `
+"A root turned off two-factor sign-in for your account on marketplace.acme.example. Signing in now asks for your password only, until you turn it on again.
+
+When: 2026-11-21 16:32 UTC
+
+If you didn't ask for this, contact your administrator at once.
+To reach your administrator, reply to this email.
+
+-- 
+This email was sent by Ronne at marketplace.acme.example.
+Ronne sends one whenever the way you sign in to your account changes. These emails can't be turned off.
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_reset in fr, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Un root a désactivé votre double authentification</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Un root a désactivé la double authentification de votre compte sur marketplace.acme.example. La connexion ne demande que votre mot de passe, jusqu’à ce que vous la réactiviez.</p>
+<p style="margin:0 0 16px">Quand : 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Si vous ne l’avez pas demandé, communiquez sans tarder avec votre administrateur.</p>
+<p style="margin:0 0 16px">Pour joindre votre administrateur, répondez à ce courriel.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ce courriel a été envoyé par Ronne sur marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_reset in fr, as text and HTML > text 1`] = `
+"Un root a désactivé la double authentification de votre compte sur marketplace.acme.example. La connexion ne demande que votre mot de passe, jusqu’à ce que vous la réactiviez.
+
+Quand : 2026-11-21 16:32 UTC
+
+Si vous ne l’avez pas demandé, communiquez sans tarder avec votre administrateur.
+Pour joindre votre administrateur, répondez à ce courriel.
+
+-- 
+Ce courriel a été envoyé par Ronne sur marketplace.acme.example.
+Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_reset in pt, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="pt">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Um root desativou a sua autenticação de dois fatores</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Um root desativou a autenticação de dois fatores da sua conta em marketplace.acme.example. Ao entrar, só é pedida a sua senha, até você ativá-la de novo.</p>
+<p style="margin:0 0 16px">Quando: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Se você não pediu isso, fale com o seu administrador imediatamente.</p>
+<p style="margin:0 0 16px">Para falar com o seu administrador, responda a este e-mail.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Este e-mail foi enviado pelo Ronne em marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes two_factor_reset in pt, as text and HTML > text 1`] = `
+"Um root desativou a autenticação de dois fatores da sua conta em marketplace.acme.example. Ao entrar, só é pedida a sua senha, até você ativá-la de novo.
+
+Quando: 2026-11-21 16:32 UTC
+
+Se você não pediu isso, fale com o seu administrador imediatamente.
+Para falar com o seu administrador, responda a este e-mail.
+
+-- 
+Este e-mail foi enviado pelo Ronne em marketplace.acme.example.
+O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.
+"
+`;

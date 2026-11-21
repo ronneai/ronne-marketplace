@@ -9,6 +9,7 @@ import { InvalidPasswordError } from "../src/server/domains/identity/exceptions/
 import { setProcessChannel } from "../src/server/log";
 import { clackPrompts } from "../src/server/setup/clack-prompts";
 import { parseResetCommand } from "../src/server/setup/cli";
+import { noticesStillSending } from "../src/server/setup/cli-mail";
 import {
   InvalidInputError,
   MissingInputError,
@@ -63,3 +64,6 @@ try {
   else console.error(`✗ ${(error as Error).message}`);
   process.exitCode = exitCode;
 }
+// A notice still being sent past the wait (189) mustn't hold the terminal: the server's outbox
+// sends it again once its claim runs out.
+if (noticesStillSending()) process.exit(process.exitCode ?? 0);

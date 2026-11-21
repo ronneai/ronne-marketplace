@@ -56,19 +56,26 @@ possible, and follow the standards (owner, 2026-11-20).
   `mail_api_key_enc`, `mail_ses_secret_access_key_enc`), sealed by
   `settings/models/instance-secrets.ts` as 136 seals the scan key, so `rotate-secret` re-seals
   them. They are write-only: the tab shows *Saved* and a **Replace** button, never the value.
-- **The environment wins, all or nothing.** When the operator sets `RONNE_MAIL_TRANSPORT`, the whole
-  setup comes from `RONNE_MAIL_*` variables: `RONNE_MAIL_FROM`, `RONNE_MAIL_FROM_NAME`,
-  `RONNE_MAIL_SMTP_HOST`, `_PORT`, `_TLS`, `_USER` and `_PASSWORD`, `RONNE_MAIL_API_KEY`,
-  `RONNE_MAIL_REGION`, `RONNE_MAIL_DOMAIN` (Mailgun), `RONNE_MAIL_CONTACT`, `RONNE_MAIL_SES_ACCESS_KEY_ID` and
-  `RONNE_MAIL_SES_SECRET_ACCESS_KEY`. The tab then shows every field as *Set on the server*,
-  read-only, as 136 does. This is for operators who keep secrets out of the database. They're read
-  by `server/config.ts` with the others, the environment's over the settings file's.
+  Each is sealed together with what it was typed for, the transport and its target (the SMTP
+  host, the Mailgun domain and region, the SES access key ID it pairs with; SES's endpoint is
+  always AWS's own, so a region change keeps it), and opens only for those: switching from Resend to
+  Postmark, or changing the SMTP host, drops a kept secret, so it never goes where it wasn't typed
+  for (136's rule for the scan key).
+- **Root manages it all on the page** (owner, 2026-11-21). The whole setup (transport,
+  credentials, sender, Reply-To, instance contact) is set on the Email tab and kept in the
+  database, the secrets sealed; there are no `RONNE_MAIL_*` variables for it and no settings file
+  to edit. The one thing left on the server is `RONNE_MAIL_HOSTS`, the internal relays the
+  operator allows: it's the only setting that lets a web form reach the server's own network, so
+  a stolen root session can't use it to probe that network (as 136 keeps the scanner's internal
+  hosts on the server).
 - **The Email tab** in Admin › Settings (`SETTINGS_TABS`, after Authentication; root only,
   `settings.manage`). It holds:
   - **Status:**
     - *Not set up*;
+    - *Set up, not tested yet*: saved, with no test or delivery since;
     - *Working*: the last test or delivery succeeded, and when;
-    - *Failing*: the last delivery failed for good, with its reason category and time (never the
+    - *Failing*: the last delivery failed for good, or the last test email didn't go (a test is
+      one try, so a provider's "try later" counts), with its reason category and time (never the
       address).
   - **Instance contact:** an email address or an `https://` URL that tells people whom to contact
     about their account, such as `it-help@acme.com` or the company's help page. It's printed in
@@ -83,11 +90,16 @@ possible, and follow the standards (owner, 2026-11-20).
     filled with the instance contact when that is an email address. Every message carries it.
   - **Transport:** a choice, then the transport's fields, with the preset's steps beside them.
   - **Send test email:** it goes to the signed-in root's own address, never one typed in, so the tab
-    can't be used to send mail to strangers. It's sent at once rather than queued. The result
-    shows the server's or API's answer, cleaned of credentials. Each root may send 5 in 10 minutes,
-    counted from the outbox's rows.
-  - **Stop sending:** clears the transport. The queued messages are dropped (their bodies deleted),
-    and features that need email say it's off.
+    can't be used to send mail to strangers. It's sent at once rather than queued, in root's
+    language. The result shows the server's or API's answer, cleaned of credentials, and sets the
+    status. Each root may send 5 in 10 minutes, counted from the outbox's rows: each test leaves
+    one, already ended and without a body. The count isn't locked: clicks racing at the same
+    instant can pass it, which costs nothing beyond root's own inbox.
+  - **Stop sending:** clears the transport and the status, after a second click on the page (no
+    browser dialog). The queued messages are dropped (their bodies deleted) in the same
+    transaction, and features that need email say it's off. The rest of the setup stays, for root
+    to pick a transport again. `mailReadiness()` answers whether email can go out and what the
+    instance contact is: what 190 and 194 check before their switches turn on.
 - **The outbox** (`mail_outbox`). Every message is queued in the same transaction as the change that
   causes it (a transactional outbox), so a notice exists if and only if its change does. Then:
   - **A row holds:** the template, the locale, a `recipient_hmac`, the `user_id` when there is one,
@@ -100,20 +112,32 @@ possible, and follow the standards (owner, 2026-11-20).
     message is sent, fails for good or is dropped. A code (190, 194, 197) is therefore never stored
     in clear, and never kept after it's sent.
   - **Sending at once:** after the response is sent, the server tries the message straight away, so a
-    person waiting for a code gets it in seconds. A run claims rows with a conditional update
-    (`queued` → `sending`, with a two-minute claim), so two replicas never send one row at once.
+    person waiting for a code gets it in seconds. That try takes only the rows the request queued,
+    outside the jobs lease, so a scheduled run in progress doesn't hold it up; kicks during a try
+    join the next turn of it. Every run claims rows with a conditional update (`queued` →
+    `sending`, with a two-minute claim and a `claim_id`), so two replicas never send one row at
+    once, and only the claim's holder ends the try or records the setup's status.
+  - **With `RONNE_JOBS=off`:** the try straight after the change still runs; the retries are the
+    scheduler's, so a message that fails its first try waits until the scheduler runs again.
   - **The `mail_outbox` job** runs every 30 seconds under the jobs lease (102), 50 rows at a time. It
     picks up what wasn't sent, the claims that ran out, and the retries.
-  - **Retries:** after 1, 5, 15 and 60 minutes, then every 3 hours, for at most 8 attempts. SMTP
-    `5xx` and HTTP `4xx` other than `429` fail at once; `429` waits as long as `Retry-After` says.
+  - **Retries:** after 1, 5, 15 and 60 minutes, then every 3 hours, for at most 8 attempts. A try is
+    counted when it's claimed, so one cut off before it ends (the process died) counts too; a row
+    cut off 8 times fails as `interrupted`, unsent. SMTP `5xx` and HTTP `4xx` other than `408` and
+    `429` fail at once (an SMTP `4xx`, at any stage, is retried); `429` waits as long as
+    `Retry-After` says, in whole seconds or an HTTP date, up to a day.
   - **A message can carry `expires_at`:** a code's email is dropped when its code has expired, never
     sent late.
   - **Queuing makes the answer take the same time** whether or not an email goes out, which 190 and
     194 rely on.
 - **A cap per address:** at most 10 messages to one `recipient_hmac` in an hour, all templates
   together. Messages over it are dropped and logged. Each feature's own limits (190's three a
-  purpose an hour) sit below it. 109's shared limiter is still planned and today's
-  `LoginRateLimiter` lives in memory, so the cap counts outbox rows, which every replica sees.
+  purpose an hour) sit below it, counted by 109's limiter in the database. The cap counts the
+  outbox's own rows instead, which every replica sees: it limits messages, whatever queued them.
+  It's counted, not locked, because it runs inside the caller's transaction, where a lock could
+  deadlock and undo the caller's change: messages queued in the same instant can pass it by as
+  many as race. It guards against a flood; the exact limits are 109's. The hash is keyed from
+  AUTH_SECRET, so `rotate-secret` starts the hour's count again.
 - **Templates** in `apps/web/messages/<locale>/mail.json`, in the three languages (129, the i18n
   tests checking keys and placeholders). Each message is:
   - plain text plus simple HTML: inline styles, no remote images, no tracking, no unsubscribe link;
@@ -122,8 +146,14 @@ possible, and follow the standards (owner, 2026-11-20).
     instance contact;
   - sent with `Auto-Submitted: auto-generated`.
 
-  The locale is the person's (`user.locale`), else the instance's default language, else English.
-- **Security notices:** `sendSecurityNotice(user, kind)` queues one in the transaction of the change.
+  - no link at all: the instance contact is printed as text, and the time in one numeric form,
+    in UTC (`2026-11-21 16:32 UTC`), as no time zone is known;
+  - rendered on the server only (`renderMail`): `mail.json` is never sent to a page.
+
+  The locale is the person's (`user.locale`), else the instance's default language, else English,
+  by the screens' rule (141): with choosing off, or a saved language that isn't offered, the
+  instance's default.
+- **Security notices:** `queueSecurityNotice(userId, kind, at, provider?)` queues one in the transaction of the change.
   189 sends them for the events that exist today:
 
   | Event (audit action) | Notice |
@@ -137,6 +167,25 @@ possible, and follow the standards (owner, 2026-11-20).
 
   A notice can't be turned off by the person, as NIST asks. With email not set up, nothing is
   queued. Later features add their own kinds (190, 192, 194, 197).
+
+  It's a repository method (`queueSecurityNotice(userId, kind, at, provider?)` on the identity and
+  SSO repositories), called in the transaction that writes the event's audit row, so the services
+  stay free of the database. It reads the account's address and language at the change, never one
+  the request typed, and the company sign-in's name for `user.sso_linked`. Once the transaction
+  commits, its notices are handed to the outbox's send-at-once (`onMailQueued`, registered at
+  start); a rolled-back change hands on none. The notice and the audit row share that
+  transaction, so a failure of either undoes both. The terminal's `reset-root-password` and
+  `reset-two-factor` read their own instance's settings file and send their notices before they
+  exit, so those go out with `RONNE_JOBS=off` too. A try that fails then follows the outbox's
+  rules (retried by the server's scheduler, or failed for good), and a server that doesn't answer
+  within 30 seconds no longer holds the command: it exits, the row's claim runs out and the
+  server's outbox takes it again. A message that reached the server after those 30 seconds isn't
+  recorded as sent, so the person may get it twice: a duplicate notice rather than a lost one.
+
+  Better Auth commits a password change, and turning two-factor on or off or making new backup
+  codes, before Ronne's transaction for the audit row and the notice. If that transaction fails,
+  the change stands without either, and the person sees the error; the root resets, the terminal
+  commands and the company sign-in link are one transaction from start to end.
 - **Audit:**
   - `settings.mail` records what changed, a secret only as *replaced*;
   - `mail.test_sent` records the result;
@@ -145,7 +194,8 @@ possible, and follow the standards (owner, 2026-11-20).
   the outbox ID, template, transport and reason category, never an address or a body. 101's
   metrics count them.
 - **Personal data:**
-  - **Retention** (102) purges outbox rows after the IP-address days (90 by default).
+  - **Retention** (102) purges outbox rows after the IP-address days (90 by default), counted as
+    `mailDeleted` on the Privacy tab's last run, in `rmk-server purge` and in `job.finished`.
   - **Erase** (103) deletes the person's rows.
   - **Your data** (104) lists the emails sent to the person (template, time, status). Their bodies
     are already gone.
@@ -174,9 +224,10 @@ possible, and follow the standards (owner, 2026-11-20).
 The test arrives in root's inbox, and the status says *Working, tested 2 minutes ago*. The audit
 log shows `settings.mail` (secret: replaced) and `mail.test_sent`.
 
-**An operator keeps secrets out of the database.** The Docker host's `.env` sets
-`RONNE_MAIL_TRANSPORT=smtp`, the host, `RONNE_MAIL_SMTP_TLS=starttls`, the user and password. The
-tab shows every field *Set on the server*, and **Send test email** still works.
+**A company relay on the same network.** The operator adds `relay.corp.internal` to
+`RONNE_MAIL_HOSTS` once. Root then picks *Other SMTP server* on the tab, types that host, port 25
+and *No TLS*, with no user name, and **Send test email** works. Without the operator's entry the
+save is refused: the host resolves to a private address.
 
 **A notice.** Ana turns off two-factor on her Account page. In the same transaction, the outbox
 gets a row. A second later it's sent: "Two-factor sign-in was turned off for your account on
@@ -197,7 +248,8 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
 - **Root changes the transport while messages are queued:** each message is sent through the
   transport set at the time it's sent.
 - **`rotate-secret`:** it re-seals the settings, as for 136, and the queued `body_enc` values.
-  Rows it can't open are dropped and logged.
+  Rows it can't open are dropped, their body deleted, and counted: in its output, and as
+  `mailDropped` in the `instance.secret_rotated` audit row (`mailResealed` for the rest).
 - **A secret can't be opened** (the settings file was replaced): the status says *Failing:
   credentials can't be read, replace them*. Nothing is sent.
 - **Two replicas:** the conditional claim stops a row from being sent twice in the normal case. A
@@ -222,18 +274,17 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
 - **Migration:** `mail_outbox` with columns
   - `id` (ULID), `template`, `locale`, `recipient_hmac`, `user_id` (nullable, no foreign key, so
     the row outlives a deleted user until it's purged);
-  - `body_enc` (nullable text), `status`, `attempts`, `next_attempt_at`, `claimed_until`,
-    `expires_at`, `last_error`;
+  - `body_enc` (nullable text), `status`, `attempts`, `next_attempt_at`, `claim_expires_at`,
+    `claim_id` (whose claim it is: only its holder may end the try), `expires_at`, `last_error`;
   - `created_at` and `sent_at`.
 
-  It's indexed on `(status, next_attempt_at)` and `(recipient_hmac, created_at)`. One migration for
-  all three databases.
+  It's indexed on `(status, next_attempt_at)`, `(recipient_hmac, created_at)`, `(user_id, id)` and
+  `(created_at, id)`. One migration for all three databases.
 - **`instance_settings` keys:** `mail_transport`, `mail_from_address`, `mail_from_name`,
   `mail_smtp_host`, `mail_smtp_port`, `mail_smtp_tls`, `mail_smtp_user`, `mail_smtp_password_enc`,
   `mail_api_key_enc`, `mail_region`, `mail_domain`, `mail_ses_access_key_id`,
-  `mail_ses_secret_access_key_enc`, `mail_contact` (the instance contact; also
-  `RONNE_MAIL_CONTACT` when the environment sets the email setup), `mail_reply_to` (also
-  `RONNE_MAIL_REPLY_TO`), and `mail_last_status` (JSON: status, time, reason category).
+  `mail_ses_secret_access_key_enc`, `mail_contact` (the instance contact), `mail_reply_to`, and
+  `mail_last_status` (JSON: status, time, reason category).
 - **`jobs` row:** `mail_outbox`.
 
 ## Documentation
@@ -242,7 +293,7 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
   - `setup`: the tab, the transports, the test;
   - `providers`: a guide per preset and API, with the least-privilege credentials;
   - `domain`: SPF, DKIM and DMARC for the From domain, with each provider's own pages;
-  - `environment`: the `RONNE_MAIL_*` variables and `RONNE_MAIL_HOSTS`;
+  - `relays`: `RONNE_MAIL_HOSTS`, the operator's internal relays, and why it stays on the server;
   - `notices`: which security notices go out, and why they can't be turned off;
   - `troubleshooting`: blocked ports, unverified senders, TLS errors.
 - **`privacy`:** the outbox, what it keeps and for how long; the email provider as a processor
@@ -262,7 +313,7 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
   host resolving to a private address is refused unless listed.
 - [ ] Secrets are sealed, never shown, never in logs or audit rows. `rotate-secret` re-seals them and
   the queued bodies.
-- [ ] `RONNE_MAIL_TRANSPORT` makes the whole tab read-only from the environment.
+- [ ] Every part of the setup is set on the tab and kept in the database; only `RONNE_MAIL_HOSTS` is read from the server.
 - [ ] A message is queued in its change's transaction; a rolled-back change queues nothing.
 - [ ] A sent, failed or dropped row has no body. An expired code's email is dropped, not sent.
 - [ ] Retries follow the schedule. Permanent errors don't retry, and `429` waits for `Retry-After`.
@@ -287,9 +338,10 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
    has no dependencies, is maintained, and is on 10.x (Node.js 20 or later). Its licence is
    **MIT-0**, MIT without the attribution clause, as permissive as 0BSD, which is already allowed.
    Task 2 adds MIT-0 to the dependency policy §1 and to `license-policy.json`.
-3. **The environment wins, all or nothing** (Claude). This is 136's rule (the operator's settings
-   win). Taking the whole setup from one place avoids a half-environment, half-database transport
-   that nobody can reason about.
+3. **Root manages the setup on the page, not in files** (owner, 2026-11-21, replacing "the
+   environment wins"). Everything root needs is on the Email tab, kept sealed in the database.
+   Only `RONNE_MAIL_HOSTS` stays on the server, as the one setting that lets a web form reach the
+   server's own network.
 4. **A transactional outbox with sealed bodies, deleted once sent** (Claude, from the owner's data
    protection rule). A notice can't be lost to a crash, and a code can't be read from the database
    or a backup after it's sent.

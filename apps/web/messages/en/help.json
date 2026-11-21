@@ -299,6 +299,18 @@
     "question": "Information or Warning?",
     "answer": "Information is for news and context, such as “this is a demo”. Warning is for something that needs care, such as “the demo’s data is reset on Friday” or a maintenance window."
   },
+  "email-setup": {
+    "question": "Which transport should I choose?",
+    "answer": "A provider's web API (Amazon SES, Mailgun, Postmark or Resend) works where outgoing SMTP ports are blocked, as they often are in the cloud; another SMTP server is your provider's or your company's. Whichever you pick, give Ronne a key that may only send, then send yourself a test email."
+  },
+  "email-domain": {
+    "question": "Why do my emails land in spam?",
+    "answer": "Mail providers trust a message when its From domain has SPF, DKIM and DMARC records that match the service that sent it. Your email provider tells you which DNS records to add; Ronne doesn't sign mail itself."
+  },
+  "email-notices": {
+    "question": "Will I be told about changes like this?",
+    "answer": "When this instance sends email, a change to how you sign in (your password, two-factor sign-in, backup codes or a company sign-in) sends a notice to your account's address. If you get one for a change you didn't make, contact your administrator at once."
+  },
   "update-checking": {
     "question": "What does the check send?",
     "answer": "Nothing about this instance: once a day the server asks GitHub for the latest release, with a fixed name and no version, address, account or id. If GitHub can’t be reached, nothing else happens. Turn it off here, or with RONNE_UPDATE_CHECK=off on the server."

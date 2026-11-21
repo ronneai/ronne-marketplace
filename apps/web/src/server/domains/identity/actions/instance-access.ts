@@ -1,5 +1,7 @@
+import { reseal } from "../../../crypto/sealed";
 import type { Db } from "../../../db/create-db";
 import type { DatabaseDialect } from "../../../db/url";
+import { outboxBodyPurpose } from "../../mail/models/outbox";
 import { resealSetting } from "../../settings/models/instance-secrets";
 import { ProviderSecretUnreadableError } from "../exceptions/errors";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
@@ -46,6 +48,9 @@ export const endSessionsForNewSecret = (
         }
       : undefined,
     secrets ? (key, stored) => resealSetting(secrets.from, secrets.to, key, stored) : undefined,
+    secrets
+      ? (id, stored) => reseal(secrets.from, secrets.to, outboxBodyPurpose(id), stored)
+      : undefined,
   );
 
 export const clearTwoFactorAfterRestore = (

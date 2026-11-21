@@ -82,7 +82,7 @@ sign-in must be replaced, with 128's hold.
     anything else. The hold page says why: "Your password appears in a list of breached or common
     passwords. Choose a new one to continue."
   - It also sends a new security notice kind, `password_found_breached`, through 189's
-    `sendSecurityNotice`, and records `user.password_found_breached` in the audit
+    `queueSecurityNotice`, and records `user.password_found_breached` in the audit
     log.
   - The API refuses the token as 128 does for any hold, with a message to change the password in
     the web app.

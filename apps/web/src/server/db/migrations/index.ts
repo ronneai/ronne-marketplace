@@ -42,6 +42,7 @@ import { notifications } from "./0041_notifications";
 import { notificationWorkspaces } from "./0042_notification_workspaces";
 import { auditContext } from "./0043_audit_context";
 import { rateLimits } from "./0044_rate_limits";
+import { mailOutbox } from "./0045_mail_outbox";
 import type { AppMigration } from "./types";
 
 /**
@@ -93,4 +94,5 @@ export const migrations: Record<string, AppMigration> = {
   "0042_notification_workspaces": notificationWorkspaces,
   "0043_audit_context": auditContext,
   "0044_rate_limits": rateLimits,
+  "0045_mail_outbox": mailOutbox,
 };

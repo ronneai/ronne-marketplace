@@ -256,6 +256,7 @@ describe("Settings › Authentication in three languages (132)", () => {
       "Uso",
       "Feeds de plugins",
       "Autenticação",
+      "E-mail",
       "Privacidade",
       "Comunicado",
       "Verificação de segurança",
@@ -266,6 +267,7 @@ describe("Settings › Authentication in three languages (132)", () => {
       "Utilisation",
       "Flux de plugins",
       "Authentification",
+      "Courriel",
       "Confidentialité",
       "Avis",
       "Analyse de sécurité",
@@ -387,6 +389,7 @@ const counts = (n: number) => ({
   feedbackDeleted: n,
   notificationsDeleted: n,
   rateLimitsDeleted: n,
+  mailDeleted: n,
 });
 const lastRun = (locale: L, n: number) =>
   render(

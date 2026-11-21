@@ -38,6 +38,9 @@ What an instance holds:
 | Security scan results and reviewers' marks on findings (135, 137) | database (`content_scans`, `scan_dismissals`) | findings about files, and the reasons reviewers gave; no personal data beyond the marker's id |
 | Feedback and the instance notice (124, 127) | database (`feedback`, `instance_settings`) | what people wrote to the administrators; root's message shown to everyone |
 | Usage totals | database | aggregated, nothing about who sent them |
+| The email credentials (189) | database (`instance_settings`: `mail_smtp_password_enc`, `mail_api_key_enc`, `mail_ses_secret_access_key_enc`), AES-256-GCM with a key from `AUTH_SECRET`, each bound to the transport and target it was typed for (the SMTP host, the Mailgun domain and region, the SES access key ID) | send email as the instance's From domain |
+| Queued emails (189) | database (`mail_outbox`): the body (address, subject, text and HTML) AES-256-GCM sealed to its row, deleted once sent, failed or dropped; the address otherwise only as a keyed hash | the security notices people get, and who gets them |
+| The email setup and its last status (189) | database (`instance_settings`, `mail_*`) | which provider and From address the instance uses; root's alone |
 | The settings file | `.env` / `/etc/rmk-server/env` / `…\Marketplace\.env` | `DATABASE_URL` (with its password) and `AUTH_SECRET` |
 | Backups (099) | wherever the operator keeps them | all of the above |
 
@@ -80,6 +83,7 @@ flowchart LR
   LLM["LLM provider<br/>(semantic scans only, 135, 136)"]
   IdP["Identity provider<br/>(OpenID Connect and SCIM, 106, 108)"]
   GitHub["GitHub releases API<br/>(update check, 140)"]
+  Mail["Email provider<br/>(SMTP or a web API, 189)"]
 
   Browser -- "HTTPS (Caddy, 080) or local HTTP" --> Web
   RMK -- "Bearer token" --> Web
@@ -93,6 +97,7 @@ flowchart LR
   Web -- "files + scan key, through the proxy" --> Scanners
   Scanners -. "semantic scans only" .-> LLM
   Web -. "daily: which version is latest, nothing about the instance" .-> GitHub
+  Web -. "security notices and root's test, as the From domain" .-> Mail
   Web --> Review
   Review -- "released versions" --> Store
   Web --> DB
@@ -112,6 +117,7 @@ The boundaries, in order of what's at stake:
 9. **Submitted files → the scanner** (135, 156). Item content is untrusted input to a program that parses it, so the scanner runs where it can reach nothing of Ronne's.
 10. **The server → an LLM provider** (135, 136). A semantic scan sends item content, and the provider's key, off the server. Root chooses it and sees where.
 11. **GitHub's answer → root's update notice** (140). Once a day the server asks which version is latest, and believes only a version number.
+12. **The server → the email provider** (189). Root's credential lets Ronne send as the instance's From domain; the provider sees each message it sends.
 
 ## 4. Threats
 
@@ -150,6 +156,9 @@ The boundaries, in order of what's at stake:
 | The update check gives the instance away, or leads root astray | Once a day, under the scheduler's lease, a GET to a fixed address with a fixed `User-Agent`: no version, no address, no credentials. Redirects are followed only to `https://api.github.com`, within 10 seconds and 1 MiB; only `tag_name` is read, and it must be strict semver of at most 64 characters, or the check says "bad answer". The release notes' link is built from that version, never taken from the answer, and the update commands on Settings › Updates are fixed for each kind of install (`apps/web/src/server/runtime.ts`), not read from it. Root turns it off with the switch, the operator with `RONNE_UPDATE_CHECK=off` (140; `apps/web/src/server/updates/check-for-update.ts`) | Whoever controls the answer can announce a version that doesn't exist, or hide one; root then runs the usual commands, which fetch from npm, Docker Hub or GitHub as any update does. GitHub sees the server's address once a day |
 | A notification tells someone about what they may no longer see | Written in the transaction of the change it describes, beside its audit event, never to its actor nor to a disabled or erased account (`apps/web/src/server/domains/notifications/services/notify.ts`). Read through the reader's visibility: one about a subject in a workspace the reader no longer sees is hidden, feedback and update notices are root's only, and one about losing access shows the workspace's name with no link (`notifications/models/visibility.ts`); names are read when shown, and rows are kept 90 days (`RETENTION_DAYS`, `notifications/models/notification.ts:93`; 139) | Nothing leaves the server: no email or webhooks. Whoever holds a person's session reads their notifications |
 | A toast's cookie carries markup, or words that aren't the app's | `flashToast` (138) writes one of the app's message keys and short parameters, never a sentence; `parseFlash` refuses anything else, whole, and the message is drawn as text in the reader's language. The cookie lasts 30 seconds, `SameSite=Lax` (`apps/web/src/i18n/flash.ts:46`, `apps/web/src/server/http/flash-toast.ts`) | It isn't `HttpOnly`, since the page removes it once shown: a script on the page could set it, and show one of the app's own messages |
+| Root's email setup is used to reach the server's own network | The SMTP host is resolved on save and on every connection, and refused when any address it resolves to is private, loopback or link-local, unless the operator lists the host in `RONNE_MAIL_HOSTS` on the server; Ronne then connects to the address it checked, with the typed host for TLS. Plain SMTP is only for a listed relay and never with a user name; otherwise TLS or a required STARTTLS, with certificates verified. The web APIs are fixed HTTPS hosts (`apps/web/src/server/domains/mail/models/smtp-host.ts`, `repositories/transports/smtp.ts`, 189) | A host the operator lists is trusted as listed |
+| The test email mails strangers, or floods | **Send test email** goes only to the signed-in root's own address, never one typed in, 5 per root in 10 minutes, audited as `mail.test_sent` with the result only (189, `services/mail-admin.ts`) | The count isn't locked: clicks racing at the same instant can pass it, into root's own inbox |
+| A notice is used to phish, or to flood someone | A notice has no link at all and loads nothing; the instance contact is printed as text; every value is escaped in the HTML; a line break in an address or a header is refused; at most 10 messages an hour to one address, every template together (189, `services/templates.ts`, `models/message.ts`) | The cap is counted, not locked: messages queued in the same instant can pass it; a forged email that imitates a notice is the From domain's DMARC's to stop |
 | Someone who isn't root manages users | The user page `/admin/users/<id>` and its actions (change role, disable, reset password or two-factor, download data, erase) need root's permissions; anyone else gets a 404 with no hint the user exists; each action is audited and the destructive ones ask for a typed confirmation (123, 103) | Root can do all of it, as root must |
 
 ### 4.3 One workspace → another (private workspaces)
@@ -165,6 +174,7 @@ The boundaries, in order of what's at stake:
 | Threat | What stops it today | What's left |
 |---|---|---|
 | Someone reads the settings file | Written with mode 0600 through a temporary file (`writeEnvFile`, `apps/web/src/server/setup/env-file.ts`); `AUTH_SECRET` signs cookies and nothing else; tokens are hashes, passwords argon2 | With it, someone can sign in as anyone (forged cookies) and reach the database. The [incident runbook](../runbooks/incident-response.md): "The settings file, a backup or the server leaked" |
+| Someone reads the email credentials or the queued emails | Sealed with keys from `AUTH_SECRET` (AES-256-GCM): each credential bound to what it was typed for, so it never goes to another host, domain or transport; each body bound to its row, and deleted once sent, failed or dropped; `rmk-server rotate-secret` re-seals both, and drops and counts a body it can't open. The tab never shows a credential, logs and audit rows never carry one, nor a recipient's address or a body; the `settings.mail` audit row names only the instance's own From, Reply-To and contact addresses (189) | Whoever has the settings file and the database can open them |
 | Someone reads the database or storage | Token hashes and password hashes only | Everything else is in the clear unless the disk or the database encrypts it. Accepted (MVP §15, Operations: encryption at rest is the platform's); 099 documents how |
 | Someone reads a backup | `rmk-server backup --encrypt` seals the archive with a passphrase (scrypt, AES-256-GCM in chunks), and `backup --verify` checks an archive (099) | Backups are not encrypted by default and then hold the settings file; a lost passphrase loses the backup; keeping copies off the machine is the operator's ([backup runbook](../runbooks/backup.md)) |
 | The audit log is altered | Append-only: a guard test fails on any update or delete outside migrations (`domains/audit/audit-log.guard.test.ts`) | Anyone with database write access can change it. No export to an outside store (post-MVP, 007) |
@@ -215,6 +225,18 @@ The scan is opt-in: nothing here applies until the operator sets up a scanner an
 | Root points the scanner at a server of theirs | The addresses (156, decision 7) are checked on save: Ronne asks `/health` without the scan key and accepts only the scan service's answer or the proxy's refusal for the key, and sends the key only to an address that answered like Ronne's proxy. An address or a command in the environment wins and can't be changed from the web. Audited with the address's host | An address that answers like the service receives every submission's files, and a semantic address also the provider's key. A server that imitates the proxy's refusal and then the service's answer gets the scan key; the host is resolved again on every scan; the save is a way for root to probe ports. Root can already set an LLM endpoint: this guards a typo, not a root who means harm |
 | A finding's text attacks the reviewer's browser | `parseSkillScan` keeps only the documented fields, cuts strings to 500 characters and the list to 200 findings, and the findings render as plain text; the process's own output is never stored or shown; the reasons reviewers write are plain text with control characters removed (`@ronneai/core`, 135, 137) | — |
 
+### 4.9 The server → the email provider (189)
+
+Nothing here applies until root sets up a transport on the Email tab.
+
+| Threat | What stops it today | What's left |
+|---|---|---|
+| A stolen email credential sends as the instance's From domain | Sealed at rest (§4.4), write-only on the tab, never logged; the setup steps ask for a key that may only send where the provider has one (an IAM user allowed only `ses:SendEmail` from the From identity; a sending API key for Mailgun and Resend); a Postmark server token and an SMTP password can't be limited that way; a credential is dropped when its transport or target changes; **Stop sending** clears the transport | Whoever holds the key can send as the domain until it's revoked at the provider; the domain's SPF, DKIM and DMARC are the provider's and the DNS's |
+| The provider reads what Ronne sends | Only security notices and root's test: what changed, when, the instance's host and contact; never a password, a code, a token or a link (189's templates) | The provider sees each notice and its recipient: root needs an agreement with it (the `privacy` topic; SES and Mailgun offer EU regions) |
+| A root session points email at a server of the attacker's | Changing the setup is root's, audited as `settings.mail` (the secret only as *replaced*); a private address needs the operator's `RONNE_MAIL_HOSTS` (§4.2) | Notices then go to that server, as root set it; they carry nothing that signs anyone in |
+| The provider's answer attacks root's page or the logs | Answers are cut short and cleaned of credentials (raw and encoded forms) before the tab shows them; at SMTP's AUTH stage only reply codes; the status keeps only a reason by kind (189, `repositories/transports/http.ts`) | — |
+| A notice goes out for a change that didn't happen, or one is lost | Queued in the transaction of the change's audit row and sent once it commits; a rolled-back change queues nothing; retries on a schedule, a code's email dropped once its code expires; each row claimed before it's sent, so two replicas never send it twice (189, `services/outbox.ts`, `services/notices.ts`) | Better Auth commits a password or two-factor change before that transaction, so a failure there leaves the change without a notice; delivery is at least once, so a retry after the provider took the message, or a terminal command's send past its wait, can send a duplicate |
+
 ## 5. Known gaps
 
 Checked on 2026-11-01.
@@ -242,6 +264,9 @@ Checked on 2026-11-01.
 | A semantic scan sends item content and a key to a provider, and DNS rebinding isn't covered; root's scanner address is only checked, not trusted | Accepted: 136 and 156 decision 7 (the operator's egress proxy or firewall closes the first; the operator's environment overrides the second) |
 | The update check believes GitHub's answer about which version is latest | Accepted: 140 (only a version number is believed; the commands are Ronne's own; off with `RONNE_UPDATE_CHECK=off`) |
 | The scanner runs in a container that shares the host's kernel, and its image is built on the server from GitHub and PyPI | Accepted: 156 (not published by Ronne; pinned by commit, digest and `uv.lock`) |
+| Ronne doesn't handle bounces or complaints, and doesn't sign with DKIM itself | Accepted: 189 (the provider's and the DNS's; a bounced notice is the provider's to report) |
+| The cap of 10 messages an hour per address is counted, not locked, and `rotate-secret` restarts it | Accepted: 189 (a guard against floods; the exact limits on who can cause an email are 109's) |
+| A password or two-factor change can stand without its notice when Ronne's transaction after Better Auth's fails | Accepted: 189 (the person sees the error; the root resets, the terminal commands and the company sign-in link are one transaction) |
 
 ## 6. Keeping it true
 

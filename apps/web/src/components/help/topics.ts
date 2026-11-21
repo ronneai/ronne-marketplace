@@ -186,10 +186,24 @@ export const TOPICS = [
     slug: "settings",
     title: "Settings",
     summary:
-      "Root's settings for the instance, in eight tabs: usage reporting, the plugin feeds, how people sign in, how long personal data is kept, the notice, the security scan, updates, and languages.",
+      "Root's settings for the instance, in nine tabs: usage reporting, the plugin feeds, how people sign in, how email leaves the server, how long personal data is kept, the notice, the security scan, updates, and languages.",
     sections: [
       { id: "settings", title: "Settings" },
       { id: "languages", title: "Languages" },
+    ],
+  },
+  {
+    slug: "email",
+    title: "Email",
+    summary:
+      "How Ronne sends email: the Email tab and its transports, each provider's least-privilege credentials, the From domain's SPF, DKIM and DMARC, the operator's internal relays, the security notices people get, and what to do when email fails.",
+    sections: [
+      { id: "setup", title: "Set up email" },
+      { id: "providers", title: "Provider guides" },
+      { id: "domain", title: "Your sending domain" },
+      { id: "relays", title: "Internal relays" },
+      { id: "notices", title: "Security notices" },
+      { id: "troubleshooting", title: "When email fails" },
     ],
   },
   {
@@ -453,7 +467,16 @@ export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
   },
   {
     label: "Administration",
-    topics: ["admin", "settings", "security-scan", "notice", "start-here", "feedback", "audit"],
+    topics: [
+      "admin",
+      "settings",
+      "email",
+      "security-scan",
+      "notice",
+      "start-here",
+      "feedback",
+      "audit",
+    ],
   },
   {
     label: "Installing items",

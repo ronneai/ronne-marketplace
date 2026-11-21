@@ -1,0 +1,51 @@
+{
+  "footer": {
+    "sentBy": "This email was sent by Ronne at {host}.",
+    "notice": "Ronne sends one whenever the way you sign in to your account changes. These emails can't be turned off.",
+    "contact": "To reach your administrator, reply to this email or write to {contact}.",
+    "contactReply": "To reach your administrator, reply to this email.",
+    "when": "When: {at}"
+  },
+  "test": {
+    "subject": "Test email from Ronne at {host}",
+    "body": "Root sent this test email from Admin › Settings › Email. It reached you, so Ronne can send email.",
+    "notYou": "If you didn't expect it, you can ignore it: nothing about your account changed."
+  },
+  "notices": {
+    "password_changed": {
+      "subject": "Your password was changed",
+      "body": "The password of your account on {host} was changed.",
+      "notYou": "If this wasn't you, someone else may know your password. Contact your administrator at once."
+    },
+    "password_reset": {
+      "subject": "A root set a new password for you",
+      "body": "A root set a new password for your account on {host}. Your old password no longer works.",
+      "notYou": "If you didn't ask for this, contact your administrator at once."
+    },
+    "two_factor_enabled": {
+      "subject": "Two-factor sign-in was turned on",
+      "body": "Two-factor sign-in was turned on for your account on {host}. Signing in now also asks for a code from an authenticator app.",
+      "notYou": "If this wasn't you, someone else may be signed in to your account. Contact your administrator at once."
+    },
+    "two_factor_disabled": {
+      "subject": "Two-factor sign-in was turned off",
+      "body": "Two-factor sign-in was turned off for your account on {host}. Signing in now asks for your password only.",
+      "notYou": "If this wasn't you, someone else may be signed in to your account. Contact your administrator at once."
+    },
+    "backup_codes_regenerated": {
+      "subject": "New backup codes were made",
+      "body": "New backup codes were made for your account on {host}. The old ones no longer work.",
+      "notYou": "If this wasn't you, someone else may be signed in to your account. Contact your administrator at once."
+    },
+    "two_factor_reset": {
+      "subject": "A root turned off your two-factor sign-in",
+      "body": "A root turned off two-factor sign-in for your account on {host}. Signing in now asks for your password only, until you turn it on again.",
+      "notYou": "If you didn't ask for this, contact your administrator at once."
+    },
+    "sso_linked": {
+      "subject": "A company sign-in was linked to your account",
+      "body": "Your account on {host} can now be signed in to with {provider}.",
+      "notYou": "If this wasn't you, contact your administrator at once."
+    }
+  }
+}

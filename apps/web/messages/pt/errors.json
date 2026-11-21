@@ -170,5 +170,12 @@
   "FindingNotFoundError": "Esse achado não existe mais, ou você não pode vê-lo.",
   "FindingDismissedError": "Esse achado já está marcado, como falso positivo ou risco aceito.",
   "NotScanReviewerError": "Só quem revisa a submissão marca achados como falsos positivos, nunca o autor.",
-  "DismissalKindError": "Marque-o como falso positivo ou como risco aceito."
+  "DismissalKindError": "Marque-o como falso positivo ou como risco aceito.",
+  "InvalidMailSetupError": "{field, select, transport {Escolha como os e-mails saem do servidor.} fromAddress {O remetente é um endereço de e-mail, só em ASCII.} fromName {O nome do remetente tem no máximo 100 caracteres, numa só linha.} replyTo {O Reply-To é um endereço de e-mail, só em ASCII, e é obrigatório.} contact {O contato da instância é um endereço de e-mail ou um endereço https:// sem nome de usuário, com no máximo 500 caracteres.} smtpHost {O servidor SMTP é um nome de host ou um endereço.} smtpPort {A porta é um número inteiro de 1 a 65535.} smtpTls {Escolha TLS, STARTTLS ou sem TLS para um relay que o operador inclui na lista.} smtpUser {O nome de usuário tem no máximo 256 caracteres, numa só linha.} secret {Digite a credencial: este transporte precisa de uma, e nenhuma está salva para ele.} secretInvalid {A credencial tem no máximo 4.096 caracteres, numa só linha.} secretWithoutUser {Uma senha só é guardada com um nome de usuário: digite o nome de usuário também.} noAuthSecret {O servidor não tem um AUTH_SECRET para lacrar a credencial: defina-o e salve de novo.} region {Escolha a região do provedor.} domain {O domínio de envio é um nome de domínio, como mg.example.com.} sesAccessKeyId {O ID da chave de acesso tem de 16 a 128 letras maiúsculas e dígitos.} other {Não é possível salvar este campo como foi digitado.}}",
+  "MailHostInternalError": "Esse servidor está numa rede privada. Um relay ali só funciona depois que o operador o inclui em RONNE_MAIL_HOSTS no servidor.",
+  "MailHostUnresolvedError": "Esse nome de servidor não resolve.",
+  "MailPlainSmtpError": "Sem TLS é só para um relay que o operador inclui em RONNE_MAIL_HOSTS, e nunca com nome de usuário e senha.",
+  "MailNotSetUpError": "O e-mail não está configurado: escolha um transporte e salve primeiro.",
+  "MailCredentialsUnreadableError": "Não é possível ler a credencial salva (um AUTH_SECRET antigo): digite-a de novo e salve.",
+  "MailTestLimitError": "No máximo {limit} e-mails de teste em 10 minutos: espere alguns minutos e tente de novo."
 }

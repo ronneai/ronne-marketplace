@@ -1,7 +1,12 @@
 import { version } from "../../../package.json";
 import { isConfigured, loadConfig } from "../config";
 import { getAppDb } from "../db/instance";
+import { parseMailRelays } from "../domains/mail/models/mail-settings";
+import type { MailTransport } from "../domains/mail/models/message";
+import { onMailQueued } from "../domains/mail/services/notices";
+import { deliverDue } from "../domains/mail/services/outbox";
 import { logger } from "../log";
+import { MAIL_OUTBOX_JOB, runMailOutboxJob } from "./mail-outbox-job";
 import { runRetentionJob } from "./retention-job";
 import { runSkillScansOn, SKILL_SCAN_JOB } from "./skill-scan-job";
 import { runUpdateCheckJob, UPDATE_CHECK_JOB } from "./update-check-job";
@@ -93,6 +98,26 @@ export const UPDATE_SCHEDULE = {
   everyMs: UPDATE_EVERY_MS,
 } as const;
 
+/** The outbox (189): 30 seconds after start, then every 30 seconds. */
+export const MAIL_EVERY_MS = 30 * 1000;
+
+/** The outbox's run with this instance's settings: the operator's relays and AUTH_SECRET. */
+export const runMailOutbox = async (env: Record<string, string | undefined>) => {
+  const config = loadConfig({ env });
+  if (!isConfigured(config)) return;
+  const { db, dialect } = getAppDb(config.databaseUrl);
+  await runMailOutboxJob(
+    { db, dialect },
+    { authSecret: config.authSecret, allowedHosts: parseMailRelays(config.mailHosts) },
+  );
+};
+
+export const MAIL_SCHEDULE = {
+  job: MAIL_OUTBOX_JOB,
+  firstMs: MAIL_EVERY_MS,
+  everyMs: MAIL_EVERY_MS,
+} as const;
+
 /** When the scan queue is looked at: a minute after start, then every minute. */
 export const SCAN_SCHEDULE = {
   job: SKILL_SCAN_JOB,
@@ -147,6 +172,7 @@ export const startJobsIfOn = (
     runRetention?: () => Promise<unknown>;
     runScans?: () => Promise<unknown>;
     runUpdates?: () => Promise<unknown>;
+    runMail?: () => Promise<unknown>;
   } = {},
 ): void => {
   if (store.__ronneJobsStop) return;
@@ -168,10 +194,17 @@ export const startJobsIfOn = (
     ...UPDATE_SCHEDULE,
     run: options.runUpdates ?? (() => runUpdateCheck(env)),
   });
+  const stopMail = startScheduler({
+    env,
+    timers,
+    ...MAIL_SCHEDULE,
+    run: options.runMail ?? (() => runMailOutbox(env)),
+  });
   store.__ronneJobsStop = () => {
     stopRetention();
     stopScans();
     stopUpdates();
+    stopMail();
   };
 };
 
@@ -208,3 +241,71 @@ export const kickSkillScans = (
   };
   kicks.__ronneScanRun = loop();
 };
+
+// One outbox run at a time in this process; a kick during a run asks for one more after it.
+const mailKicks = globalThis as typeof globalThis & {
+  __ronneMailRun?: Promise<void>;
+  __ronneMailIds?: Set<string>;
+};
+
+/** Sends these rows now, outside the job's lease: each row's claim keeps two runs apart. */
+export const sendMailNow = async (
+  env: Record<string, string | undefined>,
+  ids: readonly string[],
+  /** For tests: the database, and a send in place of the transport's. */
+  test: { open?: typeof getAppDb; send?: MailTransport["send"] } = {},
+) => {
+  const config = loadConfig({ env });
+  if (!isConfigured(config)) return;
+  const { db, dialect } = (test.open ?? getAppDb)(config.databaseUrl);
+  await deliverDue(
+    { db, dialect },
+    { authSecret: config.authSecret, allowedHosts: parseMailRelays(config.mailHosts) },
+    { ids, send: test.send },
+  );
+};
+
+/**
+ * Tries the rows a request just queued (189), once the change that queued them has committed, so
+ * a person waiting for a code gets it in seconds. Only those rows: retries are the scheduler's.
+ * It runs whether or not RONNE_JOBS is on, and outside the job's lease, so a scheduled run in
+ * progress doesn't hold it up. One loop at a time in this process; rows kicked during a run go in
+ * the next turn of it.
+ */
+export const kickMailOutbox = (
+  ids: readonly string[],
+  env: Record<string, string | undefined> = process.env,
+  /** What a kick runs; tests pass their own. */
+  run: (
+    env: Record<string, string | undefined>,
+    ids: readonly string[],
+  ) => Promise<unknown> = sendMailNow,
+): Promise<void> => {
+  if (ids.length === 0) return mailKicks.__ronneMailRun ?? Promise.resolve();
+  mailKicks.__ronneMailIds ??= new Set();
+  for (const id of ids) mailKicks.__ronneMailIds.add(id);
+  if (mailKicks.__ronneMailRun) return mailKicks.__ronneMailRun;
+  const loop = async () => {
+    while (mailKicks.__ronneMailIds && mailKicks.__ronneMailIds.size > 0) {
+      const batch = [...mailKicks.__ronneMailIds];
+      mailKicks.__ronneMailIds.clear();
+      try {
+        await run(env, batch);
+      } catch (error) {
+        log.event("job.failed", { job: MAIL_OUTBOX_JOB, ms: 0, err: error });
+      }
+    }
+    mailKicks.__ronneMailRun = undefined;
+  };
+  mailKicks.__ronneMailRun = loop();
+  return mailKicks.__ronneMailRun;
+};
+
+/**
+ * What `register()` calls at start (189): every notice a request queued is tried as soon as its
+ * transaction commits, through the kick above, whether or not RONNE_JOBS is on.
+ */
+export const sendQueuedMailAtOnce = (env: Record<string, string | undefined> = process.env): void =>
+  onMailQueued((ids) => {
+    void kickMailOutbox(ids, env);
+  });

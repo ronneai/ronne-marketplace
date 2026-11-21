@@ -7,6 +7,7 @@ import type {
   UserDataAuditEvent,
   UserDataComment,
   UserDataDeviceGrant,
+  UserDataEmail,
   UserDataFavorite,
   UserDataFeedback,
   UserDataItem,
@@ -45,6 +46,8 @@ export interface UserDataRepository {
   feedback(userId: string, limit: number): Promise<UserDataFeedback[]>;
   /** The notifications addressed to them, oldest first (139): never anyone else's. */
   notifications(userId: string, limit: number): Promise<UserDataNotification[]>;
+  /** The emails sent or queued to them, oldest first (189): never an address or a body. */
+  emails(userId: string, limit: number): Promise<UserDataEmail[]>;
   /** What they did with the Getting started panel (126); null when they never did anything. */
   onboarding(userId: string): Promise<UserDataOnboarding>;
   /** Items the person owns or published a version of; `limit` counts versions. */

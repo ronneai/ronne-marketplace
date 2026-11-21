@@ -111,6 +111,12 @@ export const kyselyEraseRepository = (
       );
     },
 
+    async deleteMail(userId) {
+      return count(
+        await db.deleteFrom("mail_outbox").where("user_id", "=", userId).executeTakeFirst(),
+      );
+    },
+
     async deleteOnboarding(userId) {
       await db.deleteFrom("user_onboarding").where("user_id", "=", userId).execute();
     },

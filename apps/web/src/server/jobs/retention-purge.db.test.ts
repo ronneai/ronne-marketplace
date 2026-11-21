@@ -210,6 +210,7 @@ describe("the retention purge (102)", () => {
       feedbackDeleted: 0,
       notificationsDeleted: 0,
       rateLimitsDeleted: 0,
+      mailDeleted: 0,
     });
     expect((await auditRow(oldEvent)).ip_address).toBeNull();
     expect((await auditRow(newEvent)).ip_address).toBe("203.0.113.7");
@@ -269,6 +270,7 @@ describe("the retention purge (102)", () => {
       feedbackDeleted: 0,
       notificationsDeleted: 0,
       rateLimitsDeleted: 0,
+      mailDeleted: 0,
     });
   });
 
@@ -295,6 +297,7 @@ describe("the retention purge (102)", () => {
       feedbackDeleted: 0,
       notificationsDeleted: 0,
       rateLimitsDeleted: 0,
+      mailDeleted: 0,
     });
     expect((await auditRow(event)).ip_address).toBe("203.0.113.7");
     expect(decodeJson((await auditRow(failed)).metadata)).toHaveProperty("email");

@@ -410,5 +410,13 @@
   "settings.skill_scan": {
     "empty": "Changed the security scan: nothing",
     "rich": "Changed the security scan: nothing"
+  },
+  "settings.mail": {
+    "empty": "Changed outgoing email: nothing",
+    "rich": "Changed outgoing email: nothing"
+  },
+  "mail.test_sent": {
+    "empty": "Sent a test email",
+    "rich": "Sent a test email"
   }
 }

@@ -10,6 +10,7 @@ import {
 import { validatePassword } from "../domains/identity/models/password";
 import { isErasedEmail, normalizeEmail, type RootAccount } from "../domains/identity/models/user";
 import { scriptCommand } from "../runtime";
+import { withNoticesSent } from "./cli-mail";
 import { readEnvFile } from "./env-file";
 import { InvalidInputError, MissingInputError } from "./non-interactive-prompts";
 import type { SetupPrompts } from "./prompts";
@@ -104,7 +105,9 @@ export const runResetRootPassword = async (options: {
       if (!prompts.interactive) throw new SetupFailedError("The two passwords don't match.");
     }
 
-    const { email, twoFactorReset } = await resetRootPassword(db, dialect, password, root.email);
+    const { email, twoFactorReset } = await withNoticesSent(db, dialect, appDir, () =>
+      resetRootPassword(db, dialect, password, root.email),
+    );
     prompts.log.success(
       `Reset the password for ${email}. Its sessions were ended and its access tokens revoked.`,
     );

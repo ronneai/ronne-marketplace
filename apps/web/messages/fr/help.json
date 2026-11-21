@@ -299,6 +299,18 @@
     "question": "Information ou Attention?",
     "answer": "Information sert aux nouvelles et au contexte, comme « ceci est une démonstration ». Attention sert à ce qui demande de la prudence, comme « les données de la démonstration sont réinitialisées vendredi » ou une période de maintenance."
   },
+  "email-setup": {
+    "question": "Quel transport choisir?",
+    "answer": "L’API Web d’un fournisseur (Amazon SES, Mailgun, Postmark ou Resend) fonctionne là où les ports SMTP sortants sont bloqués, comme souvent dans le nuage; un autre serveur SMTP est celui de votre fournisseur ou de votre entreprise. Dans tous les cas, donnez à Ronne une clé qui ne peut qu’envoyer, puis envoyez-vous un courriel d’essai."
+  },
+  "email-domain": {
+    "question": "Pourquoi mes courriels arrivent-ils dans les pourriels?",
+    "answer": "Les fournisseurs de courriel font confiance à un message quand le domaine d’expédition a des enregistrements SPF, DKIM et DMARC qui correspondent au service qui l’a envoyé. Votre fournisseur de courriel indique quels enregistrements DNS ajouter; Ronne ne signe pas les courriels lui-même."
+  },
+  "email-notices": {
+    "question": "Serai-je averti de changements comme celui-ci?",
+    "answer": "Quand cette instance envoie des courriels, un changement de la façon de vous connecter (votre mot de passe, la double authentification, les codes de secours ou une connexion d’entreprise) envoie un avis à l’adresse de votre compte. Si vous en recevez un pour un changement que vous n’avez pas fait, communiquez sans tarder avec votre administrateur."
+  },
   "update-checking": {
     "question": "Que envoie la vérification ?",
     "answer": "Rien sur cette instance : une fois par jour, le serveur demande à GitHub la dernière version publiée, avec un nom fixe et sans version, adresse, compte ni identifiant. Si GitHub est injoignable, rien d’autre ne se passe. Désactivez-la ici, ou avec RONNE_UPDATE_CHECK=off sur le serveur."

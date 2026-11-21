@@ -122,6 +122,7 @@ address without a port.
 | `LOG_FORMAT` | `json` | `json`, or `text` for a person reading a terminal |
 | `RONNE_JOBS` | `on` | `off` stops the server's own retention purge (every six hours); run `rmk-server purge` from cron then ([Privacy](https://www.ronne.ai/marketplace/docs/privacy#retention)) |
 | `RONNE_UPDATE_CHECK` | `on` | `off` (or `0`, `false`) stops the daily check for a newer version (a request to GitHub that sends nothing about your instance); for an instance with no internet access ([Updating Ronne](https://www.ronne.ai/marketplace/docs/update#checking)) |
+| `RONNE_MAIL_HOSTS` | empty | The internal SMTP relays root may use on Admin › Settings › Email, separated by commas or spaces: a host that resolves to a private address is refused unless listed here, and only a listed relay may use plain SMTP, never with a user name. Everything else about email is set on that tab, not here ([Email](https://www.ronne.ai/marketplace/docs/email#relays)) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | empty | Your OpenTelemetry collector's OTLP/HTTP address: metrics and traces, off while empty ([Monitoring](https://www.ronne.ai/marketplace/docs/monitoring#monitoring)) |
 
 **Your company's certificate** (a private network, or a certificate from your IT team): set

@@ -1,0 +1,51 @@
+{
+  "footer": {
+    "sentBy": "Este e-mail foi enviado pelo Ronne em {host}.",
+    "notice": "O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.",
+    "contact": "Para falar com o seu administrador, responda a este e-mail ou escreva para {contact}.",
+    "contactReply": "Para falar com o seu administrador, responda a este e-mail.",
+    "when": "Quando: {at}"
+  },
+  "test": {
+    "subject": "E-mail de teste do Ronne em {host}",
+    "body": "Um root enviou este e-mail de teste em Admin › Configurações › E-mail. Ele chegou até você, então o Ronne consegue enviar e-mails.",
+    "notYou": "Se você não esperava por ele, pode ignorá-lo: nada mudou na sua conta."
+  },
+  "notices": {
+    "password_changed": {
+      "subject": "A sua senha foi alterada",
+      "body": "A senha da sua conta em {host} foi alterada.",
+      "notYou": "Se não foi você, outra pessoa pode saber a sua senha. Fale com o seu administrador imediatamente."
+    },
+    "password_reset": {
+      "subject": "Um root definiu uma nova senha para você",
+      "body": "Um root definiu uma nova senha para a sua conta em {host}. A senha antiga não funciona mais.",
+      "notYou": "Se você não pediu isso, fale com o seu administrador imediatamente."
+    },
+    "two_factor_enabled": {
+      "subject": "A autenticação de dois fatores foi ativada",
+      "body": "A autenticação de dois fatores foi ativada para a sua conta em {host}. Ao entrar, agora também é pedido um código de um aplicativo autenticador.",
+      "notYou": "Se não foi você, outra pessoa pode estar conectada à sua conta. Fale com o seu administrador imediatamente."
+    },
+    "two_factor_disabled": {
+      "subject": "A autenticação de dois fatores foi desativada",
+      "body": "A autenticação de dois fatores foi desativada para a sua conta em {host}. Ao entrar, agora só é pedida a sua senha.",
+      "notYou": "Se não foi você, outra pessoa pode estar conectada à sua conta. Fale com o seu administrador imediatamente."
+    },
+    "backup_codes_regenerated": {
+      "subject": "Novos códigos de backup foram gerados",
+      "body": "Novos códigos de backup foram gerados para a sua conta em {host}. Os antigos não funcionam mais.",
+      "notYou": "Se não foi você, outra pessoa pode estar conectada à sua conta. Fale com o seu administrador imediatamente."
+    },
+    "two_factor_reset": {
+      "subject": "Um root desativou a sua autenticação de dois fatores",
+      "body": "Um root desativou a autenticação de dois fatores da sua conta em {host}. Ao entrar, só é pedida a sua senha, até você ativá-la de novo.",
+      "notYou": "Se você não pediu isso, fale com o seu administrador imediatamente."
+    },
+    "sso_linked": {
+      "subject": "Um login da sua empresa foi vinculado à sua conta",
+      "body": "Agora é possível entrar na sua conta em {host} com {provider}.",
+      "notYou": "Se não foi você, fale com o seu administrador imediatamente."
+    }
+  }
+}

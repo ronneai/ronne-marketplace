@@ -321,6 +321,7 @@ export const resetPassword = async (
     await repo.setPasswordChangeRequired(userId, requireChange, at);
     const sessionsEnded = await repo.deleteSessions(userId);
     const tokensRevoked = await repo.revokeAccessTokens(userId, at);
+    await repo.queueSecurityNotice(userId, "password_reset", at);
     await repo.recordAudit(
       {
         actorId: actor.user?.id ?? null,
@@ -391,6 +392,7 @@ export const resetTwoFactor = async (
     const sessionsEnded = await repo.deleteSessions(userId);
     // A lost phone may be a stolen one: its tokens stop too, as Reset password does (162).
     const tokensRevoked = await repo.revokeAccessTokens(userId, at);
+    await repo.queueSecurityNotice(userId, "two_factor_reset", at);
     await repo.recordAudit(
       {
         actorId: actor.user?.id ?? null,

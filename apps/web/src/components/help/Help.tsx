@@ -248,6 +248,15 @@ export const HELP = {
   notice: {
     href: docsHref("notice", "notice"),
   },
+  "email-setup": {
+    href: docsHref("email", "setup"),
+  },
+  "email-domain": {
+    href: docsHref("email", "domain"),
+  },
+  "email-notices": {
+    href: docsHref("email", "notices"),
+  },
   "notice-tone": {
     href: docsHref("notice", "notice"),
   },

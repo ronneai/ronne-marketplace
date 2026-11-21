@@ -223,6 +223,8 @@ describe("a new AUTH_SECRET", () => {
       settingSecrets: 0,
       unreadable: 0,
       settingUnreadable: 0,
+      mailResealed: 0,
+      mailDropped: 0,
     });
     expect(written).toBe(true);
     expect(await records()).toBe(0);

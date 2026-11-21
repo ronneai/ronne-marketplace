@@ -10,6 +10,8 @@ import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import { kyselyOutboxRepository } from "../../mail/repositories/kysely-outbox-repository";
+import { mailQueued, queueSecurityNotice } from "../../mail/services/notices";
 import { isLocale, type Locale } from "../models/locale";
 import { isRole, isWorkspaceRole, type RootAccount, type UserSummary } from "../models/user";
 import type {
@@ -77,6 +79,8 @@ const USER_SORT_COLUMNS: Record<UserSort, string> = {
 export const kyselyIdentityRepository = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
+  /** Inside a transaction: the notices it queued, handed on once it commits (189). */
+  queued?: string[],
 ): IdentityRepository => {
   const at = (date: Date) => toDbDate(date, dialect);
 
@@ -224,10 +228,22 @@ export const kyselyIdentityRepository = (
   };
 
   return {
-    transaction: (work) =>
-      readCommittedTransaction(db, dialect).execute((trx) =>
-        work(kyselyIdentityRepository(trx, dialect)),
-      ),
+    transaction: async (work) => {
+      const ids: string[] = queued ?? [];
+      const result = await readCommittedTransaction(db, dialect).execute((trx) =>
+        work(kyselyIdentityRepository(trx, dialect, ids)),
+      );
+      if (!queued) mailQueued(ids);
+      return result;
+    },
+
+    async queueSecurityNotice(userId, kind, at, provider) {
+      const result = await queueSecurityNotice(db, dialect, { userId, kind, provider }, at);
+      if (!result.queued) return;
+      // In a transaction, sent once it commits; on its own, it has committed already.
+      if (queued) queued.push(result.id);
+      else mailQueued([result.id]);
+    },
 
     async findFirstRoot() {
       return (await listRoots())[0] ?? null;
@@ -520,6 +536,18 @@ export const kyselyIdentityRepository = (
         .set({ secret_enc: secretEnc })
         .where("id", "=", id)
         .execute();
+    },
+
+    async mailBodies() {
+      return kyselyOutboxRepository(db, dialect).sealedBodies();
+    },
+
+    async setMailBody(id, from, to) {
+      return kyselyOutboxRepository(db, dialect).setBody(id, from, to);
+    },
+
+    async dropMailBody(id, from) {
+      return kyselyOutboxRepository(db, dialect).dropUnreadable(id, from);
     },
 
     async instanceSecrets() {

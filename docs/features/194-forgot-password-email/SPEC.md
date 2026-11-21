@@ -70,7 +70,7 @@ sessions and other codes ended, and a notice sent afterwards.
   - records `user.password_reset_by_email` in the audit log.
 
   After the transaction, 189's "password changed or reset" security notice is emailed
-  (`sendSecurityNotice`), saying the reset was by email. Then the person
+  (`queueSecurityNotice`), saying the reset was by email. Then the person
   lands on the sign-in page with "Your password is changed. Sign in with it." They aren't signed in.
 - **The reset flow's state**: a `password_reset_flows` row and a cookie.
   - The cookie holds 32 random bytes and the row only their SHA-256, so a database read can't
