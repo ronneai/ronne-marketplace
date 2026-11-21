@@ -9,6 +9,7 @@ import type feedback from "../../messages/en/feedback.json";
 import type help from "../../messages/en/help.json";
 import type home from "../../messages/en/home.json";
 import type item from "../../messages/en/item.json";
+import type mail from "../../messages/en/mail.json";
 import type notifications from "../../messages/en/notifications.json";
 import type shell from "../../messages/en/shell.json";
 import type shelves from "../../messages/en/shelves.json";
@@ -37,6 +38,7 @@ export const NAMESPACES = [
   "feedback",
   "author",
   "notifications",
+  "mail",
 ] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 
@@ -58,4 +60,6 @@ export type Messages = {
   feedback: typeof feedback;
   author: typeof author;
   notifications: typeof notifications;
+  /** The emails (189): rendered on the server only, never sent to the browser. */
+  mail: typeof mail;
 };

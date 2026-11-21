@@ -1,0 +1,51 @@
+{
+  "footer": {
+    "sentBy": "Ce courriel a été envoyé par Ronne sur {host}.",
+    "notice": "Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.",
+    "contact": "Pour joindre votre administrateur, répondez à ce courriel ou écrivez à {contact}.",
+    "contactReply": "Pour joindre votre administrateur, répondez à ce courriel.",
+    "when": "Quand : {at}"
+  },
+  "test": {
+    "subject": "Courriel d’essai de Ronne sur {host}",
+    "body": "Un root a envoyé ce courriel d’essai depuis Admin › Réglages › Courriel. Il vous est parvenu : Ronne peut donc envoyer des courriels.",
+    "notYou": "Si vous ne l’attendiez pas, vous pouvez l’ignorer : rien n’a changé dans votre compte."
+  },
+  "notices": {
+    "password_changed": {
+      "subject": "Votre mot de passe a été changé",
+      "body": "Le mot de passe de votre compte sur {host} a été changé.",
+      "notYou": "Si ce n’était pas vous, quelqu’un d’autre connaît peut-être votre mot de passe. Communiquez sans tarder avec votre administrateur."
+    },
+    "password_reset": {
+      "subject": "Un root a défini un nouveau mot de passe pour vous",
+      "body": "Un root a défini un nouveau mot de passe pour votre compte sur {host}. L’ancien ne fonctionne plus.",
+      "notYou": "Si vous ne l’avez pas demandé, communiquez sans tarder avec votre administrateur."
+    },
+    "two_factor_enabled": {
+      "subject": "La double authentification a été activée",
+      "body": "La double authentification a été activée pour votre compte sur {host}. La connexion demande maintenant aussi un code d’une application d’authentification.",
+      "notYou": "Si ce n’était pas vous, quelqu’un d’autre est peut-être connecté à votre compte. Communiquez sans tarder avec votre administrateur."
+    },
+    "two_factor_disabled": {
+      "subject": "La double authentification a été désactivée",
+      "body": "La double authentification a été désactivée pour votre compte sur {host}. La connexion ne demande maintenant que votre mot de passe.",
+      "notYou": "Si ce n’était pas vous, quelqu’un d’autre est peut-être connecté à votre compte. Communiquez sans tarder avec votre administrateur."
+    },
+    "backup_codes_regenerated": {
+      "subject": "De nouveaux codes de secours ont été créés",
+      "body": "De nouveaux codes de secours ont été créés pour votre compte sur {host}. Les anciens ne fonctionnent plus.",
+      "notYou": "Si ce n’était pas vous, quelqu’un d’autre est peut-être connecté à votre compte. Communiquez sans tarder avec votre administrateur."
+    },
+    "two_factor_reset": {
+      "subject": "Un root a désactivé votre double authentification",
+      "body": "Un root a désactivé la double authentification de votre compte sur {host}. La connexion ne demande que votre mot de passe, jusqu’à ce que vous la réactiviez.",
+      "notYou": "Si vous ne l’avez pas demandé, communiquez sans tarder avec votre administrateur."
+    },
+    "sso_linked": {
+      "subject": "Une connexion d’entreprise a été liée à votre compte",
+      "body": "Il est maintenant possible de se connecter à votre compte sur {host} avec {provider}.",
+      "notYou": "Si ce n’était pas vous, communiquez sans tarder avec votre administrateur."
+    }
+  }
+}

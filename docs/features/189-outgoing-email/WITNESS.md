@@ -442,3 +442,43 @@ Witnessed: 2026-11-21 12:32 EST, by a fresh agent (adversarial, a third round at
 | 3c | Both test files pass on SQLite; `outbox.db.test.ts` on PostgreSQL | no | confirmed | SQLite 52 passed; PostgreSQL 25 passed; `git status` unchanged |
 
 **Overall:** met. With re-check (blind) met, both latest passes are met.
+
+## Task 6 — Templates
+
+Witnessed: 2026-11-21 12:46 EST, by a fresh agent (blind). Commit: 9234f04d + working-tree diff (namespaces.ts, request.ts, SPEC.md, three new mail.json files, templates.ts, templates.test.ts and its snapshot). Machine: macOS (Darwin 27.2.0), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `mail.json` in en, pt, fr; `mail` registered as a namespace | no | confirmed | three files; `namespaces.ts`; parity "has exactly the namespaces NAMESPACES lists" passes |
+| 2 | The i18n key and placeholder tests pass for `mail` | no | confirmed | 437 passed; M1 (pt key deleted) and M2 (fr placeholder renamed) → fail |
+| 3 | The test email and the six notices | no | confirmed | `test` and 7 notice keys (on/off are two); subjects match the SPEC table |
+| 4 | Snapshots of each template in each language, text and HTML | no | confirmed | 48 snapshots; M4 → fails |
+| 5 | A test shows no template holds a sign-in link | no | confirmed | templates.test.ts:24-37; M3b, M3c → fail |
+| 6 | Inline styles, no remote content | no | confirmed | templates.ts; snapshots read |
+| 7 | Every value escaped in the HTML | no | confirmed | M5 → fails; probe: no ICU re-interpretation |
+| 8 | The host appears in every message | no | confirmed | per-template assertion; footer in all 24 renders |
+| 9 | Ends with "If this wasn't you…", what to do, the contact | no | confirmed | contact test passes; every `notYou` says what to do |
+| 10 | The time in one numeric form, UTC | no | confirmed | `mailTime`; probe at 23:59:59Z |
+| 11 | `Auto-Submitted: auto-generated` | no | confirmed | compose.ts:26, apis.ts:106; 69 transport tests |
+| 12 | The locale rule | no | confirmed | `mailLocale` → `chooseLocale`; tests and probes |
+| 13 | `mail.json` never sent to a page | no | confirmed | request.ts strips `mail`; the provider inherits the config |
+| 14 | pt and fr correct, natural, glossary-true, true to the app | no | partly | Glossary followed; four wording nits; `sso_linked` without a provider renders "com ." |
+
+**Overall:** not met (row 14).
+
+Fixes after the pass: `renderMail` refuses `sso_linked` without a provider's name (test added); the footer says "whenever the way you sign in to your account changes" in all three languages; fr says "sur {host}" throughout and "Un root a défini un nouveau mot de passe pour vous"; pt says "Um login da sua empresa foi vinculado à sua conta". Snapshots updated; 438 passed.
+
+### Re-check 1
+
+Witnessed: 2026-11-21 12:46 EST, by a fresh agent (blind). Commit: 9234f04d + working-tree diff. Machine: macOS (Darwin 27.2.0), Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | pt and fr wording correct, natural, glossary-true | no | confirmed | read against `docs/knowledge/i18n.md` glossary; Canadian forms in fr |
+| 2 | One preposition for the host in each language | no | confirmed | pt "em {host}" in all 10; fr "sur {host}" in all 10 |
+| 3 | True to what the app does | no | confirmed | 7 notice keys match `MAIL_NOTICES` and the SPEC table; the footer line only on notices |
+| 4 | `sso_linked` never renders "with ." | no | confirmed | `renderMail` throws when `!values.provider?.trim()` |
+| 5 | A test pins it | no | confirmed | `templates.test.ts:64-68` (undefined, "", blank) |
+| 6 | Template and i18n tests pass | no | confirmed | 21 files, 438 passed |
+
+**Overall:** met. Remarks: en says "Root sent" in the test email and "A root…" in the notices; the Email tab's pt and fr labels (task 7) should be "E-mail" and "Courriel", as `test.body` names them.

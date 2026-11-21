@@ -139,7 +139,13 @@ possible, and follow the standards (owner, 2026-11-20).
     instance contact;
   - sent with `Auto-Submitted: auto-generated`.
 
-  The locale is the person's (`user.locale`), else the instance's default language, else English.
+  - no link at all: the instance contact is printed as text, and the time in one numeric form,
+    in UTC (`2026-11-21 16:32 UTC`), as no time zone is known;
+  - rendered on the server only (`renderMail`): `mail.json` is never sent to a page.
+
+  The locale is the person's (`user.locale`), else the instance's default language, else English,
+  by the screens' rule (141): with choosing off, or a saved language that isn't offered, the
+  instance's default.
 - **Security notices:** `sendSecurityNotice(user, kind)` queues one in the transaction of the change.
   189 sends them for the events that exist today:
 

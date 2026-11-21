@@ -67,7 +67,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
       export;
     - they pass on SQLite, PostgreSQL and MySQL (`pnpm test:db:postgres -- <files>`, `:mysql`).
 
-- [ ] **6. Templates.**
+- [x] **6. Templates.**
   - `mail.json` in English, Brazilian Portuguese and Canadian French: the test email and the six
     notices.
   - Text and HTML rendering: inline styles, no remote content, the instance's host,
