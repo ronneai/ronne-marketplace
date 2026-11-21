@@ -3,7 +3,11 @@ import type { Db } from "../../../db/create-db";
 import { getAppDb } from "../../../db/instance";
 import type { DatabaseDialect } from "../../../db/url";
 import { createDatabaseRateLimitStore } from "../../../rate-limit/database-store";
-import { createRateLimiter, type RateLimiter } from "../../../rate-limit/rate-limiter";
+import {
+  createRateLimiter,
+  type RateLimiter,
+  type RateLimitStore,
+} from "../../../rate-limit/rate-limiter";
 import { NotConfiguredError } from "../exceptions/errors";
 import { BACKUP_CODES_LIMIT, LOGIN_LIMIT } from "../models/login-rate-limiter";
 import { type Auth, createAuth } from "./better-auth";
@@ -17,6 +21,8 @@ export type AppAuth = {
   limiter: RateLimiter;
   /** The gap between new backup codes (105), counted in the database (109). */
   backupCodesLimiter: RateLimiter;
+  /** Where every other limit of the instance counts: its database (109). */
+  rateLimits: RateLimitStore;
 };
 
 // Kept on globalThis, like the database pools, so development hot reloads reuse them. The limits
@@ -71,6 +77,7 @@ export const getAppAuth = (): AppAuth => {
     trustProxy: config.trustProxy,
     limiter: createRateLimiter({ store, ...LOGIN_LIMIT }),
     backupCodesLimiter: createRateLimiter({ store, ...BACKUP_CODES_LIMIT }),
+    rateLimits: store,
   };
 };
 

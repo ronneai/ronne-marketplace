@@ -14,7 +14,12 @@ import type { CurrentUser } from "../domains/identity/models/user";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { kyselyTokenRepository } from "../domains/identity/repositories/kysely-token-repository";
 import { approveDeviceGrant, denyDeviceGrant } from "../domains/identity/services/device-grants";
-import { cookieHeaders, createTestUser, testAppAuth } from "../domains/identity/testing/test-auth";
+import {
+  cookieHeaders,
+  createTestUser,
+  testAppAuth,
+  testRateLimitStore,
+} from "../domains/identity/testing/test-auth";
 import { postDeviceCode, postDeviceToken } from "./device-api";
 
 let t: TestDb;
@@ -31,7 +36,7 @@ beforeEach(async () => {
   t = await createTestDb();
   app = testAppAuth(t);
   clock = new Date();
-  limiters = createDeviceLimiters(() => clock.getTime());
+  limiters = createDeviceLimiters(testRateLimitStore(t), () => clock.getTime());
   await createTestUser(app, { email: "ana@example.com", password });
   const signedIn = await signIn(
     new Headers(),

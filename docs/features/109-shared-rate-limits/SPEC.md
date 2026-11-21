@@ -101,6 +101,9 @@ Only where the count lives changes.
   through uncounted.
 - **The answers don't change:** the same `rate_limited` errors, `429` with `Retry-After`, messages,
   log events and audit events.
+  One wait does change: when both of the `/device` page's limits are full, `retryAfterSeconds` is
+  the later of the two windows' ends, the earliest an entry can pass; before 109 the page answered
+  the person's window, the first it checked.
 
 ## Edge cases
 

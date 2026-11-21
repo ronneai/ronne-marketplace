@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
+import { memoryRateLimiter } from "../../../rate-limit/memory-store";
 import { listAuditEvents } from "../../audit/actions/audit";
-import { LoginRateLimiter } from "../models/login-rate-limiter";
 import type { AppAuth } from "../repositories/auth-instance";
 import { type FakeOidc, followAuthorize, startFakeOidc } from "../testing/fake-oidc-server";
 import { cookieHeaders, createTestUser, TEST_BASE_URL, testAppAuth } from "../testing/test-auth";
@@ -15,7 +15,7 @@ import {
   updateProvider,
 } from "./identity-providers";
 import { signIn } from "./session";
-import { completeSsoSignIn, SSO_STATE_COOKIE } from "./sso";
+import { completeSsoSignIn, SSO_LIMIT, SSO_STATE_COOKIE } from "./sso";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 let t: TestDb;
@@ -23,7 +23,7 @@ let app: AppAuth;
 let fake: FakeOidc;
 let rootHeaders: Headers;
 let otherRootHeaders: Headers;
-const limiter = new LoginRateLimiter({ max: 10_000 });
+const limiter = memoryRateLimiter({ ...SSO_LIMIT, max: 10_000 });
 const PASSWORD = "correct horse battery";
 
 const signedIn = async (email: string) => {

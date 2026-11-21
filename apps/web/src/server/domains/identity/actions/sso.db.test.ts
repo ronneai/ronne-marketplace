@@ -2,8 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
+import { memoryRateLimiter } from "../../../rate-limit/memory-store";
+import type { RateLimiter } from "../../../rate-limit/rate-limiter";
 import { listAuditEvents } from "../../audit/actions/audit";
-import { LoginRateLimiter } from "../models/login-rate-limiter";
 import { COOKIE_PREFIX } from "../models/session-cookie";
 import type { CurrentUser } from "../models/user";
 import type { AppAuth } from "../repositories/auth-instance";
@@ -22,11 +23,23 @@ import {
 } from "../services/identity-providers";
 import { planSsoSignIn } from "../services/sso-sign-in";
 import { type FakeOidc, followAuthorize, startFakeOidc } from "../testing/fake-oidc-server";
-import { cookieHeaders, createTestUser, TEST_BASE_URL, testAppAuth } from "../testing/test-auth";
+import {
+  cookieHeaders,
+  createTestUser,
+  TEST_BASE_URL,
+  testAppAuth,
+  testLimiter,
+} from "../testing/test-auth";
 import { totpCode } from "../testing/totp";
 import { handleAuthRequest } from "./auth-http";
 import { changePassword, signIn as passwordSignIn } from "./session";
-import { completeSsoSignIn, SSO_STATE_COOKIE, startSsoSignIn } from "./sso";
+import {
+  completeSsoSignIn,
+  SSO_LIMIT,
+  SSO_SHARED_LIMIT,
+  SSO_STATE_COOKIE,
+  startSsoSignIn,
+} from "./sso";
 import {
   completeTwoFactorSignIn,
   confirmTwoFactor,
@@ -40,7 +53,7 @@ let app: AppAuth;
 let fake: FakeOidc;
 let root: CurrentUser;
 let deps: IdentityProviderDeps;
-let limiter: LoginRateLimiter;
+let limiter: RateLimiter;
 
 const AUTH_SECRET = "test-secret-test-secret-test-secret-00";
 
@@ -48,7 +61,7 @@ beforeEach(async () => {
   t = await createTestDb();
   app = testAppAuth(t);
   fake = await startFakeOidc();
-  limiter = new LoginRateLimiter({ max: 1000 });
+  limiter = memoryRateLimiter({ ...SSO_LIMIT, max: 1000 });
   const rootId = await createTestUser(app, {
     email: "root@acme.com",
     password: "correct horse battery",
@@ -781,7 +794,7 @@ describe("providers that can't be used", () => {
 
   it("is limited per client IP when the proxy is trusted", async () => {
     app = testAppAuth(t, { trustProxy: true });
-    limiter = new LoginRateLimiter({ max: 2 });
+    limiter = testLimiter(t, SSO_LIMIT, 2);
     const headers = new Headers({ "x-forwarded-for": "203.0.113.5" });
     const start = () => startSsoSignIn(headers, { provider: "acme" }, app, { limiter });
     expect((await start()).ok).toBe(true);
@@ -791,7 +804,7 @@ describe("providers that can't be used", () => {
 
   it("limits the callback per client IP too", async () => {
     app = testAppAuth(t, { trustProxy: true });
-    const callbacks = new LoginRateLimiter({ max: 1 });
+    const callbacks = testLimiter(t, SSO_LIMIT, 1);
     const headers = { "x-forwarded-for": "203.0.113.6" };
     const one = await completeSsoSignIn(
       new Request(`${TEST_BASE_URL}/api/auth/sso/callback/acme?state=x`, { headers }),
@@ -811,7 +824,7 @@ describe("providers that can't be used", () => {
 
   it("shares one bucket for the instance when the client's address isn't known", async () => {
     // No trusted proxy: the forwarded address is ignored, so both "clients" are unknown.
-    const sharedLimiter = new LoginRateLimiter({ max: 2 });
+    const sharedLimiter = testLimiter(t, SSO_SHARED_LIMIT, 2);
     const start = (ip: string) =>
       startSsoSignIn(new Headers({ "x-forwarded-for": ip }), { provider: "acme" }, app, {
         limiter,
@@ -835,7 +848,7 @@ describe("providers that can't be used", () => {
 
   it("keeps a known address out of the shared bucket", async () => {
     app = testAppAuth(t, { trustProxy: true });
-    const sharedLimiter = new LoginRateLimiter({ max: 1 });
+    const sharedLimiter = testLimiter(t, SSO_SHARED_LIMIT, 1);
     const headers = new Headers({ "x-forwarded-for": "203.0.113.10" });
     for (let i = 0; i < 3; i++)
       expect(

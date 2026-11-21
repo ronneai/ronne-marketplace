@@ -16,7 +16,7 @@ import { kyselySsoRepository } from "../domains/identity/repositories/kysely-sso
 import { createScimToken, enableScim } from "../domains/identity/services/scim-tokens";
 import { ADOPTION_WINDOW_MS } from "../domains/identity/services/scim-users";
 import { seedErasedUser } from "../domains/identity/testing/erased-user";
-import { testAppAuth } from "../domains/identity/testing/test-auth";
+import { testAppAuth, testRateLimitStore } from "../domains/identity/testing/test-auth";
 import { handleScim } from "./scim-api";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
@@ -69,7 +69,7 @@ beforeEach(async () => {
   t = await createTestDb();
   app = testAppAuth(t);
   clock = new Date("2026-10-18T12:00:00.000Z");
-  limiters = createScimLimiters(() => clock.getTime());
+  limiters = createScimLimiters(testRateLimitStore(t), () => clock.getTime());
   const a = await createRoot(t.db, t.dialect, {
     email: "root@example.com",
     name: "Root",

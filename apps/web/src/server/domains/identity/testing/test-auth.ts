@@ -2,7 +2,7 @@ import { toDbDate } from "../../../db/dates";
 import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import type { TestDb } from "../../../db/testing/test-db";
 import { createDatabaseRateLimitStore } from "../../../rate-limit/database-store";
-import { memoryRateLimiter } from "../../../rate-limit/memory-store";
+import { createMemoryRateLimitStore, memoryRateLimiter } from "../../../rate-limit/memory-store";
 import {
   createRateLimiter,
   type RateLimiter,
@@ -28,6 +28,13 @@ export const testRateLimitStore = (t: TestDb, authSecret = TEST_SECRET): RateLim
 export const testLoginLimiter = (t: TestDb, options: { max?: number } = {}): RateLimiter =>
   createRateLimiter({ store: testRateLimitStore(t), ...LOGIN_LIMIT, ...options });
 
+/** Any limit counted in the test's database (109), with another `max` when given. */
+export const testLimiter = (
+  t: TestDb,
+  limit: { name: string; max: number; windowMs: number },
+  max: number = limit.max,
+): RateLimiter => createRateLimiter({ store: testRateLimitStore(t), ...limit, max });
+
 /** The gap between new backup codes counted in the test's database (109). */
 export const testBackupCodesLimiter = (t: TestDb): RateLimiter =>
   createRateLimiter({ store: testRateLimitStore(t), ...BACKUP_CODES_LIMIT });
@@ -41,6 +48,8 @@ export const testAppAuth = (
     limiter?: RateLimiter;
     /** The backup codes' gap; in memory by default too. */
     backupCodesLimiter?: RateLimiter;
+    /** Where the other limits count (SSO, device codes, SCIM); memory by default. */
+    rateLimits?: RateLimitStore;
     baseURL?: string;
     /** Another AUTH_SECRET, as after `rotate-secret` and a restart (098). */
     secret?: string;
@@ -63,6 +72,7 @@ export const testAppAuth = (
     trustProxy,
     limiter: options.limiter ?? memoryRateLimiter(LOGIN_LIMIT),
     backupCodesLimiter: options.backupCodesLimiter ?? memoryRateLimiter(BACKUP_CODES_LIMIT),
+    rateLimits: options.rateLimits ?? createMemoryRateLimitStore(),
   };
 };
 

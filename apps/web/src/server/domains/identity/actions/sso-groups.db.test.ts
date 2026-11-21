@@ -3,10 +3,10 @@ import { toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
+import { memoryRateLimiter } from "../../../rate-limit/memory-store";
 import { listAuditEvents } from "../../audit/actions/audit";
 import { kyselyWorkspaceRepository } from "../../workspaces/repositories/kysely-workspace-repository";
 import { InvalidGroupMappingError } from "../exceptions/errors";
-import { LoginRateLimiter } from "../models/login-rate-limiter";
 import type { CurrentUser } from "../models/user";
 import type { AppAuth } from "../repositories/auth-instance";
 import { kyselyIdentityProviderRepository } from "../repositories/kysely-identity-provider-repository";
@@ -24,7 +24,7 @@ import {
 import { disableScim, enableScim } from "../services/scim-tokens";
 import { type FakeOidc, followAuthorize, startFakeOidc } from "../testing/fake-oidc-server";
 import { createTestUser, testAppAuth } from "../testing/test-auth";
-import { completeSsoSignIn, SSO_STATE_COOKIE, startSsoSignIn } from "./sso";
+import { completeSsoSignIn, SSO_LIMIT, SSO_STATE_COOKIE, startSsoSignIn } from "./sso";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 let t: TestDb;
@@ -34,7 +34,7 @@ let root: CurrentUser;
 let deps: IdentityProviderDeps;
 let eng: string;
 let ops: string;
-const limiter = new LoginRateLimiter({ max: 10_000 });
+const limiter = memoryRateLimiter({ ...SSO_LIMIT, max: 10_000 });
 const actor = () => ({ user: root, ip: null });
 
 const insertWorkspace = async (name: string, ownerId: string | null = null) => {

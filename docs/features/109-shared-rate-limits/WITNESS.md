@@ -230,3 +230,76 @@ Witnessed: 2026-11-21 01:08 EST, by a fresh agent (adversarial, re-check of row 
 | 16 | The reworked test passes clean on SQLite and on the servers | no | confirmed | SQLite 36/36 three times; PostgreSQL 36/36; MySQL 8.4 36/36 |
 
 **Overall:** met.
+
+## Task 4 — Provider sign-in, rmk login --web and SCIM
+
+Witnessed: 2026-11-21 01:15 EST, by a fresh agent (blind). Commit: 1bde85cc + working-tree diff. Machine: macOS 27 (Darwin 27.2.0), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Provider sign-in counts in the database store with the same limits and keys (30/min per IP, 300/min for the instance) | no | confirmed | `sso.ts:55-80` (`SSO_LIMIT`, `SSO_SHARED_LIMIT` on `app.rateLimits`); keys unchanged against `git show 1bde85cc:…/sso.ts`. Probe across two instances: 31st start from one IP `rate_limited`, another IP allowed; without a trusted proxy the 301st refused. SQLite, PostgreSQL, MySQL |
+| 2 | `rmk login --web` asking and polling count in the database: 10/60 per IP, 60/600 for the instance | no | confirmed | `device-grants.ts:40-56`, defaults `createDeviceLimiters(app.rateLimits)` (`:73`, `:94`). Probe: 61st poll `429` with `Retry-After` 1–60; 61st start without IP `429`; 601st poll without IP `429` |
+| 3 | Codes typed on `/device`: 5/min per IP, 10/hour per person, counted together through `consumeAll` | no | confirmed | `device-grants.ts:115-127`, `:141-163`: `consumeAll`, `releaseAll` on a right code, `user_disabled` and a throw. Probe: the 11th for one person `rate_limited` (`retryAfterSeconds > 60`); with the IP bucket full, 20 refused, then exactly 5 more from other IPs. A mutation consuming each bucket separately fails the probe (bug 2) |
+| 4 | SCIM counts in the database: 600/min per token, 20/min per IP refused, 100 for the instance | no | confirmed | `scim.ts:38-42`, `:61-80`, default `createScimLimiters(app.rateLimits)`. Probe: 601st token request `429`; 101st bad token without IP `429` |
+| 5 | The `globalThis` copies of these limiters are gone | no | confirmed | No `__ronneDevice`, `__ronneScim`, `__ronneSsoLimiter`, `__ronneSsoShared` left; only `__ronneSsoPrunedAt` (pruning) |
+| 6 | Production uses the database store for these limits | no | confirmed | `auth-instance.ts:71-80`: `rateLimits: store`, the same database store |
+| 7 | The answers don't change | no | confirmed | Only `await`s added; messages and SCIM's skipped audit after 429 untouched. `/device` now reports the latest reset of the full buckets, which changes `retryAfterSeconds` only when both are full |
+| 8 | Their db tests pass on SQLite and the three servers | no | confirmed | 12 files: SQLite 168 passed, 4 skipped; PostgreSQL, MySQL, MariaDB 172 each |
+| 9 | Each limit is shown holding across two app instances | no | partly | `shared-limits.db.test.ts` shows 4 of the 10 (SSO callback, device start, `/device` per IP, SCIM refused per IP); not SSO start, SSO shared, device poll, start-shared, poll-shared, `/device` per person, SCIM per token, SCIM refused-shared. The probe shows they all hold. Mutation (defaults on a per-call memory store) → all 5 shared-limits tests fail |
+| 10 | The threat model's `/device` row is updated | no | confirmed | `threat-model.md:146`; the SCIM row (`:204`) too |
+
+**Overall:** not met (row 9). Also: no repository test checks `/device`'s "both or none" at the action level (a separate `consume` per bucket passes `device-page.db.test.ts` and `shared-limits.db.test.ts`).
+
+### Adversarial pass
+
+Witnessed: 2026-11-21 01:15 EST, by a fresh agent (adversarial). Commit: 1bde85cc + working-tree diff (18 modified files, plus the untracked `shared-limits.db.test.ts`). Machine: macOS 27.2.1, Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The limits and windows are the same as before 109 | no | confirmed | `git show 1bde85cc:…/{sso,device-grants,scim}.ts` against the diff: SSO 30/300 per 60 s, device 10/60 and 60/600, page 5/min and 10/h, SCIM 600 and 20/100; all match the SPEC Scope table |
+| 2 | The keys are the same as before | no | confirmed | The key strings are unchanged in the diff |
+| 3 | No two limiters share counts (name collision) | no | confirmed | 13 distinct names; the hash covers name and key, and every key starts with its stage. Deliberate collisions (M7, M9) still don't merge rows |
+| 4 | SSO start and callback, device start and poll, are counted apart | no | confirmed | P5: 31st start from one IP `rate_limited`, a callback from it isn't. P7: 11th code 429; 70 concurrent polls from that IP give exactly 10 refusals. All four dialects |
+| 5 | The per-IP and shared buckets stay apart, and the shared ones hold across instances | no | confirmed | P6: no trusted proxy, 301st SSO start refused while a callback passes. P8: 70 concurrent starts without a proxy across two instances → exactly 10 refusals |
+| 6 | Every limit call is awaited | no | confirmed | Every `.consume(`, `consumeAll`, `releaseAll` awaited. M3 (no `await` in `startSsoSignIn`) → 2 `sso.db.test.ts` tests fail; `tsc` exits 0 |
+| 7 | Production counts in the database, no memory fallback, no `globalThis` copies | no | confirmed | Every default builds on `app.rateLimits`; `getAppAuth` sets a `createDatabaseRateLimitStore`; only `__ronneSsoPrunedAt` left; production callers pass no `limiters` |
+| 8 | `/device` counts both limits together or not at all | no | confirmed | P3: with the IP limit used up, 10 more refused from it, and the person still has 5 entries. M6 (IP bucket dropped) → tests fail |
+| 9 | `/device` gives the count back when the code was right or the work threw, keeps it otherwise, never twice | no | confirmed | P4: 6 right codes across instances, each released once (hits 5 and 5). P10: a thrown `ForbiddenError` releases both |
+| 10 | `/device` gives the count back on `user_disabled` | no | partly | The code does (`device-grants.ts:161`), but no test reaches it. M1 (no `user_disabled` release) and M2 (no release in `catch`) leave all 26 tests green (a gap from before 109) |
+| 11 | A concurrent burst of `/device` entries across two instances passes at most 5 per address and 10 per person | no | confirmed | P1: 40 concurrent from one IP → exactly 35 `rate_limited`. P2: 30 from 30 IPs, one person → exactly 20. All four dialects |
+| 12 | Refused SCIM requests aren't audited past the limit | no | confirmed | P9: 30 concurrent bad tokens from one IP across two instances → exactly 10 × 429, 20 `audit_log` rows. M10 (audit before the check) → "…stops auditing them" fails |
+| 13 | The task's db tests pass on SQLite and the servers | no | confirmed | SQLite 12 files, 168 passed, 4 skipped; PostgreSQL, MySQL, MariaDB 172 each |
+| 14 | Each limit is shown holding across two app instances | no | partly | `shared-limits.db.test.ts` covers 4 limits. M8 (device poll on a fresh memory store) and M11b (SSO shared on one) survive; M4b, M5b, M12 are caught |
+| 15 | The threat model's `/device` row is updated | no | confirmed | `threat-model.md:146`; the SCIM row (204) too. The remaining "in memory" rows (137, 143, 149) are for task 5 |
+| 16 | The answers don't change | no | partly | Shapes, 429 and audit events unchanged. With both `/device` limits full, `retryAfterSeconds` is now the later window end (before: the person's); recorded in PLAN.md's notes but not SPEC.md |
+| 17 | Lint and typecheck are clean | no | confirmed | `tsc` exits 0; Biome on identity and http: 0 errors |
+
+**Overall:** not met (rows 10, 14, 16).
+
+### Re-check 1
+
+Witnessed: 2026-11-21 01:26 EST, by a fresh agent (blind). Commit: 1bde85cc + working-tree diff. Machine: macOS 27 (Darwin 27.2.0), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | Each limit is shown holding across two app instances | no | confirmed | `shared-limits.db.test.ts` (16 tests) covers all 10 limits. Mutations (`mutate-r1.py`: each default on a fresh memory store, or a random person key) each fail their test: sso-start, sso-shared, device-poll, device-start-shared, device-poll-shared, scim-token, scim-refused-shared 1 each; page-person-key 3 |
+| 9a | `/device` counts both limits together or neither, at the action level | no | confirmed | "codes typed on /device count against both limits or neither" (`:182-194`); a separate `consume` per bucket → it fails |
+| 9b | `limitedEntry` keeps a refused entry, releases on a right code, a disabled account and a throw, and refuses mixed stores | no | confirmed | describe block `:252-289`; `mutate-r1b.py`: dropping the `user_disabled` release or the one in `catch` → their tests fail |
+| 7 | The answers don't change (`/device`'s wait written down) | no | confirmed | SPEC.md adds the line on the later window end (before 109: the person's) |
+| 8 | The new tests pass on SQLite and a server | no | confirmed | SQLite 26 passed (2 files); PostgreSQL and MySQL 16 each |
+
+**Overall:** met.
+
+### Adversarial re-check 1
+
+Witnessed: 2026-11-21 01:28 EST, by a fresh agent (adversarial). Commit: 1bde85cc + working-tree diff (`device-grants.ts` exporting `limitedEntry`, the untracked `shared-limits.db.test.ts`, SPEC "The answers don't change"). Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | `/device` gives the count back on `user_disabled` and when the work throws, and a test shows it | no | confirmed | `limitedEntry`: `releaseAll` in `catch` and on `result.ok \|\| result.error === "user_disabled"` (the service returns it at `services/device-grants.ts:203`). M1 and M2 each fail their test (1 failed, 178 passed) |
+| 14 | Each limit is shown holding across two app instances | no | confirmed | Each limiter's default swapped in turn for a fresh `memoryRateLimiter` across the 12 db files: every swap caught (M8 → "polling … 60 a minute per address"; M11b → "… 300"; the others 1 to 7 tests each). A separate `consume` per `/device` bucket → "both limits or neither" fails. `mut2.py` restored every file |
+| 16 | SPEC.md states the `/device` wait change accurately | no | confirmed | SPEC.md:104-106 against `git show 1bde85cc:…/device-grants.ts` (person first) and `refusal()`'s `Math.max` (`rate-limiter.ts:115-118`); with one limit full the answer is unchanged |
+| 18 | The new tests pass on SQLite and the servers | no | confirmed | 12 task files on SQLite → 179 passed, 4 skipped; `device-page` + `shared-limits` on PostgreSQL, MySQL, MariaDB → 26 each |
+| 19 | Lint and typecheck are clean | no | confirmed | `tsc --noEmit` exit 0; Biome on the two files → no errors |
+
+**Overall:** met.

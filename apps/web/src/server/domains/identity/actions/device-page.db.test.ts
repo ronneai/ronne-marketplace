@@ -2,7 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { ForbiddenError } from "../exceptions/errors";
 import type { AppAuth } from "../repositories/auth-instance";
-import { cookieHeaders, createTestUser, testAppAuth } from "../testing/test-auth";
+import {
+  cookieHeaders,
+  createTestUser,
+  testAppAuth,
+  testRateLimitStore,
+} from "../testing/test-auth";
 import { listMyTokens } from "./access-tokens";
 import {
   createDeviceLimiters,
@@ -34,7 +39,7 @@ beforeEach(async () => {
   t = await createTestDb();
   app = testAppAuth(t);
   clock = new Date();
-  limiters = createDevicePageLimiters(() => clock.getTime());
+  limiters = createDevicePageLimiters(testRateLimitStore(t), () => clock.getTime());
   await createTestUser(app, { email: "ana@example.com", password });
   await createTestUser(app, { email: "ben@example.com", password });
 });
@@ -44,7 +49,7 @@ const options = () => ({ limiters, now: () => clock });
 
 const start = async () => {
   const result = await startDeviceLogin({ clientId: "rmk" }, new Headers(), app, {
-    limiters: createDeviceLimiters(),
+    limiters: createDeviceLimiters(testRateLimitStore(t)),
     now: () => clock,
   });
   if (!result.ok) throw new Error(result.error);
@@ -53,7 +58,7 @@ const start = async () => {
 
 const poll = (deviceCode: string) =>
   exchangeDeviceLogin({ grantType: GRANT_TYPE, deviceCode, clientId: "rmk" }, new Headers(), app, {
-    limiters: createDeviceLimiters(),
+    limiters: createDeviceLimiters(testRateLimitStore(t)),
     now: () => clock,
   });
 

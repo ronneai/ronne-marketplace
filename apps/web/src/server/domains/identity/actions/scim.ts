@@ -1,7 +1,11 @@
 import { logger } from "../../../log";
+import {
+  createRateLimiter,
+  type RateLimiter,
+  type RateLimitStore,
+} from "../../../rate-limit/rate-limiter";
 import { recordAudit } from "../../audit/actions/audit";
 import { clientIp } from "../models/client-ip";
-import { LoginRateLimiter } from "../models/login-rate-limiter";
 import { type AppAuth, getAppAuth } from "../repositories/auth-instance";
 import { kyselyScimTokenRepository } from "../repositories/kysely-scim-token-repository";
 import { checkScimToken, type ScimTokenRefusal } from "../services/scim-tokens";
@@ -23,25 +27,19 @@ export type ScimGuardResult =
 
 // A working token: 600 requests a minute (a provider's full sync is bursty). A refused one: 20 a
 // minute per client address, or, when the address can't be trusted, 100 for the instance; past
-// that, the refusals aren't audited either, so a flood can't fill the audit log.
-const shared = globalThis as typeof globalThis & { __ronneScimLimiters?: ScimLimiters };
-
+// that, the refusals aren't audited either, so a flood can't fill the audit log. Counted in the
+// instance's database (109), so every replica shares them.
 export type ScimLimiters = {
-  token: LoginRateLimiter;
-  refused: LoginRateLimiter;
-  refusedShared: LoginRateLimiter;
+  token: RateLimiter;
+  refused: RateLimiter;
+  refusedShared: RateLimiter;
 };
 
-export const createScimLimiters = (now?: () => number): ScimLimiters => ({
-  token: new LoginRateLimiter({ max: 600, now }),
-  refused: new LoginRateLimiter({ max: 20, now }),
-  refusedShared: new LoginRateLimiter({ max: 100, now }),
+export const createScimLimiters = (store: RateLimitStore, now?: () => number): ScimLimiters => ({
+  token: createRateLimiter({ store, name: "scim-token", max: 600, now }),
+  refused: createRateLimiter({ store, name: "scim-refused", max: 20, now }),
+  refusedShared: createRateLimiter({ store, name: "scim-refused-shared", max: 100, now }),
 });
-
-const appLimiters = () => {
-  shared.__ronneScimLimiters ??= createScimLimiters();
-  return shared.__ronneScimLimiters;
-};
 
 export type ScimOptions = { limiters?: ScimLimiters; now?: () => Date };
 
@@ -60,7 +58,7 @@ export const authenticateScim = async (
   app: AppAuth = getAppAuth(),
   options: ScimOptions = {},
 ): Promise<ScimGuardResult> => {
-  const limiters = options.limiters ?? appLimiters();
+  const limiters = options.limiters ?? createScimLimiters(app.rateLimits);
   const now = options.now ?? (() => new Date());
   const ip = clientIp(headers, app.trustProxy);
   const token = bearer(headers);
@@ -69,15 +67,15 @@ export const authenticateScim = async (
     : ({ ok: false, reason: "missing" } as const);
 
   if (check.ok) {
-    const decision = limiters.token.consume([`scim-token:${check.tokenId}`]);
+    const decision = await limiters.token.consume([`scim-token:${check.tokenId}`]);
     if (!decision.allowed)
       return { ok: false, status: 429, retryAfterSeconds: decision.retryAfterSeconds };
     return { ok: true, caller: { providerId: check.providerId, tokenId: check.tokenId, ip } };
   }
 
   const decision = ip
-    ? limiters.refused.consume([`scim-refused:ip:${ip}`])
-    : limiters.refusedShared.consume(["scim-refused:unknown"]);
+    ? await limiters.refused.consume([`scim-refused:ip:${ip}`])
+    : await limiters.refusedShared.consume(["scim-refused:unknown"]);
   if (!decision.allowed)
     return { ok: false, status: 429, retryAfterSeconds: decision.retryAfterSeconds };
   await refuse(app, check.reason, "providerId" in check ? check.providerId : undefined, ip, now());

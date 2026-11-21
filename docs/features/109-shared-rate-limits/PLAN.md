@@ -54,7 +54,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     "Guessing passwords" row names where the count lives. MVP.md §15's two rows lose "Planned"
     once the last limiter moves (task 5).
 
-- [ ] **4. Provider sign-in, `rmk login --web` and SCIM.** [risky]
+- [x] **4. Provider sign-in, `rmk login --web` and SCIM.** [risky]
   - The SSO, device (API and `/device` page, through `consumeAll`) and SCIM limiters on the
     database store, with the same limits and keys. Their `globalThis` copies go.
   - *Done when:* their db tests pass on SQLite and the servers, each limit is shown holding across
@@ -97,3 +97,8 @@ goes into `SPEC.md` instead.
 - **Task 2, the isolation level.** No test tells `READ COMMITTED` from MySQL's `REPEATABLE READ`
   here: `FOR UPDATE` reads the latest committed row at either level. It's kept to match the other
   locking code (`db/locks.ts`).
+- **Task 4, `/device`'s wait.** With both of the page's limits full, `consumeAll` answers the time
+  until the later window ends; before 109 the page answered the person's window, the first it
+  checked. The later end is the earliest an entry can pass, so the answer is now the true wait.
+  `AppAuth.rateLimits` is the instance's store; SSO, the device limits and SCIM build their
+  limiters on it per request, so nothing is kept on `globalThis`.
