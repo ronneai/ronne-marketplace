@@ -661,3 +661,46 @@ Witnessed: 2026-11-21 14:35 EST, by a fresh agent (adversarial, a third round at
 | 5 | The spec's sentence matches | no | confirmed | `SPEC.md:180-183` against `SEND_WAIT_MS`, the exit, the row left `sending` |
 
 **Overall:** met. With re-check 2 (blind) met, both latest passes are met. Gap left: no repo test asserts the flag stays off after a finished send (the probe does).
+
+## Task 9 — The threat model
+
+Witnessed: 2026-11-21 14:41 EST, by a fresh agent (blind). Commit: b9702a7f + working-tree diff of `docs/security/threat-model.md`. Machine: macOS 27.2.1, Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The credentials' keys, sealing and binding | no | confirmed | `mail-settings.ts:19-24,83-125`; `crypto/sealed.ts:27,31` |
+| 2 | The queued body sealed to its row, deleted at the end; the address otherwise a keyed hash | no | confirmed | `models/outbox.ts:30-37`; repository `body_enc: null` on each end; migration has `recipient_hmac` only (the HTML is sealed too, not listed) |
+| 3 | The setup is `mail_*`, root's alone | no | confirmed | `requirePermission(…,"settings.manage")` |
+| 4 | Diagram and boundary 12 | no | confirmed | five transports; only `test` and the notices |
+| 5 | The SMTP host check on save and per connection | no | confirmed | `smtp-host.ts:32-56`; `mail-setup.ts:183`; `smtp.ts:129,150,156` |
+| 6 | Plain SMTP only for a listed relay; TLS verified; fixed API hosts | no | confirmed | `smtp.ts:142-157`; `apis.ts`; `ses.ts`; `http.ts:110` |
+| 7 | The test email's rules | no | confirmed | `mail-admin.ts:21-22,70-83,124-127` |
+| 8 | Notices: no link, escaped, no line breaks, the cap | no | confirmed | `templates.ts`; `message.ts`; `outbox.ts` |
+| 9 | rotate-secret re-seals, drops and counts | no | confirmed | `instance-access.ts:147-172` |
+| 10 | No credential shown; no address or body in logs or audit | no | partly | the `settings.mail` audit records the From, Reply-To and contact addresses |
+| 11 | The steps ask for a send-only key | no | partly | true for SES, Mailgun, Resend; not Postmark's server token, nor SMTP |
+| 12 | A credential dropped on a new transport or target; Stop sending | no | confirmed | `mail-setup.ts:246-260`; `mail-admin.ts:153-156` |
+| 13 | Audited as `settings.mail`, the secret only as *replaced* | no | confirmed | `mail-setup.ts:276-283` |
+| 14 | The provider's answer cleaned | no | confirmed | `http.ts:32-67`; `smtp.ts:57` |
+| 15 | In the audit row's transaction; claims; retries; expiry; duplicates; Better Auth's order | no | confirmed | `outbox.ts`; repository `claim_id` |
+| 16 | §5's new gaps | no | confirmed | no bounce or DKIM code |
+| 17 | The cited files exist | no | confirmed | `test -f` each |
+| 18 | `pnpm docs:check` passes | no | confirmed | exit 0 |
+| 19 | Nothing important left out | no | confirmed | — |
+
+**Overall:** not met (rows 10, 11): wording.
+
+Fixes after the pass: §4.4 says no recipient's address or body is in logs or audit rows, and that `settings.mail` names only the instance's own addresses; §4.9 says the send-only key applies where the provider has one (SES, Mailgun, Resend), not to a Postmark server token or an SMTP password; §1's body lists the HTML too.
+
+### Re-check 1
+
+Witnessed: 2026-11-21 14:43 EST, by a fresh agent (blind). Commit: b9702a7f + working-tree diff. Machine: macOS 27.2.1, Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | §4.4: no credential, recipient's address or body in logs or audit; `settings.mail` names only the instance's own addresses | no | confirmed | `mail-setup.ts:122-139,244-283`; `log/events.ts:180-195`; `mail-admin.ts:121-129` |
+| 2 | §4.9: send-only keys for SES, Mailgun and Resend; not Postmark or SMTP | no | confirmed | `settings.email.steps` in `messages/en/admin.json` |
+| 3 | §1: the sealed body holds address, subject, text and HTML | no | confirmed | `models/outbox.ts:30-37,57-62` |
+| 4 | `pnpm docs:check` passes | no | confirmed | exit 0 |
+
+**Overall:** met.

@@ -98,7 +98,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* db tests show each event queues one notice for the account's own address in its
     language, with the instance contact (and without one when it's empty), a failed change queues none, and no notice is queued with email off.
 
-- [ ] **9. The threat model.**
+- [x] **9. The threat model.**
   - `docs/security/threat-model.md`:
     - a new boundary, Ronne → the email provider (a stolen credential sends as the From domain:
       sealed, least-privilege keys, DMARC);
