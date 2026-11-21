@@ -14,7 +14,7 @@ install process runs.
 
 | Status | Licenses | Rule |
 |---|---|---|
-| ✅ **Allowed** | MIT, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0, 0BSD, Unlicense, CC0-1.0, BlueOak-1.0.0, Zlib, Python-2.0 | Use freely. |
+| ✅ **Allowed** | MIT, MIT-0, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0, 0BSD, Unlicense, CC0-1.0, BlueOak-1.0.0, Zlib, Python-2.0 | Use freely. MIT-0 is MIT without the attribution clause (owner, 2026-11-20, for nodemailer in [189](../features/189-outgoing-email/SPEC.md)). |
 | ✅ **Allowed for font files only** | OFL-1.1 (SIL Open Font License) | Only for font files shipped with the web app (Inter, IBM Plex Mono), self-hosted, with each font's license text next to it. Not for code packages. |
 | ✅ **Allowed for data only** | CC-BY-4.0 | Only for data packages that ship no code (for example `caniuse-lite`). Credited in `THIRD_PARTY_NOTICES`. |
 | ⚠️ **Exception needed** | MPL-2.0, LGPL (any version), EPL-2.0, anything else not listed | Only with a recorded exception (§5): why it's needed, why no permissive option works, and how its terms are met. |

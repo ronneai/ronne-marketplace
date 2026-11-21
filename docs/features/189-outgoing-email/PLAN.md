@@ -16,7 +16,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - `docs/features/README.md` lists 189 in M32.
   - *Done when:* both say what this spec says, and `pnpm witness:check` and `pnpm docs:check` pass.
 
-- [ ] **2. The dependency.**
+- [x] **2. The dependency.**
   - MIT-0 is added to the dependency policy §1 and to `license-policy.json`, in one change (owner,
     2026-11-20).
   - nodemailer is added at its latest stable version, and the pull request answers the §3
@@ -118,3 +118,22 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Task 2, nodemailer (2026-11-21).** The §3 checklist:
+  1. **Need.** Node.js has no SMTP client or MIME composer. SMTP (dot-stuffing, STARTTLS, line
+     lengths) and MIME (header encoding, multipart) are where a hand-written client goes wrong
+     (Decision 2). The four web APIs use `fetch` and need nothing.
+  2. **Licence.** MIT-0, added to §1 and `license-policy.json` in this change (owner, 2026-11-20).
+     It has no dependencies, so its tree is itself; `pnpm licenses:check` passes (351 packages).
+  3. **Health.** 342 versions since 2011, the latest on 2026-11-20; releases every few days in
+     November 2026. One maintainer on npm (andris): the §3 "Health" caveat. Widely used, and published
+     with npm provenance (SLSA v1), which `trustPolicy` checks.
+  4. **Advisories.** `pnpm audit` lists none for nodemailer; the high-level audit passes.
+  5. **Install scripts.** None (no `install`, `postinstall` or `prepare` run for consumers), so
+     `allowBuilds` doesn't change.
+  6. **Weight.** One package, no dependencies, its own types (`dist/esm/nodemailer.d.ts` beside
+     the ESM entry, `dist/cjs/` for CommonJS), so no `@types/nodemailer`.
+
+  **The version is 10.6.0, not 10.6.1.** 10.6.1 came out on 2026-11-20, inside the 3 days
+  `minimumReleaseAge` holds back. Its changes are DKIM signing, its `fetch` helper's cookies and one
+  new well-known service, none of which Ronne uses; Dependabot will offer it.
