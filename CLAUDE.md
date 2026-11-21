@@ -39,7 +39,7 @@ When a task touches a decision, check `MVP.md` first. If the work changes a deci
 
 ## Commands
 
-Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnpm`), not through Corepack, which can't start pnpm 12.
+Use Node.js 26 (`.nvmrc`) and pnpm installed directly (`npm install --global pnpm`), not through Corepack, which can't start pnpm 12.
 
 Every root script is in the commands table in [`CONTRIBUTING.md`](CONTRIBUTING.md#commands), and `pnpm docs:check` fails when one has no row: add the row with the script. The ones easy to get wrong:
 
@@ -48,7 +48,7 @@ Every root script is in the commands table in [`CONTRIBUTING.md`](CONTRIBUTING.m
 - `pnpm packages:check` and `pnpm release:smoke` need `pnpm build` and `pnpm build:server` first.
 - `pnpm release:version <x.y.z>` is for a patch, a major or a pre-release: after each stable release the Release workflow pushes the next minor to `main` itself (`release-bump.js`). Then commit and push the tag `vX.Y.Z`, following [`docs/runbooks/release.md`](docs/runbooks/release.md).
 
-CI (`.github/workflows/`) runs lint, typecheck, test and build (tests and build on Node 22 and 24), the database tests on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11 (`database.yml`, plus a weekly run on the latest versions; on a pull request that changes no database code, only `test:db:core`), the end-to-end tests in two parallel halves, the witness and docs checks (on every pull request, documentation only included), the license and audit checks, CodeQL, and the PR title check. The Docker image, the server package and the install scripts run on a pull request only when it changes their files (`ci-scope.js`); a draft pull request runs only the light checks until it's ready for review. Everything runs every night on `main` (`nightly.yml`) and in every release run. [`docs/knowledge/test-runs.md`](docs/knowledge/test-runs.md) has the table; every Docker Hub pull counts against one account's 200 per 6 hours ([`docker-hub-pulls.md`](docs/knowledge/docker-hub-pulls.md)).
+CI (`.github/workflows/`) runs lint, typecheck, test and build on the target Node.js (`.nvmrc`, 26) and `pnpm test:runtime` on the minimum (exactly `MIN_NODE`, 22.14.0), with no job for the versions between (188; [`test-runs.md`](docs/knowledge/test-runs.md#which-nodejs-version-runs-what)), the database tests on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11 (`database.yml`, plus a weekly run on the latest versions; on a pull request that changes no database code, only `test:db:core`), the end-to-end tests in two parallel halves, the witness and docs checks (on every pull request, documentation only included), the license and audit checks, CodeQL, and the PR title check. The Docker image, the server package and the install scripts run on a pull request only when it changes their files (`ci-scope.js`); a draft pull request runs only the light checks until it's ready for review. Everything runs every night on `main` (`nightly.yml`) and in every release run. [`docs/knowledge/test-runs.md`](docs/knowledge/test-runs.md) has the table; every Docker Hub pull counts against one account's 200 per 6 hours ([`docker-hub-pulls.md`](docs/knowledge/docker-hub-pulls.md)).
 
 Pull requests that only change documentation (`.md`, `.mdx`, `.txt`, the pre-commit hook's rule) skip the heavy CI steps: the reusable `changes.yml` workflow detects them, and the required checks still report success. Pushes to `main` never skip for documentation, and the nightly and release runs run everything.
 
@@ -139,7 +139,7 @@ Pull requests are squash-merged, so the PR title becomes the commit on `main`. C
   - Published versions are immutable `.tgz` files with a sha256 checksum, stored through a `StorageAdapter` (local disk for now; S3-compatible storage is planned in M17).
 - **Dependencies** follow `docs/policies/dependencies.md`. Check it before adding any package, tool, action or image.
   - Only licenses that allow free use and redistribution (MIT, ISC, BSD, Apache-2.0, …). Never GPL, AGPL, SSPL, BUSL, non-commercial or unlicensed, even as a dev dependency. No tools that need a paid plan.
-  - Use the latest stable version, and LTS where there is one (Node.js 24 LTS target, 22.14 minimum: `MIN_NODE` and `engines`, #315).
+  - Use the latest stable version, and LTS where there is one (Node.js 26 LTS target, 22.14 minimum: `MIN_NODE` and `engines`, #315; `pnpm test` in the repo-tools package fails when a place that names the target drifts from `.nvmrc`).
   - Don't add anything with known high or critical vulnerabilities. Keep the pnpm protections (`minimumReleaseAge`, `allowBuilds`, `trustPolicy`, `blockExoticSubdeps`) intact.
 - **Out of scope for the MVP:**
   - importing from external marketplaces;

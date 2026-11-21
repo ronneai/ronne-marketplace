@@ -11,6 +11,12 @@ const { include = [], ...shared } = testDefaults;
 const dbInclude = include.map((pattern) =>
   pattern.replace(/\.test\.\{ts,tsx\}$/, ".db.test.{ts,tsx}"),
 );
+// `pnpm test:runtime` (188) runs what runs on a person's Node.js, on the oldest version we support:
+// the component tests (`*.test.tsx`) render markup the same on every version, so they run only in
+// the full `pnpm test`, on the target. Both projects leave them out, should a `*.db.test.tsx` appear.
+// Turborepo hashes RONNE_TEST_SCOPE (turbo.json), so the two runs never share a cached result.
+const runtimeOnly = process.env.RONNE_TEST_SCOPE === "runtime";
+const runtimeExclude = runtimeOnly ? ["**/*.test.tsx"] : [];
 
 export default defineConfig({
   // The same "@/…" alias as tsconfig.json, which Next.js reads but Vitest doesn't.
@@ -41,7 +47,7 @@ export default defineConfig({
         test: {
           name: "unit",
           include,
-          exclude: dbInclude,
+          exclude: [...dbInclude, ...runtimeExclude],
           env: { RONNE_ENV_FILE: ".env.unit-tests-have-none", DATABASE_URL: "", AUTH_SECRET: "" },
           // next-intl's hooks read the real message files, in English unless a test says otherwise (129).
           setupFiles: ["./src/test/intl-setup.ts"],
@@ -52,6 +58,7 @@ export default defineConfig({
         test: {
           name: "db",
           include: dbInclude,
+          exclude: runtimeExclude,
           // This clone's settings file stays out, as in the unit project: a value set there for
           // trying something by hand (RONNE_SKILL_SCANNERS, say) would reach the tests.
           env: { RONNE_ENV_FILE: ".env.db-tests-have-none" },

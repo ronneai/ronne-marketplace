@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import * as nodeModule from "node:module";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -28,8 +29,12 @@ const run = (script: string, env: Record<string, string> = {}) => {
 };
 const telemetry = JSON.stringify(join(here, "index.ts"));
 
+// module.registerHooks is Node.js 22.15 and 23.5 on: the minimum's job (22.14.0, #315) skips this
+// case, and the target's runs it. What gets imported doesn't depend on the Node.js version.
+const hasRegisterHooks = "registerHooks" in nodeModule;
+
 describe("telemetry at start", () => {
-  it("imports nothing from OpenTelemetry without an endpoint", () => {
+  it.skipIf(!hasRegisterHooks)("imports nothing from OpenTelemetry without an endpoint", () => {
     const result = run(`
 import { registerHooks } from "node:module";
 const seen = [];

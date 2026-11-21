@@ -20,13 +20,21 @@ permissions:
 
 jobs:
   install:
-    name: Install and run (${{ matrix.os }}, Node ${{ matrix.node }})
+    name: Install and run (${{ matrix.os }}, Node ${{ matrix.node }}, ${{ matrix.role }})
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        # The minimum supported LTS and the target LTS (docs/policies/dependencies.md §2).
-        node: [22, 24]
+        # The minimum supported Node.js, exactly `MIN_NODE` (#315), and the target LTS
+        # (docs/policies/dependencies.md §2), never the versions between: rmk-server's native modules
+        # (better-sqlite3, @node-rs/argon2) are N-API, one binary for every version, and repo-tools'
+        # node-versions test keeps it so (188).
+        node: [22.14.0, 26]
+        include:
+          - node: 22.14.0
+            role: minimum
+          - node: 26
+            role: target
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
@@ -62,9 +70,10 @@ jobs:
         with:
           persist-credentials: false
           sparse-checkout: scripts/service
+      # The target LTS. A cone-mode sparse checkout always has the root's files, .nvmrc among them.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version-file: .nvmrc
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: server-tarball
@@ -105,11 +114,23 @@ jobs:
         with:
           name: server-tarball
           path: tarball
-      - name: Node 24 from Homebrew, and the tarball
+      # The target LTS from Homebrew: node@N, a formula of its own or (while N is the newest) an alias
+      # of `node`; plain `node` if Homebrew doesn't know the name (188). The check stops the job if
+      # Homebrew's choice isn't .nvmrc's major.
+      - name: The target Node.js from Homebrew, and the tarball
         run: |
-          brew install node@24
-          echo "$(brew --prefix node@24)/bin" >> "$GITHUB_PATH"
-          "$(brew --prefix node@24)/bin/npm" install --global --no-audit --no-fund ./tarball/*.tgz
+          major="$(tr -d '[:space:]' < .nvmrc)"
+          formula="node@$major"
+          brew info --formula "$formula" > /dev/null 2>&1 || formula=node
+          brew install "$formula"
+          prefix="$(brew --prefix "$formula")"
+          got="$("$prefix/bin/node" -p 'process.versions.node.split(".")[0]')"
+          if [ "$got" != "$major" ]; then
+            echo "::error::Homebrew's $formula is Node.js $got, but .nvmrc says $major."
+            exit 1
+          fi
+          echo "$prefix/bin" >> "$GITHUB_PATH"
+          "$prefix/bin/npm" install --global --no-audit --no-fund ./tarball/*.tgz
       - name: Download Caddy 2.11.6
         env:
           CADDY_SHA512: 8b08d5a25ab612946b18b82c78fc32b194e69e576dd120cdca44f467ded2d6cb6fcfe899f05a71774f04b454e5cc9adcf08f8545c8d560bd92079ce015c8bf2e

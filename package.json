@@ -36,6 +36,7 @@
     "backup": "pnpm --filter @ronneai/web run backup",
     "restore": "pnpm --filter @ronneai/web run restore",
     "reset-setup": "pnpm --filter @ronneai/web run reset-setup",
+    "test:runtime": "RONNE_TEST_SCOPE=runtime turbo run test --filter=!@ronneai/repo-tools",
     "test:db": "pnpm --filter @ronneai/web test:db",
     "test:db:core": "pnpm --filter @ronneai/web test:db src/server/db/ /repositories/ src/server/setup/ src/server/backup/ scripts/",
     "test:db:up": "docker compose -f docker/test-databases.compose.yml up -d --wait",

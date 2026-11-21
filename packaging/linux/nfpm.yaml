@@ -2,7 +2,8 @@
 #   node packages/repo-tools/src/package-linux.js <rmk-server-X.Y.Z-linux-ARCH.tar.gz> --out DIR
 # which unpacks the bundle and sets the variables below. The bundle carries its own Node.js, so
 # the packages need nothing but glibc 2.34 and libstdc++ from GCC 11 (better-sqlite3's prebuilt
-# module needs both; 084). Installing one makes Ronne a service (083).
+# module needs both; 084), and libatomic (Node.js 26's own binary links it, 24's didn't; 188).
+# Installing one makes Ronne a service (083).
 name: rmk-server
 arch: ${NFPM_ARCH}
 platform: linux
@@ -38,6 +39,7 @@ overrides:
     depends:
       - libc6 (>= 2.34)
       - libstdc++6 (>= 11)
+      - libatomic1
     # Not Recommends: apt installs those, and Debian's and Ubuntu's caddy (2.6) is too old for
     # --domain, while its own service would start and take ports 80 and 443.
     suggests:
@@ -48,5 +50,6 @@ overrides:
     depends:
       - libc.so.6(GLIBC_2.34)(64bit)
       - libstdc++.so.6(GLIBCXX_3.4.29)(64bit)
+      - libatomic.so.1()(64bit)
     suggests:
       - caddy

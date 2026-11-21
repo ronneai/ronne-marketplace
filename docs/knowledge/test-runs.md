@@ -57,8 +57,7 @@ run included), so a release is checked as fully as before.
 - **Required checks still report**: each suite's check (`Docker image (build, run, scan)`,
   `Server package`, `Install scripts`, `End-to-end (Chromium)`, `Database tests (…)`) passes when
   its jobs were skipped, as for a documentation-only pull request.
-- **Node 22** runs the tests and the build; lint, typecheck, `build:server`, `packages:check` and
-  `release:smoke` run once, on Node 24. `server-package.yml` installs the packed server on both.
+- **Node.js versions:** see [Which Node.js version runs what](#which-nodejs-version-runs-what).
 
 Before a release, last night's Nightly is green, and the dry run runs every suite
 ([release.md](../runbooks/release.md)). A suite that fails only there gets fixed on `main`, then the
@@ -66,8 +65,8 @@ dry run again.
 
 ## On a pull request (CI)
 
-- **ci.yml:** lint, typecheck, every unit, component and database test on SQLite, and the build:
-  the tests and the build on Node 22 and 24, the rest on Node 24.
+- **ci.yml:** lint, typecheck, every unit, component and database test on SQLite, and the build,
+  on the target Node.js; `pnpm test:runtime` on the minimum (below).
 - **database.yml:** the servers run **`pnpm test:db:core`**, the tests of the database code
   itself (`src/server/db/`, migrations, repositories, `src/server/setup/`, `src/server/backup/`
   (099), `scripts/`: 33 of the
@@ -84,6 +83,44 @@ dry run again.
 
 Pushes to `main`, the nightly and weekly runs, releases and manual runs run **every** database test
 on every server.
+
+## Which Node.js version runs what
+
+Feature 188 (2026-11-20): the owner asked for no redundant runs across the supported Node.js
+versions. **Test the ends of the supported range, the minimum and the target, and nothing in
+between.** JavaScript that runs on both ends runs between them, and the server's native modules
+(`better-sqlite3`, `@node-rs/argon2`) are N-API, one binary for every version.
+
+| What can differ between Node.js versions | What catches it | Runs on |
+|---|---|---|
+| Code uses an API the minimum lacks | `pnpm typecheck` (`lib: ES2023`, `@types/node` of the minimum), then `pnpm test:runtime` for what types can't see | Typecheck on the target; `test:runtime` on the minimum |
+| Newer Node.js removed or changed something | `pnpm test` | The target |
+| A native module needs a newer N-API than the minimum, or has no binary for an OS | `server-checks.yml`: install the packed server with npm and run `server-probe.js` | Minimum and target, on Linux, macOS and Windows |
+| A native module built per Node.js ABI | `repo-tools`' node-versions test: every `.node` file in the server's runtime tree must be N-API | The target, with the repo-tools tests |
+| The Node.js the server package carries links a system library a minimal Linux lacks (26's links `libatomic.so.1`) | `packages.yml` installs the `.deb` and `.rpm` in clean containers, which have only what the packages declare (`nfpm.yaml`'s `depends`) | The target, on x64 and arm64 |
+| Component tests, the repository's own tools, lint, the build, packing | Version-independent | The target |
+
+- **`pnpm test:runtime`** is every suite but the component tests (`*.test.tsx`) and `repo-tools`:
+  the code that runs on a person's Node.js, the SQLite database tests included. It saves only
+  about 10% of `pnpm test`'s time; the minimum's job saves more by running nothing else.
+- **The jobs are named by role** ("Lint, typecheck, test, build (target Node.js)", "Runtime tests
+  (minimum Node.js)"; `role: target` / `role: minimum` in the matrices), so a new LTS changes
+  only the versions, never the job names.
+- **The minimum is a version, not a line.** better-sqlite3 crashed opening a database on Node.js
+  22.12 and 22.13 (they lack N-API 10), and CI, running the newest 22.x, never saw it (#315). The
+  minimum's jobs run `MIN_NODE` itself (`- node: 22.14.0`), and the node-versions test fails when
+  they don't.
+- **A test that needs a newer Node.js API than `MIN_NODE`** skips itself where the API is missing
+  (`it.skipIf`), when what it checks doesn't depend on the version: the target's job still runs
+  it. `telemetry/start.test.ts` needs `module.registerHooks` (22.15 on): on 22.14.0 that case is
+  skipped. Anything the shipped code uses must work on `MIN_NODE`; that's what `test:runtime`
+  there is for.
+- **One source:** `.nvmrc` names the target. The Docker base, the bundles' `NODE_MAJOR`, the feed
+  workflow `rmk` writes and the role matrices must agree with it, and no other workflow names a
+  version. `repo-tools`' node-versions test fails when one drifts.
+- **When a new LTS arrives:** change `.nvmrc`, then follow the guard's messages. When the minimum
+  reaches its end of life, the `role: minimum` entries, `MIN_NODE`, `engines`, `@types/node` and
+  the minimum's texts move together.
 
 ## While working
 

@@ -4,9 +4,9 @@
 # standalone server, the compiled setup/migrate/reset scripts and their two native modules.
 # State (database file, storage, settings) lives in /app/data: mount a volume there.
 
-# Node.js 24 LTS on Debian 13 (trixie), pinned by digest (docs/policies/dependencies.md §2).
+# Node.js 26 LTS on Debian 13 (trixie), pinned by digest (docs/policies/dependencies.md §2).
 # Written in FROM directly, not through an ARG, so Dependabot can update the digest.
-FROM node:24-trixie-slim@sha256:af02d57b57719b9657a45199a79264a9437940cd55b3c7b3fc99615654f124a0 AS base
+FROM node:26-trixie-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc AS base
 ENV NEXT_TELEMETRY_DISABLED=1 \
     TURBO_TELEMETRY_DISABLED=1
 # Debian's security updates: a fix Debian publishes before the Node image is rebuilt with it still

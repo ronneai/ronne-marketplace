@@ -10,7 +10,8 @@
       "dependsOn": ["^build"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "env": ["RONNE_TEST_SCOPE"]
     },
     "dev": {
       "dependsOn": ["^build"],

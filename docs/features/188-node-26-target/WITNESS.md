@@ -1,0 +1,428 @@
+# 188 — Witness
+
+> Plan: [PLAN.md](./PLAN.md) · Spec: [SPEC.md](./SPEC.md)
+
+Before a task is ticked, the `state-witness` agent, which didn't do the work, checks it against the
+real state, blind to the notes first. A `[risky]` task also gets an adversarial pass. A task is
+ticked only when its latest pass is met with every claim confirmed. The record lands here, in the
+same commit as the task. How it works: [state-witness.md](../../knowledge/state-witness.md).
+
+## Task 1 — Probe Node.js 26 before changing anything
+
+Witnessed: 2026-11-20 11:31 EST, by a fresh agent (blind). Commit: 788a01c5 (+ uncommitted docs diff). Machine: macOS 27.2 (Darwin 27.2.0, Apple silicon), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The working tree changes only `docs/features/188-node-26-target/SPEC.md`, `PLAN.md` and `docs/features/README.md`, untracked files included | yes | not met | `git status --porcelain --untracked-files=all` → 4 files: `apps/web/AGENTS.md` too (`# This is NOT the Next.js you know` → `## …`, mtime 11:24:24, a minute before the docs edits). Notes say "no repository change". None of the probe commands made this change: after all 11 commands, the scratch clone still showed only the 3 docs files |
+| 2 | The probe used the newest Node.js 26, and pnpm installed by npm (not Corepack) | yes | confirmed | nodejs.org `index.json` → newest v26 is v26.13.1; `node --version` → v26.13.1; `bin/pnpm` → `../lib/node_modules/pnpm`, `npm ls -g` → pnpm@12.21.0, which runs the pinned `packageManager` pnpm@12.6.0 |
+| 3 | `pnpm install --frozen-lockfile` passes on 26 starting with no `node_modules` | yes | confirmed | fresh `git clone` (no `node_modules`) → exit 0, "Packages: +366 … Done in 1.2s using pnpm v12.6.0". The packages came from the existing store; an empty store wasn't tried |
+| 4 | `pnpm lint` passes on 26 | yes | confirmed | exit 0, "Checked 2516 files … Found 43 warnings. Found 4 infos." |
+| 5 | `pnpm typecheck` passes on 26 | yes | confirmed | `pnpm typecheck --force` → exit 0, "7 successful, 7 total, Cached: 0 cached" |
+| 6 | `pnpm test` passes on 26 | yes | confirmed | `pnpm test --force` → exit 0, 8/8 tasks, 0 cached, 1m21s. Test files: web 523, core 42, rmk 23, repo-tools 21, marketplace 15, mcp 5 (629 in total). Tests: web 6316 passed, 20 skipped |
+| 7 | `pnpm build` passes on 26 | yes | confirmed | `pnpm build --force` → exit 0, 5/5 tasks, 0 cached, 12.7 s |
+| 8 | `pnpm build:server` passes on 26 | yes | confirmed | exit 0 in 5.0 s, tsdown "Build complete" |
+| 9 | `pnpm packages:check` passes on 26 | yes | confirmed | exit 0. core 132, rmk 69, mcp 19, marketplace 2492 files, "all on the allowlist" |
+| 10 | `pnpm release:smoke` passes on 26 | yes | confirmed | exit 0. rmk 0.8.0, `--help`, rmk-mcp initialize, "rmk-server 0.8.0 started and answered 503 setup_required" |
+| 11 | `pnpm dev` runs on 26 until the first screen loads | yes | confirmed | `pnpm dev` in the fresh clone → "✓ Ready in 199ms"; `curl -L /` → 200 at `/setup`, `<title>Set up · Ronne AI Marketplace</title>`. The notes say `next dev` ran, not `pnpm dev`, and got the sign-in page on an already set-up clone; this run covers `pnpm dev` itself |
+| 12 | better-sqlite3 used a prebuilt binary on 26 and didn't build from source | yes | confirmed | its `package.json` has `"gypfile": false` and no install script; the install log has no build step; `probe-native.cjs` → the loaded `.node` file is `better-sqlite3/prebuilds/darwin-arm64.node`; `npm pack better-sqlite3@13.2.0 --dry-run` → the tarball ships 8 `prebuilds/*.node` and no `build/`. A leftover `build/` folder with no `.node` file comes from the pnpm store and isn't loaded |
+| 13 | Notes record the Node.js version, the better-sqlite3 result and the scrypt test timings | yes | confirmed | PLAN.md "Node.js v26.13.1"; N-API, `prebuilds/<platform>.node`; "`crypto.test.ts` … 9 passed in 14 s". Witness: 14236 ms inside the full suite, about 12.6 s alone (9 tests). `probe-scrypt.mjs`: maxmem = 256·N·r is enough on 26 at N=2^17 (315 ms) and at the readers' limit N=2^18 (948 ms); v24.0.0 gives 344 / 893 ms |
+| 14 | The server's two native modules are better-sqlite3 13.2.0 and @node-rs/argon2 | yes | confirmed | `packages/server/package.json:45-46` → dependencies are only `@node-rs/argon2` 2.2.2 and `better-sqlite3` 13.2.0; `.node` files in `.next/standalone` are only those two packages' binaries |
+| 15 | Both are N-API, with one binary per platform for every Node.js version | yes | confirmed | `binding.gyp:21` `NAPI_VERSION=10`; `nm -u` → the better-sqlite3 prebuild has 60 `_napi_` imports and 0 V8 imports, the argon2 binary 48 `_napi_` imports and no V8 or `node::` imports; argon2's `package.json` has a `napi` block with one optional package per target; both load and work on v22.23.2, v24.0.0 and v26.13.1 (`probe-native.cjs`) |
+| 16 | better-sqlite3 13.2.0 crashes on Node.js 22.12.0 and 22.13 because it needs N-API 10, which Node.js has only from 22.14.0 | yes | confirmed | official 22.12.0 build: `process.versions.napi` 9, `probe-native.cjs` → exit 139 (segfault); v22.11.0 → 139; v22.23.2 → works. `node_version.h` `NODE_API_SUPPORTED_VERSION_MAX`: 22.12.0 = 9, 22.13.1 = 9, 22.14.0 = 10. No 22.13 build was run here, so 22.13 rests on its header only |
+
+**Overall:** not met: every command passes on Node.js 26.13.1 at 788a01c5 with only the docs diff, and the native-module and N-API claims hold, but the working tree also changes `apps/web/AGENTS.md`, which isn't one of the three docs files and isn't in the notes.
+
+Fixed after this pass: `apps/web/AGENTS.md` reverted (the implementer's `next dev` probe had rewritten Next.js's managed block); the Notes now say what ran (`next dev -p`, on a set-up clone), the `PORT` behaviour of `pnpm dev`, and the rewrite and its revert.
+
+### Re-check — rows 1, 11 and the changed Notes lines
+
+Witnessed: 2026-11-20 11:33 EST, by a fresh agent (blind). Commit: 788a01c5 (+ uncommitted docs diff). Machine: macOS 27.2 (Darwin 27.2.0, Apple silicon), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The working tree changes only `docs/features/188-node-26-target/SPEC.md`, `PLAN.md` and `docs/features/README.md`, untracked files included | yes | confirmed | real repository, `git status --porcelain --untracked-files=all` (twice, at 11:31 and after the probe) → exactly those 3 files; `git diff --stat` → 3 files, 103+/27−; HEAD 788a01c5 |
+| 11 | The dev server runs on Node.js 26 until the app's first screen loads | yes | confirmed | first pass: `pnpm dev` in the fresh clone → "Ready in 199ms", `curl -L /` → 200 `/setup`, `<title>Set up · Ronne AI Marketplace</title>`. This pass: `next dev -p 3189` from the clone's `apps/web` → "Ready in 181ms", `curl -L /` → `GET /sign-in 307`, then 200 at `/setup`, same title (the clone has no `.env`) |
+| 17 | Notes: `pnpm dev` goes through Turbo, which doesn't pass `PORT` on, so it binds 3000; `next dev -p` picks the port | yes | confirmed | first pass: `PORT=7681 pnpm dev` → log `Network: http://192.168.1.28:3000`, `lsof` → `next-server` listening on 3000; `curl :7681` → 000. This pass: `next dev -p 3189` → `Local: http://localhost:3189`. Seen only with 3000 free, so "always" isn't tested with 3000 busy |
+| 18 | Notes: `next dev` rewrites `apps/web/AGENTS.md`'s managed block, first heading `#` → `##` | yes | confirmed | clone clean before; `next dev -p 3189` → log "✓ Generated AGENTS.md for AI agents. Set `agentRules: false` in next.config to disable."; `git diff` → `-# This is NOT the Next.js you know` / `+## …`, index `643577df..af3b7c84`, the same blob the real repository had. The first pass's `pnpm dev` run didn't print that line or change the file |
+| 19 | Notes: the rewrite isn't part of any task and was reverted | yes | confirmed | real repository: `apps/web/AGENTS.md` no longer shows in `git status` (row 1) |
+
+**Overall:** met: the tree has only the three docs files, the dev server loads the first screen on Node.js 26, and the new Notes lines match what was reproduced.
+
+## Task 2 — `pnpm test:runtime`
+
+Witnessed: 2026-11-20 11:37 EST, by a fresh agent (blind). Commit: 838fcb43 + working tree (`git diff`: CONTRIBUTING.md, apps/web/vitest.config.ts, PLAN.md, package.json, turbo.json). Machine: macOS 27.2.1 arm64, Node v22.23.2 (test runs) and v26.13.1 (lint, docs:check).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | On Node.js 22, `pnpm test:runtime` passes | yes | confirmed | `pnpm test:runtime --force` on Node v22.23.2 (pnpm 12.6.0) → exit 0, `Tasks: 7 successful, 7 total`, `Cached: 0`. Test files passed: web 383, core 42, marketplace 15, rmk 23, mcp 5. Web: 4702 tests passed, 20 skipped |
+| 2 | It runs no `repo-tools` test | yes | confirmed | `package.json:39` has `--filter=!@ronneai/repo-tools`. The run's tasks were core:build, core:test, marketplace:test, mcp:test, rmk:build, rmk:test, web:test; the only `repo-tools` line in the log is the script echo. `list-files.sh` → 0 repo-tools paths in the runtime list |
+| 3 | It runs no `*.test.tsx` file | yes | confirmed | `RONNE_TEST_SCOPE=runtime vitest list --filesOnly` in each package → 0 `.test.tsx`. Without the variable, web lists 523 files, 140 of them `.test.tsx`; with it, 383. No `.test.tsx` exists outside `apps/web` (`git ls-files`). Mechanism: `apps/web/vitest.config.ts:18,49` |
+| 4 | Every other test file runs, the `*.db.test.ts` SQLite tests included | yes | confirmed | Expected list from `git ls-files` (every `*.test.*` minus repo-tools and `.test.tsx`) → 468 files; the runtime Vitest lists of web, cli, core, mcp and server, merged → 468 files; `diff` → identical. The web runtime list has 199 `[db]` files (all 199 `*.db.test.ts` in git) and 184 `[unit]` files. No `*.db.test.tsx` exists |
+| 5 | Vitest's CLI `--exclude` doesn't reach the web projects, so a config setting is needed | yes | confirmed | In `apps/web`, `vitest list --filesOnly --exclude '**/*.test.tsx'` → still 523 files, 140 `.tsx` |
+| 6 | Turborepo can't hand a `test:runtime` result to `pnpm test`, or the other way round | yes | confirmed | `turbo.json:14` `env: ["RONNE_TEST_SCOPE"]`. `turbo run test --dry=json`: web#test hashes `b11c361a…` with the variable unset and `e7d3f126…` with `runtime`; after both runs each shows its own entry as HIT. Control: an undeclared `RONNE_UNDECLARED_PROBE=runtime` leaves the hash at `b11c361a…`. `packages/{core,server}/turbo.json` extend `//` and override only `inputs` |
+| 7 | `pnpm test` is unchanged without the variable | no | confirmed | `pnpm test --force` on Node 22 → exit 0, `8 successful`. Test files: web 523, repo-tools 21, core 42, marketplace 15, rmk 23, mcp 5 |
+| 8 | Notes record its time against `pnpm test` on the same machine | yes | confirmed | `PLAN.md:177-181`: 74 s against 83 s on Node 22.23.2 with `--force`. Witness's runs: 69.3 s and 82.0 s (`/usr/bin/time -p`) |
+| 9 | It has a row in CONTRIBUTING.md's commands, and `pnpm docs:check` passes | no | confirmed | `CONTRIBUTING.md:208`; `pnpm docs:check` → exit 0 |
+| 10 | The CONTRIBUTING row describes the command as it behaves now | no | partly | The row ends "CI runs it on the oldest supported Node.js", but `grep -rn test:runtime .github/` → no matches: no workflow runs it yet (task 3 adds that). The rest of the row is accurate |
+| 11 | Lint passes on the changed files | no | confirmed | `biome check apps/web/vitest.config.ts package.json turbo.json` → exit 0, "Checked 3 files … No fixes applied" (only Biome's schema-version notice) |
+
+**Overall:** not met: the script works on Node 22 and does what the spec says (exactly the 468 expected files, no `.tsx` or repo-tools files, separate cache keys), but the CONTRIBUTING row says CI runs it, and no workflow does yet.
+
+Fixed after this pass: the CONTRIBUTING row drops the CI clause (task 3 adds it back with the job), and the witness's remark that only the unit project excluded `.tsx` is taken: both projects now exclude it through `runtimeExclude`.
+
+### Re-check — rows 3, 4, 6 and 10, plus a planted `*.db.test.tsx`
+
+Witnessed: 2026-11-20 11:41 EST, by a fresh agent (blind). Commit: 838fcb43 + working tree (`git diff`: CONTRIBUTING.md, apps/web/vitest.config.ts, PLAN.md, package.json, turbo.json). Machine: macOS 27.2.1 arm64, Node v22.23.2 (Vitest and turbo probes) and v26.13.1 (lint, docs:check).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | It runs no `*.test.tsx` file | yes | confirmed | `list-files.sh` (`vitest list --filesOnly` per package, Node 22): with `RONNE_TEST_SCOPE=runtime` web lists 383, 0 `.tsx`; without, 523. The exclusion sits in both projects: `exclude: [...dbInclude, ...runtimeExclude]` in unit and `exclude: runtimeExclude` in db |
+| 4 | Every other test file runs, the `*.db.test.ts` SQLite tests included | yes | confirmed | Runtime lists of web, cli, core, mcp and server, merged (468) → identical to `expected.txt`. Web has 199 `[db]` files in both scopes. The full lists, repo-tools included, are identical to all 629 test files in git, so the db project's new `exclude: []` drops nothing in the full run |
+| 6 | Turborepo can't hand a `test:runtime` result to `pnpm test`, or the other way round | yes | confirmed | `cache-hashes.sh` (`turbo run test --dry=json`): web#test `d51c715a…` with the variable empty, `677b04bf…` with `runtime` (both new, as the config is an input); `env` still `["RONNE_TEST_SCOPE"]`; core#test keeps separate hashes (`ddd5d1f8…`, `1834ae18…`) |
+| 10 | The CONTRIBUTING row describes the command as it behaves now | no | confirmed | `CONTRIBUTING.md:208` reads "every suite but the component tests (`*.test.tsx`) and `repo-tools`", with no CI sentence; `grep -rn test:runtime .github/` → 0 matches |
+| 12 | A `*.db.test.tsx` is left out by the runtime scope and included in the full run | yes | confirmed | Scratch copy of `apps/web` (config byte-identical by `cmp`) with a planted `src/zz-witness-probe.db.test.tsx`: full → 524 files, including `[db] src/zz-witness-probe.db.test.tsx`; runtime → 383, without it. Mutation: removing `exclude: runtimeExclude,` from the copy's db project → runtime lists 384, the planted file among them. Restored, `cmp` identical |
+| 11 | Lint passes on the changed config, and `pnpm docs:check` passes | no | confirmed | `biome check apps/web/vitest.config.ts` → exit 0; `pnpm docs:check` → exit 0 |
+
+**Overall:** met: `test:runtime` leaves out every `.test.tsx` from both web projects (a planted `.db.test.tsx` included) and keeps all 468 other files; the full run still lists all 629; the two runs keep separate cache entries; the CONTRIBUTING row matches what the command does now.
+
+## Task 3 — The CI split by role
+
+Witnessed: 2026-11-20 11:47 EST, by a fresh agent (blind). Commit: 31020b45 + working tree (`git diff`: ci.yml, server-checks.yml, CONTRIBUTING.md, PLAN.md). Machine: macOS 27.2.1, Node v24.0.0 (probe run on v26.13.1).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Both workflows parse | yes | confirmed | actionlint isn't installed (not installed by the witness). `probe.mjs` (yaml 2.9.1, `parseDocument` with `uniqueKeys: true`) → no errors for ci.yml or server-checks.yml; jobs `changes, checks, witness, dependencies, e2e, clients-windows, e2e-result` / `install, service-linux, service-macos` |
+| 2 | ci.yml's matrix is `include: [{node: 22, role: minimum}, {node: 24 (26 in task 4), role: target}]` and expands to 2 jobs | yes | confirmed | ci.yml:43-49: an include-only matrix that also carries `name`. The probe applies GitHub's include rules → 2 jobs, `{22, minimum}` and `{24, target}`; no third version |
+| 3 | The job names are "Lint, typecheck, test, build (target Node.js)" and "Runtime tests (minimum Node.js)" | yes | confirmed | ci.yml:33 `name: ${{ matrix.name }}`; the probe expands it to exactly these two strings. The job's `if: !cancelled()` is unchanged, so it isn't skipped whole (which would show the name unexpanded) |
+| 4 | No `if:` names a Node.js version; steps check `matrix.role` | yes | confirmed | `grep -n "if:" ci.yml server-checks.yml \| grep -E "22\|24\|26\|matrix\.node"` → nothing (exit 1); the probe flags none. Mutation in a scratch copy (one `matrix.role == 'target'` back to `matrix.node == 24`) → the probe prints "IF NAMES VERSION" for every step |
+| 5 | The target job has every step the old Node 24 job had | yes | confirmed | The probe evaluates each step's `if:`. Old `{node:24}`: checkout, pnpm setup, setup-node, cache, install, lint, typecheck, test, build, build:server, packages:check, release:smoke. New `{role:target}`: the same 12, in the same order |
+| 6 | The minimum runs `pnpm install --frozen-lockfile` and `pnpm test:runtime` (and nothing of the target's) | no | confirmed | Probe, `{role:minimum}`: checkout, pnpm setup, setup-node, cache, install, test:runtime (ci.yml:83). Lint, test, build and packing are gated on `role == 'target'`. `turbo run test --filter=!@ronneai/repo-tools --dry=json` → config, core, marketplace, mcp, rmk, web; `test` dependsOn `^build`, so no separate build step is needed |
+| 7 | A documentation-only pull request still skips every step in both jobs, and both still report | no | confirmed | `checks`: 14 steps, 13 with `if: needs.changes.outputs.code != 'false'`, the echo step with `== 'false'`; the job-level `if: ${{ !cancelled() }}` is unchanged |
+| 8 | server-checks.yml's install matrix is minimum and target on every OS, each with its role, no middle version, 6 jobs | yes | confirmed | server-checks.yml:27-36: `os` × `node: [22, 24]` + `include` adding `role` per node → 6 jobs, each with a role (e.g. "Install and run (windows-latest, Node 22, minimum)"). Mutation adding `{node: 23, role: target}` → 7 jobs |
+| 9 | Turbo cache key stays per Node.js version | no | confirmed | ci.yml:70-71 `key: turbo-${{ runner.os }}-node${{ matrix.node }}-${{ github.sha }}`, restore-keys the same, unchanged from 31020b45 |
+| 10 | The comments are updated | no | partly | Old comments naming 22 and 24 replaced (ci.yml:27-31, 74-75; server-checks.yml:29-31). But server-checks.yml:31 says "a repo-tools test keeps it so (188)", and ci.yml:30-31 points to test-runs.md for the N-API reasoning: `git grep -i "n-api\|napi" -- packages/repo-tools docs/knowledge/test-runs.md` → no match. Tasks 5 and 6 would make these true |
+| 11 | Nothing else in the repository refers to the old job names | no | confirmed | `git grep -e "Lint, typecheck, test, build" -e "(Node 24)" -e "(Node 22)"` → only ci.yml, 188's SPEC/PLAN (the branch-protection swap) and a historical WITNESS row in feature 100; no workflow `needs:` the job by name. Branch protection itself: on GitHub. Stale CI prose in CLAUDE.md:51, CONTRIBUTING.md:178, test-runs.md:60,70, turbo-test-inputs.md:14, release.md:60 is task 6's |
+| 12 | CONTRIBUTING.md's `pnpm test:runtime` row ("CI runs it on the oldest supported Node.js") is true | no | partly | CI runs `node-version: 22` (ci.yml:44, 64), which setup-node resolves to the newest 22.x; the oldest supported version is `MIN_NODE = "22.12.0"`. True for the major only until task 7 pins it |
+
+**Overall:** not met: the CI split holds (parses, 2 role-named jobs, a 6-job install matrix, no version in any `if:`, the target keeps all 12 old steps), but two pieces of wording overstate the present state.
+
+Fixed after this pass: the row says "CI runs it on Node.js 22, the oldest supported line"; server-checks.yml's comment no longer names a test that doesn't exist yet (task 5 adds it back); ci.yml's comment points to 188's SPEC.md instead of test-runs.md (task 6 can repoint it).
+
+### Re-check — rows 10 and 12, and the parse and expansions
+
+Witnessed: 2026-11-20 11:48 EST, by a fresh agent (blind). Commit: 31020b45 + working tree (`git diff`: ci.yml, server-checks.yml, CONTRIBUTING.md, PLAN.md). Machine: macOS 27.2.1, Node v24.0.0 (probe run on v26.13.1).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Both workflows still parse, with the same expansions | yes | confirmed | `probe.mjs <repo>` → no parse errors. ci.yml `checks`: "Runtime tests (minimum Node.js)" {22, minimum}: install, test:runtime; "Lint, typecheck, test, build (target Node.js)" {24, target}: the old Node 24 job's 12 steps in order. No `if:` names a version. server-checks.yml `install`: 6 jobs, {ubuntu, macos, windows} × {22 minimum, 24 target} |
+| 10 | The comments are updated and true as of this tree | no | confirmed | server-checks.yml:29-31 "native modules (better-sqlite3, @node-rs/argon2) are N-API, one binary for every version (188)": packages/server/package.json:45-46; better-sqlite3 binding.gyp:21 `NAPI_VERSION=10`, `prebuilds/<platform>.node` with no ABI in the name; argon2 package.json:52 `napi` block. ci.yml:27-32 points to `docs/features/188-node-26-target/SPEC.md`, which states it (SPEC.md:57, 90). ci.yml:74-75 "server-package.yml installs and runs the packed server on both roles": through `uses: ./.github/workflows/server-checks.yml` (server-package.yml:90) |
+| 12 | CONTRIBUTING.md's `pnpm test:runtime` row is true | no | confirmed | CONTRIBUTING.md:208 "CI runs it on Node.js 22, the oldest supported line"; ci.yml:44 `node: 22, role: minimum`, ci.yml:83 runs `pnpm test:runtime` only when `matrix.role == 'minimum'`; `engines` ">=22.12" |
+
+**Overall:** met: the comments and the `test:runtime` row match the tree, and both workflows parse with the same expansions as the first pass.
+
+## Task 4 — Move the target to 26
+
+Witnessed: 2026-11-20 11:56 EST, by a fresh agent (blind). Commit: ee736a7f + working tree (`git diff`, 14 files). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `.nvmrc` is `26` | no | confirmed | `od -c .nvmrc` → `2 6 \n` (LF, no CR) |
+| 2 | `pnpm lint` and `pnpm typecheck` pass on Node.js 26 | no | confirmed | PATH v26.13.1: `pnpm lint` → exit 0, "Checked 2518 files", warnings and infos only; `pnpm typecheck` → exit 0, "7 successful, 0 cached" |
+| 3 | `pnpm test` passes on Node.js 26 | no | confirmed | `pnpm test` → exit 0, every package a cache miss: web 523 files / 6316 passed, 20 skipped; core 449; rmk 286; repo-tools 194; marketplace 116; mcp 53 |
+| 4 | `pnpm build` passes on Node.js 26 | no | confirmed | `pnpm build` → exit 0, 5/5; core and rmk came from the cache, so rerun: `turbo run build --filter=@ronneai/core --filter=@ronneai/rmk --force` → 2/2, 0 cached |
+| 5 | The Dockerfile uses `node:26-trixie-slim` pinned by the real multi-arch index digest, with its comment | yes | confirmed | `docker buildx imagetools inspect node:26-trixie-slim` → MediaType `oci.image.index.v1+json`, Digest `sha256:e6bedef2…20bc` (linux/amd64 + linux/arm64/v8), matches `Dockerfile:9`; `Dockerfile:7` "Node.js 26 LTS on Debian 13 (trixie)" |
+| 6 | `docker build .` succeeds, and the image's `node --version` prints v26 | yes | confirmed | `docker build -t ronne-188-t4-blind:witness .` → exit 0, base `node:26-trixie-slim@sha256:e6bedef…`; `docker run --rm --entrypoint node … --version` → `v26.13.1` (arm64 only; amd64 not built) |
+| 7 | `NODE_MAJOR` is 26, and `bundle.js` on a packed tarball fetches a Node.js 26 build that matches `SHASUMS256.txt` | yes | confirmed | `bundle.js:31` `NODE_MAJOR = 26`. `pnpm build:server` → `pnpm --dir packages/server pack` → `bundle.js ronneai-marketplace-0.8.0.tgz --out …` → exit 0, "Node.js 26.13.1: node-v26.13.1-darwin-arm64.tar.gz, SHA-256 aec2514e…9735 (matches SHASUMS256.txt)"; `curl nodejs.org/dist/v26.13.1/SHASUMS256.txt` → same hash; `index.json` → newest 26 is v26.13.1 |
+| 8 | The bundle runs with its own Node.js 26 (the smoke test's version check follows `NODE_MAJOR`) | yes | confirmed | `bundle-smoke.js rmk-server-0.8.0-darwin-arm64.tar.gz` → exit 0, "✓ … runs with its own Node.js, none on PATH"; `bundle-smoke.js:79` builds its regex from the imported `NODE_MAJOR` |
+| 9 | The feed workflow `rmk` writes uses Node.js 26, and its golden tests pass | no | confirmed | `feed-workflow.ts:44` `node-version: 26`, `:78` `image: node:26`; golden files match; `vitest run src/feed-workflow.test.ts` → 5 passed. Mutation in a scratch copy (`node-version: 24`) → 2 failed |
+| 10 | The target entries in `ci.yml` and `server-checks.yml` are 26, and no 24 entry is left | no | confirmed | `ci.yml:48` `node: 26` role target; `server-checks.yml:30` `node: [22, 26]`, include 26 → target (3 OS × 2 = 6 jobs) |
+| 11 | `bundles.yml` and `packages.yml` read `.nvmrc`, and their sparse checkouts include it | yes | confirmed | `bundles.yml:46`, `packages.yml:58` `node-version-file: .nvmrc`; `/.nvmrc` at `bundles.yml:40`, `packages.yml:54` (non-cone). Probe: `git sparse-checkout set --no-cone packages/repo-tools/src LICENSE /.nvmrc` → `.nvmrc` checked out; without `/.nvmrc` → missing |
+| 12 | The Linux service check takes Node.js from `.nvmrc`, and its cone-mode sparse checkout has `.nvmrc` | yes | confirmed | `server-checks.yml:75` `node-version-file: .nvmrc`. Probe: `git sparse-checkout set --cone scripts/service` → root files present, `.nvmrc` among them (the macOS job gets it the same way) |
+| 13 | macOS service check: Homebrew's `node@N` if it exists, else `node`, and the job stops when the installed major isn't `.nvmrc`'s | yes | confirmed | Step extracted with the yaml parser, run under a fake `brew` (`brew-probe/probe.sh`): node@26 missing + node=26 → exit 0, installs `node`; node@26 versioned + node=28 → exit 0, installs `node@26`; node@26 missing + node=28 → exit 1 "::error::Homebrew's node is Node.js 28, but .nvmrc says 26"; node=25 → exit 1; a CRLF `.nvmrc` → exit 1 (fails closed). Real brew: `brew --prefix node@26` → `/opt/homebrew/opt/node`, `brew info --formula node@99` → exit 1 |
+| 14 | Spec/plan fact: "on 2026-11-20 Homebrew had no `node@26`, and `node` was 26.13.1" | yes | partly | `brew info --formula node@26` → exit 0, "==> node: … stable 26.13.1_2 … Aliases: node.js, node@26, nodejs, npm": no separate formula, but `node@26` is an alias of `node`, so CI takes the `node@N` branch, not the fallback. Same result; only the wording is wrong |
+| 15 | Nothing outside history still names 24 as the target in code or workflows | no | confirmed | `git grep` for node/version patterns with 24 outside docs → only `packages/server/src/service/macos.ts:8-9`, an example path in a comment (`…/Cellar/node@24/24.21.0`). Every other `setup-node` (15) uses `.nvmrc` or a matrix. `bundle.test.js`'s 24s are fixtures passed explicitly |
+
+**Overall:** not met: everything the code, workflows, image and bundle must do holds on Node 26, but the spec's and plan's statement that Homebrew has no `node@26` is wrong: it's an alias of `node` (row 14).
+
+Fixed after this pass: SPEC.md, PLAN.md and the workflow comment say `node@N` is used when Homebrew knows the name (today an alias of `node`), plain `node` otherwise; the step reads `.nvmrc` with `tr -d '[:space:]'`, so a CR or space can't produce a confusing mismatch.
+
+### Re-check — rows 13, 14 and the changed comment
+
+Witnessed: 2026-11-20 11:57 EST, by a fresh agent (blind). Commit: ee736a7f + working tree (`git diff`). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 13 | macOS service check: Homebrew's `node@N` when Homebrew knows the name, else `node`; it stops when the installed major isn't `.nvmrc`'s; a CR or space in `.nvmrc` doesn't break it | yes | confirmed | Re-extracted step (`major="$(tr -d '[:space:]' < .nvmrc)"`), `brew-probe/probe.sh` with the fake brew: alias (node@26 known, 26) → exit 0, `node@26`; separate node@26=26 with node=28 → exit 0, `node@26`; name unknown, node=26 → exit 0, `node`; name unknown, node=28 → exit 1 "Homebrew's node is Node.js 28, but .nvmrc says 26"; node@26 gives 25 → exit 1; `.nvmrc` `26\r\n` → exit 0; ` 26 \r\n` (alias) → exit 0 |
+| 14 | SPEC.md:33-36 and PLAN.md:62-64: `node@N` when Homebrew knows the name, plain `node` otherwise; on 2026-11-20 `node@26` was an alias of Homebrew's `node`, 26.13.1 | yes | confirmed | `brew info --formula node@26` → exit 0, "==> node: … stable 26.13.1_2", "Aliases: node.js, node@26, nodejs, npm"; `brew --prefix node@26` → `/opt/homebrew/opt/node` |
+| 16 | The `server-checks.yml` comment above the macOS step matches what it does | no | confirmed | `server-checks.yml:116-118` matches the probes above and `brew info` |
+| 17 | Note: in the image, `better-sqlite3` loads (SQLite 3.54.1) | yes | confirmed | `docker run --rm --entrypoint node ronne-188-t4-blind:witness -e 'require("/app/apps/web/node_modules/better-sqlite3") …'` → `v26.13.1 3.54.1` |
+| 18 | Note: a dry run of the step "printed 'would install node' with `.nvmrc` at 26, and at 24 stopped with 'Homebrew's node is Node.js 26, but .nvmrc says 24.'" | yes | partly | Against real Homebrew: at 26, `brew info --formula node@26` exits 0, so the step installs `node@26` (the alias), not `node`; at 24, `brew info --formula node@24` → "node@24: stable 24.22.3 (bottled) [keg-only]", so it installs `node@24` and passes. The note was written before the alias was found |
+
+**Overall:** met: the step, the spec and plan wording, and the comment match what `brew info` shows (rows 13, 14, 16, 17); row 18 is a sentence in the notes, reworded below.
+
+### Re-check — row 18, wording
+
+Witnessed: 2026-11-20 11:58 EST, by a fresh agent (blind). Commit: ee736a7f + working tree (`git diff`). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 18 | PLAN.md task 4 note: with real Homebrew today, `.nvmrc` 26 installs `node@26` (the alias) and 24 installs `node@24` (24.22.3, its own formula), both passing the check; with `brew info` failing, plain `node` is installed, and at 24 the step stops with "Homebrew's node is Node.js 26, but .nvmrc says 24."; the fake-brew probe covers every branch | yes | confirmed | `brew info --formula node@26` → "Aliases: node.js, node@26, nodejs, npm"; `brew info --formula node@24` → "node@24: stable 24.22.3 (bottled) [keg-only]". `probe.sh` on the re-extracted step: 26 with the alias → exit 0, `node@26`; 24 with node@24=24 → exit 0, `node@24`; 26 with `brew info` failing → exit 0, `node`; 24 with `brew info` failing and node=26 → exit 1, "::error::Homebrew's node is Node.js 26, but .nvmrc says 24."; node=28 with the name unknown, and node@26 at 25, also stop |
+
+**Overall:** met: the note's wording matches what `brew info` shows and what the probe does in every branch.
+
+## Task 5 — The drift guard and the N-API guard
+
+Witnessed: 2026-11-20 12:01 EST, by a fresh agent (blind). Commit: e0bdc406 + working tree (server-checks.yml, PLAN.md, SPEC.md diff; untracked node-versions.js and node-versions.test.js). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The repo-tools tests pass | yes | confirmed | `vitest run` in packages/repo-tools → 22 files, 208 passed; `node-versions.test.js` alone → 14 passed |
+| 2 | Setting any one guarded place to another major in the real files makes the guard fail, naming that file | yes | confirmed | `drift-probe.mjs`, each real file edited in a scratch copy then put back (`cmp`): Dockerfile FROM→24, NODE_MAJOR→24, feed `node-version` and `image` →24, ci.yml target→24 and minimum→20, server-checks target→24 and minimum→24, axis→[22, 24], literal `node-version: 24` in release.yml:83 and .github/actions/build-image/action.yml:28, .nvmrc→28 (5 problems): each failed naming its file. Baseline `[]` |
+| 3 | Each check has a test that fails without it | yes | confirmed | Mutations in the scratch copy: the Dockerfile, minimum, axis, `node-version:` and N-API checks turned off → 1–2 named tests fail each; not walking optional deps fails "finds the server's native modules". Gap: turning off the "isn't installed" report still passes 14/14 |
+| 4 | "Every other `setup-node` reads `.nvmrc` rather than naming a version" | yes | partly | A literal `node-version: N` is caught. Pass with no problems: another workflow with its own `matrix.node: [24]` and `node-version: ${{ matrix.node }}`; flow style `with: { node-version: 24 }`; quoted key `"node-version": 24` |
+| 5 | The guard reads the other forms GitHub, YAML or Docker accept for the axis and the base image | yes | partly | A block-list or quoted server-checks axis skips the axis check and passes; a later stage `FROM node:24-trixie-slim AS runtime` passes (only the first `FROM node:` read) |
+| 6 | CRLF workflows are read correctly | no | confirmed | server-checks.yml in CRLF → no problems; ci.yml in CRLF with target 24 → reported |
+| 7 | The N-API guard finds better-sqlite3's and @node-rs/argon2's binaries in the real tree, with no problems | yes | confirmed | `napi-real.mjs` → `@node-rs/argon2-darwin-arm64/argon2.darwin-arm64.node` and the 8 `better-sqlite3/prebuilds/*.node`; `problems: []` |
+| 8 | Real N-API binaries for Linux and Windows pass, and they really export the symbol | yes | confirmed | `nm -g --defined-only` → `napi_register_module_v1` in the darwin, linux and linuxmusl prebuilds; `pe-exports.mjs` on win32-x64/arm64.node → `['napi_register_module_v1']` |
+| 9 | It fails on a `.node` file without the export, naming the package and the file | yes | confirmed | The test passes and fails when the check is mutated away; `napi-fixtures.mjs` with a hoisted, scoped, optional transitive dep → named |
+| 10 | It doesn't fail a real N-API module ("the entry point every N-API module has") | yes | partly | `@parcel/watcher-darwin-arm64@2.6.0`'s watcher.node imports only `napi_*` and registers through `_napi_module_register`: N-API, but reported as "isn't N-API". The check is a byte search, not an export check |
+| 11 | The walk covers dependencies and installed optional ones, not devDependencies | no | confirmed | Non-N-API binaries reachable only through devDependencies → not found; a transitive, hoisted, scoped optional dep is found; a cycle ends. peerDependencies weren't walked |
+| 12 | The test isn't vacuous when node_modules is missing or partial | yes | confirmed | packages/server alone with no node_modules → "needs @node-rs/argon2, which isn't installed" and the same for better-sqlite3; the real-tree test asserts both names |
+| 13 | server-checks.yml's comment "repo-tools' node-versions test keeps it so" is true | no | confirmed | server-checks.yml:30; the test walks packages/server; `turbo run test` runs it on the target role |
+| 14 | Lint passes on the new files | yes | confirmed | `biome check` → no fixes, exit 0 |
+
+**Overall:** not met: every place in today's files is guarded and both native modules are checked, but YAML forms GitHub accepts bypass the setup-node rule and the axis check (rows 4, 5), and the N-API check fails a real N-API module registering with `napi_module_register` (row 10).
+
+Fixed after this pass: the readers became line-based (trimmed lines, `indexOf`, short anchored patterns); only ci.yml and server-checks.yml may use `${{ matrix.node }}` and any other node axis or `node-version` is reported; flow and quoted forms are read; an unreadable axis is reported; every `FROM node:` is checked; N-API means `napi_register_module_v1` or `napi_module_register` without `node_register_module_v`; peers are walked; a test covers the "isn't installed" report.
+
+### Re-check 1 — rows 3, 4, 5, 10 and the fixes since
+
+Witnessed: 2026-11-20 12:08 EST, by a fresh agent (blind). Commit: e0bdc406 + working tree (node-versions.js rewritten, node-versions.test.js, SPEC.md and PLAN.md diff). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The repo-tools tests pass and lint is clean | yes | confirmed | 22 files, 214 passed; `biome check` → no fixes |
+| 3 | Each check has a test that fails without it | yes | partly | Mutations each fail a named test (only the first FROM, `--flags`, axes elsewhere, `matrix.node` everywhere, flow `}`, quoted key, `}}`, unreadable axis, per-ABI, `napi_module_register`, missing dep). Survive 20/20: peers not walked; installed devDependencies walked |
+| 4 | Only ci.yml and server-checks.yml test by version | yes | partly | First-pass bypasses fail. Pass with `[]`, in ci.yml: a second job `matrix: { node: [24] }`; an include `- node: 24` without role or with `name:` between; `- { node: 24, role: target, name: x }`; a second job `matrix: include: - node: 24`. Also `Node-Version: 24`, `? node-version` / `: 24`, an escaped key |
+| 5 | Every Dockerfile `FROM node:` is checked, and the axis is read or reported | yes | partly | Second stage, `--platform`, block and quoted axes reported. Pass: `FROM<TAB>node:24…`, `FROM docker.io/library/node:24…`, `ARG IMG` + `FROM ${IMG}`, a `FROM \` continuation, `COPY --from=node:24…` |
+| 10 | It doesn't fail a real N-API module, and it rejects one built per Node.js version | yes | confirmed | @parcel/watcher → no problems; all 17 `.node` files in node_modules → N-API; addons compiled against Node 26's headers: `NODE_MODULE` → "has neither…", `NODE_MODULE_INIT` → "registers per Node.js version", `NAPI_MODULE` → N-API; on 22 and 24 only the N-API one loads |
+| 15 | No other workflow may use `${{ matrix.node }}` or have a `node` axis | yes | confirmed | `matrix-elsewhere.mjs` → 2 problems naming bundles.yml lines 33 and 49 |
+| 16 | `node-version` is read in block and flow style, quoted or not; an expression runs to its `}}` | yes | confirmed | Block, flow, quoted, next-line and `${{ matrix['node'] }}` forms reported; the `}}` mutation fails 9 tests |
+| 17 | In the role workflows an axis other than `[N, M]` is reported | yes | partly | Block list, quoted numbers and `fromJSON` axis reported; `matrix: { node: [24] }` not seen |
+| 18 | N-API means `napi_register_module_v1` or `napi_module_register`, without `node_register_module_v`; messages and SPEC say so | yes | confirmed | `notNapi`; SPEC matches; real tree `problems: []`; message names package and file |
+| 19 | A test covers "isn't installed"; peers are walked when installed | yes | confirmed | The mutation fails the new test; a peer native is now found. The peer walk had no test (row 3) |
+| 20 | The minimum is compared by major, and SPEC says so until task 7 | yes | confirmed | SPEC diff; ci.yml minimum→20 → "minimum entry is Node.js 20, but MIN_NODE is 22.12.0" |
+
+**Overall:** not met: the first pass's bypasses are closed and the N-API guard is right on real binaries; role-workflow job and include forms and some Dockerfile forms pass unreported (rows 4, 5, 17), and two walk rules have no test (row 3).
+
+Fixed after this re-check: the Dockerfile reader joins continuations, splits on any space, and checks every `FROM`, `--from=` and mount `from=` (registry-prefixed `node` images allowed; anything that isn't a `node` image, a stage, `scratch` or a number reported); in the role workflows any other `node:` key is reported; any `node:` key elsewhere is reported; `node-version` in any case; explicit `?` keys reported; peer and dev walk tests.
+
+### Re-check 2 — rows 3, 4, 5 and 17, against the new notes
+
+Witnessed: 2026-11-20 12:13 EST, by a fresh agent (blind). Commit: e0bdc406 + working tree (node-versions.js and node-versions.test.js changed again, PLAN.md notes rewritten). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The repo-tools tests pass and lint is clean | yes | confirmed | 22 files, 218 passed (24 in node-versions.test.js); `biome check` → no fixes |
+| 3 | Each check has a test that fails without it, including the peer and dev-dependency walk rules | yes | partly | `mutate3.mjs`, 14 mutations: 12 fail a named test (peer and dev walks included). Survive 24/24: the mount `from=` reader removed; the "space after the colon" rule removed (minor, it only prevents false positives) |
+| 4 | In every other workflow any `node:` key or `node-version` value is reported, and explicit `? key` lines anywhere | yes | partly | Earlier cases fail. A `?` alone on its line, then `node-version`, then `: 24` passes and isn't in "Not read" |
+| 5 | The Dockerfile: every `FROM`, `--from=` and mount `from=` is a `node` image of the target, a stage, `scratch` or a number, else reported | yes | confirmed | Tab, registry prefix, `${IMG}`, continuation, lowercase `from`, `COPY --from=node:24`, `FROM node`, `node:lts`, `registry:5000/node:24`, `cimg/node:24.1`, backtick escape and comment-in-continuation are all reported. Only a quoted mount part passes (contrived) |
+| 17 | In ci.yml and server-checks.yml any `node:` key that isn't an entry with its role or the axis is reported | yes | partly | Cases a–d fail. Pass with `[]`: `matrix: {"node":[24]}`; `node : [24]`; `Node: [24]`; `matrix: ${{ fromJSON('{"node":[24]}') }}`; a dynamic matrix from another job's output |
+
+**Overall:** not met: the Dockerfile reader is sound and the walk rules have tests, but some `node:` key and `?` key forms pass unreported and unlisted (rows 4, 17), and the mount reader has no test (row 3).
+
+Fixed after this re-check: node keys matched in any case, with spaces before the colon, and quoted keys without a space after it; in the role workflows `matrix: ${{ … }}` and any `fromJSON(` reported; a bare `?` reported; a mount test; "Not read" names escaped keys, anchors and aliases, a quoted mount part, and `container:` / `docker://` images.
+
+### Re-check 3 — rows 3, 4 and 17, against the updated notes
+
+Witnessed: 2026-11-20 12:16 EST, by a fresh agent (blind). Commit: e0bdc406 + working tree (node-versions.js and node-versions.test.js changed again, PLAN.md notes updated). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The repo-tools tests pass and lint is clean | yes | confirmed | 22 files, 219 passed (25 in node-versions.test.js); `biome check` → no fixes |
+| 3 | Each check has a test that fails without it | yes | partly | The mount `from=` mutation now fails; every other mutation fails a named test. Survives 25/25: dropping the `fromjson(` clause (it alone catches `strategy: ${{ fromJSON(needs.x.outputs.s) }}`) |
+| 4 | In every workflow `node-version` in any form and explicit `?` keys are reported; everything else is in "Not read" | yes | partly | Only "Not read" forms pass, plus `?<TAB>node-version` / `: 24` (the `yaml` package parses it as `{"node-version":24}`), neither reported nor listed |
+| 17 | In the role workflows every unread `node` key, `matrix: ${{ … }}` and any `fromJSON(` are reported | yes | partly | All earlier forms reported. Passes: `matrix:` with `${{ … }}` on the next line (without `fromJSON`) |
+
+**Overall:** not met: all earlier bypasses are closed or disclosed; left are `?<TAB>`, a matrix expression on the next line, and no test for the `fromJSON(` clause.
+
+Fixed after this re-check: explicit keys match `/^\?(?:\s|$)/`; a role-workflow line that is only an expression is reported; a test for `fromJSON` anywhere.
+
+### Re-check 4 — rows 3, 4 and 17, the three findings of re-check 3
+
+Witnessed: 2026-11-20 12:18 EST, by a fresh agent (blind). Commit: e0bdc406 + working tree (node-versions.js and node-versions.test.js changed again, PLAN.md notes). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The repo-tools tests pass and lint is clean | yes | confirmed | 22 files, 220 passed (26 in node-versions.test.js); `biome check` → no fixes |
+| 3 | Each of the changed clauses has a test that fails without it | yes | partly | `mutate5.mjs`: explicit keys, the `${{` line and the `fromjson(` clause each fail a named test. Survive 26/26: explicit keys matched on a space only (the bare `?` and `?<TAB>` cases shared one assertion); dropping the inline `/matrix *: *\$\{\{/` (no inline case without `fromJSON` tested) |
+| 4 | Explicit keys, including `?<TAB>key`, are reported in every workflow; everything else that passes is in "Not read" | yes | confirmed | `?<tab>node-version` → "bundles.yml:46 has an explicit YAML key (?)". What passes across drift-probe 1–4: `"node-version"`, `container: node:24`, `docker://node:24`, a quoted mount `"from=…"` (all in "Not read"), and `- ? node-version`, which GitHub refuses. Real repository `[]` |
+| 17 | In the role workflows a matrix built from an expression is reported: inline, on the next line, or through `fromJSON` anywhere | yes | confirmed | Next-line `${{ needs.plan.outputs.m }}`, `strategy: ${{ fromJson(…) }}`, `'NODE' : [24]` and inline `matrix: ${{ github.event.client_payload }}` are all reported |
+
+**Overall:** not met: every form is reported or disclosed; two test gaps remain (no isolated `?<TAB>` test, no inline matrix expression without `fromJSON`).
+
+Fixed after this re-check: the explicit-key test checks each form in its own `withChange`; the expression test adds an inline `${{ github.event.client_payload }}`.
+
+### Re-check 5 — row 3, the two test gaps
+
+Witnessed: 2026-11-20 12:20 EST, by a fresh agent (blind). Commit: e0bdc406 + working tree (only node-versions.test.js changed since re-check 4; node-versions.js byte-identical, `cmp`). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The repo-tools tests pass and lint is clean | yes | confirmed | 22 files, 220 passed (26 in node-versions.test.js); `biome check` → no fixes |
+| 3 | Each check has a test that fails without it, including the `?<TAB>` and the inline `matrix: ${{ … }}` clauses | yes | confirmed | `mutate5.mjs`, each mutation failing exactly 1 test (25/26): explicit keys on a space only; explicit keys not reported; the `${{`-line clause removed; the `fromjson(` clause removed; the inline `/matrix *: *\$\{\{/` removed; a bare `?` not reported. `mutate4.mjs` 0, 5, 6, 7 (role-workflow node keys, case, space before the colon, quoted key) each fail 1 test. `drift-probe4.mjs` and `inline-matrix.mjs` still report every form |
+
+**Overall:** met: every claim in rows 3, 4 and 17 is confirmed; every clause of the drift and N-API guards has a test that fails without it.
+
+## Task 6 — The documents
+
+Witnessed: 2026-11-20 12:26 EST, by a fresh agent (blind). Commit: c98d3fa0 + working tree. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm docs:check` passes | no | confirmed | `pnpm docs:check` on Node 26 → exit 0 |
+| 2 | The Done-when `git grep` ("Node 24", "Node.js 24", "node:24", "node@24", "node-version: 24") finds only history, test fixtures and the "then the minimum moves to 24" line | yes | partly | Outside old specs, issues and witness records: `image-security-updates.md:16` (dated note); `bundle.test.js`, `node-versions.test.js`, `macos.test.ts` (fixtures); and `packages/server/src/service/macos.ts:8-9`, a comment using `…/Cellar/node@24/24.21.0/bin/node` as an example path: not the target, but not in the Done-when's list |
+| 3 | Nothing outside history still calls 24 the target | yes | not met | A wider grep (`node[ @:-]?v?24`, `Active LTS`, `target LTS`) → `docs/MVP/MVP.md:437` (§5): "the target is the newest Node.js Active LTS (24 in September 2026), used for development, CI and the Docker image. The minimum … (22, until April 2027)": not updated, and missed by the Done-when grep's wording |
+| 4 | CLAUDE.md: Node.js 26 from `.nvmrc`; CI runs lint, typecheck, test and build on the target and `test:runtime` on the minimum (22), no job between; deps bullet "26 LTS target, 22.12 minimum" | yes | confirmed | `.nvmrc` = `26`; `ci.yml:44-49` `node: 22 role: minimum`, `node: 26 role: target`; `ci.yml:75-98` target-only steps and `test:runtime` on the minimum; `engines` `>=22.12`, `MIN_NODE = "22.12.0"` |
+| 5 | CLAUDE.md and the dependency policy say the repo-tools `pnpm test` fails when a place naming the target drifts from `.nvmrc` | yes | confirmed | `node-versions.test.js` → 26 passed; `:85` asserts the real files give `[]`; `drift-probe.mjs` with `.nvmrc` 28 → 5 problems |
+| 6 | CONTRIBUTING.md: develop on 26; packages run on 22.12+, `test:runtime` on 22; CI paragraph | yes | confirmed | Matches `ci.yml` and `engines`. Remark: rmk-server crashes on 22.12.0 (the known issue, task 7) |
+| 7 | Dependency policy §2: target 26 (dev, CI, Docker, bundles), minimum 22 from 22.12, then 24; versions between untested while native modules are N-API; bundled Node.js row "newest 26 (`NODE_MAJOR`)" | yes | confirmed | `Dockerfile:9` `node:26-trixie-slim@sha256:e6bed…`; `bundle.js:31` `NODE_MAJOR = 26`, `:190` `latestOf(index.json, NODE_MAJOR)`; `bundles.yml:46`, `packages.yml:58` `node-version-file: .nvmrc` |
+| 8 | MVP.md Docker and Packages rows, and a §15 entry dated 2026-11-20 | yes | confirmed | `MVP.md:976` `node:26-trixie-slim`; `:999` "Node 26 LTS target…, 22.12 minimum"; the "Node.js versions" row at `:1023` under `## 15. Decision log`, matching ci.yml, server-checks.yml and the guard |
+| 9 | test-runs.md has a "Which Node.js version runs what" section with SPEC's table and rule, replacing the Node 22/24 bullets | yes | confirmed | `test-runs.md:87`: the rule; a 5-row table condensing SPEC's 7 rows; the old bullets point to it. `base.json:15` `lib: ["ES2023"]`; `@types/node` 22.20.5; `server-checks.yml:27-36` {ubuntu, macos, windows} × {22 minimum, 26 target}; `test:runtime` script; "about 10%" agrees with task 2's timings |
+| 10 | test-runs.md: `.nvmrc` is the one source; the Docker base, `NODE_MAJOR`, the feed workflow and the role matrices must agree; no other workflow names a version | yes | confirmed | Only `ci.yml:65` and `server-checks.yml:47` use `${{ matrix.node }}`; every other `setup-node` uses `node-version-file: .nvmrc`; the guard reads all four places |
+| 11 | turbo-test-inputs.md's "Node 22 and 24" is history and rightly unchanged | yes | confirmed | `turbo-test-inputs.md:7-14` under "What happened (2026-10-30)" |
+| 12 | release.md: newest `v26.x.y` and "Node.js 26.x.y: … (matches SHASUMS256.txt)"; server-checks on the minimum and target (22 and 26) | yes | confirmed | `bundle.js:199` prints that line; `server-checks.yml:31` `[22, 26]`; services from `.nvmrc` and Homebrew's target; `release.yml:356-358` calls server-checks |
+| 13 | threat-model.md's image row says `node:26-trixie-slim@sha256:…` | yes | confirmed | Matches `Dockerfile:9` |
+| 14 | backup-format.md: `maxmem = 256·N·r` measured enough for every accepted header on 22, 24 and 26 | yes | confirmed | `crypto.test.ts` on v26.13.1 → 9 passed (12.4 s). `scrypt-maxmem-probe.mjs` at log2N {15, 18} × p {1, 4}: ok on v26.13.1, v24.21.0, v22.23.2, v22.11.0; control `128·N·r` → `ERR_CRYPTO_INVALID_SCRYPT_PARAMS` everywhere |
+| 15 | test-runs.md and the MVP §15 row: better-sqlite3 13.2.0 "crashed on Node.js 22.12.0 and 22.13" | yes | partly | v22.11.0 → exit 139; v22.23.2, v26.13.1 → work. No 22.13 build here (download denied); task 1's record ran 22.12.0 but rests 22.13 on its header only |
+| 16 | Links and anchors in the changed Markdown resolve | no | confirmed | `link-probe.mjs` (GitHub-style slugs) → 11 links, 0 bad, including `test-runs.md#which-nodejs-version-runs-what` |
+| 17 | No other document stating the target or the CI split was missed | yes | not met | `MVP.md:437` (row 3). README, `install.md`, package READMEs, `cli.ts` HELP, `install.sh`, `release.yml:445` state only the 22.12 minimum; `dependabot.yml` comments say "Active LTS" with no number |
+
+**Overall:** not met: the documents in the task's list match the files, but `MVP.md:437` (§5) still calls 24 the target, and two wording gaps remain (rows 2 and 15).
+
+Fixed after this pass: MVP.md §5 names 26, the 22.12 minimum and the CI split, with a link to test-runs.md; `macos.ts`'s example path is `node@26`; an official 22.13.1 build was run (N-API 9, exit 139); PLAN.md's trailing blank line removed.
+
+### Re-check — rows 2, 3, 15, 17 and the trailing blank line
+
+Witnessed: 2026-11-20 12:27 EST, by a fresh agent (blind). Commit: c98d3fa0 + working tree. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | The Done-when `git grep` finds only history, test fixtures and the "then the minimum moves to 24" line | yes | confirmed | Outside old specs, issues, witness records and tests → only `image-security-updates.md:16` (dated 2026-11-18). `macos.ts:8-9` now `…/Cellar/node@26/26.13.1/bin/node`, `…/opt/node@26/bin/node`; `macos.test.ts`'s `node@24` fixture passes (12 passed) |
+| 3 | Nothing outside history still calls 24 the target | yes | confirmed | Wider grep (`node[ @:-]?v?24\b`, `24 LTS`, `22 and 24`, `Active LTS`, `target LTS`, `LTS target`) → none. `MVP.md:437-441`: "26 since 2026-11-20, [188]…; 24 before", "development, CI, the Docker image and the bundles", "22, from 22.12", CI split matching `ci.yml:44-98`. Leftovers: `MVP.md:978` "24 until 2026-11-20" (dated), `turbo-test-inputs.md:14` (history), sample commit titles at `CLAUDE.md:83`, `CONTRIBUTING.md:167` |
+| 15 | better-sqlite3 13.2.0 crashed on Node.js 22.12.0 and 22.13 | yes | confirmed | `scratchpad/node-22.13/node-v22.13.1-darwin-arm64/bin/node` from `apps/web`: `v22.13.1 napi 9`, `require("better-sqlite3")` → exit 139. Tarball SHA-256 `97483ff4…d9d19b89`; the binary is code-signed (TeamIdentifier `HX7739G8FX`). 22.12.0 rests on task 1's record (exit 139 on the official build) |
+| 17 | No other document stating the target or the CI split was missed | yes | confirmed | The wider grep found nothing else; `link-probe.mjs` → 13 links, 0 bad, including MVP.md's `../knowledge/test-runs.md#which-nodejs-version-runs-what`; `pnpm docs:check` → exit 0 |
+| 18 | The trailing blank line in PLAN.md is gone | no | confirmed | `git diff --check` → no output, exit 0 |
+| 19 | `ci.yml`'s comment now points to `test-runs.md` | yes | confirmed | `ci.yml:31-33` "(docs/knowledge/test-runs.md)"; `node-versions.test.js` → 26 passed |
+
+**Overall:** met: every row of the first pass is now confirmed: MVP §5 states 26, the 22.12 minimum and the CI split; the `macos.ts` example no longer names 24; the 22.13 crash was measured; links resolve; `docs:check` and `git diff --check` are clean.
+
+## Task 7 — Pin the minimum's jobs to `MIN_NODE`
+
+Witnessed: 2026-11-20 16:11 EST, by a fresh agent (blind). Commit: 86591284 + uncommitted diff (12 files). Machine: macOS 27.2.1 (Apple silicon), Node v26.13.1 (official v22.14.0 and v22.13.1 builds for the minimum runs).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `ci.yml`'s `role: minimum` entry is exactly `MIN_NODE`, and GitHub reads it so | yes | confirmed | `ci.yml:46` `- node: 22.14.0`; yaml@2.9.1 → `"node":"22.14.0"` (a string, not 22.14); `node-version.ts:4` |
+| 2 | `server-checks.yml`'s axis and minimum entry are exactly `MIN_NODE`, 6 jobs, no stray include job | yes | confirmed | yaml → `node:["22.14.0",26]`, include values match the axis, so each adds `role` and none is a 7th job |
+| 3 | The drift guard passes on the tree | no | confirmed | `vitest run src/node-versions.test.js` → 27 passed; `drift-probe.mjs` "unchanged" → no problems |
+| 4 | It fails when a minimum entry is `22` or any version other than `MIN_NODE` | yes | confirmed | `drift-probe.mjs`: `22`, `22.15.0`, `22.13.1`, axis only, CRLF, `22.14` (a float), quoted, `22.x` → each FAILs naming the file; `MIN_NODE` moved to 22.15.0 → both entries fail. Mutation comparing by major → the test fails |
+| 5 | It fails when a package's `engines` differs from `^MIN_NODE \|\| >=MIN_NODE_23` | yes | partly | Wrong values FAIL (cli `>=22.14.0`, web `>=22`, `MIN_NODE_23` moved → all five). **A package with `engines` removed passes** (`packages/server`): `node-versions.js` skips `node === undefined` |
+| 6 | All five `engines` are `^22.14.0 \|\| >=23.6.0`, and `MIN_NODE`/`MIN_NODE_23` are #315's | yes | confirmed | root, cli, core, mcp, server; web, config, repo-tools none; `git merge-base --is-ancestor bugfix/315-node-22-14-minimum HEAD` → true |
+| 7 | On official 22.14.0, `pnpm install --frozen-lockfile` passes | yes | confirmed | Scratch worktree, 22.14.0 first on PATH → pnpm v12.6.0, exit 0 |
+| 8 | On 22.14.0, `pnpm test:runtime --force` passes, without `*.test.tsx` or repo-tools | yes | confirmed | "Tasks: 7 successful"; core 449, marketplace 118, mcp 53, rmk 286, web 4700 + 21 skipped (383 files); 0 `.test.tsx` in the log; the `registerHooks` case skipped |
+| 9 | On 22.14.0, `better-sqlite3` opens a database | yes | confirmed | `open-db.cjs` → `v22.14.0 OK 3.54.1` |
+| 10 | On 22.13.1, opening a database crashes | yes | confirmed | `open-db.cjs` → exit 139 (N-API 9); `checks.db.test.ts` on 22.13.1 → "Worker forks emitted error" |
+| 11 | The `start.test.ts` skip is limited to Node.js without `registerHooks`, and no shipped code uses it | yes | confirmed | `start.test.ts:34-37`, one case; 22.14.0/22.13.1 false, 26.13.1 true; `git grep registerHooks` → only this test |
+| 12 | CLAUDE.md, CONTRIBUTING.md, MVP.md's row, test-runs.md and the index row match the workflows and code | yes | confirmed | CLAUDE.md:51; CONTRIBUTING.md:24, :180, :210; MVP.md:1025; test-runs.md:108-116; README 188 row; dependencies.md:40 |
+| 13 | The branch sits on #315's, and the rebase kept 26 as the target and 22.14 as the minimum | yes | confirmed | 8bcfac9f, ff23d257, 837c9f1d ancestors of HEAD; CLAUDE.md:142, CONTRIBUTING.md:23-24, dependencies.md:40, MVP.md:1025 |
+| 14 | The guard compares the target as a major and reads root, `apps/*` and `packages/*` package.json | yes | confirmed | `node-versions.js:219`; probe "target 26.13.1" → FAIL; `readDriftFiles` matches `pnpm-workspace.yaml` |
+| 15 | `require("better-sqlite3")` doesn't crash on 22.13; the first `new Database()` does | yes | confirmed | v22.13.1 require → exit 0; opening → 139 |
+| 16 | `health.db.test.ts`' deadline missed by 16 ms on one 22.14.0 run | yes | can't check here | Not reproduced: this pass's full 22.14.0 run passed it |
+
+**Overall:** not met: the minimum is pinned exactly, the guard catches every wrong minimum entry, 22.14.0 passes and 22.13.1 crashes, but a package that drops `engines` passes the guard.
+
+Fixed after this pass: the guard requires `engines.node` in the root and in every package that isn't `"private": true` (a private one may leave it out), with tests for a dropped `engines` in the root and the server and a private package without one; the spec's guard bullet and the notes say so.
+
+### Re-check 1 — the engines rule
+
+Witnessed: 2026-11-20 16:20 EST, by a fresh agent (blind). Commit: 86591284 + working tree (only `node-versions.js`, its test and the docs changed since the last pass). Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The guard fails when the root `package.json` loses `engines` or `engines.node` | yes | confirmed | `engines-probe.mjs` → FAIL "package.json has no engines.node; it must say ^22.14.0 \|\| >=23.6.0" for `engines` deleted, `{}`, `{npm}` only; also with `private: true` (`node-versions.js:177`) |
+| 2 | It fails when a published package loses `engines` or `engines.node` | yes | confirmed | server: deleted, `node` deleted, `"private": false`, `"private": "true"` (a string), `engines` a string, `null`, padded → FAIL; cli, core, mcp deleted → FAIL |
+| 3 | A private package may leave `engines` out, but a wrong value there fails | yes | confirmed | config `{}` and repo-tools right value → pass; web `>=22` → FAIL; web without `private` and engines → FAIL |
+| 4 | `readDriftFiles` picks up a new package | yes | confirmed | `disk-probe.mjs` on a minimal root: a new `packages/newpkg` → "has no engines.node"; with `"private":true` → `[]` |
+| 5 | The test covers the rule | no | confirmed | Scratch copy, `-t engines`: passes; fails under each of three mutants (missing branch never fires, root exemption dropped, private ones required) |
+| 6 | The rest of the guard holds | yes | confirmed | `drift-probe.mjs`: "unchanged" passes, all 15 changed cases FAIL naming the file |
+| 7 | The minimum entries are exactly `22.14.0` | yes | confirmed | `ci.yml:46`, `server-checks.yml:32,34` |
+| 8 | The repo-tools tests and lint pass | no | confirmed | 22 files, 221 passed; `biome check` on the three changed code files → exit 0 |
+| 9 | On 22.14.0, install and `test:runtime` pass and a database opens | yes | confirmed | From the last pass, not rerun: only repo-tools' guard and docs changed since |
+| 10 | On 22.13.1 opening a database crashes, `require` alone doesn't | yes | confirmed | From the last pass; the code is unchanged |
+| 11 | The branch is built on #315 | yes | confirmed | `git merge-base --is-ancestor` → true |
+| 12 | `health.db.test.ts` missed its deadline by 16 ms once, under full parallel load | yes | can't check here | A claim about one past run, not rerun |
+
+**Overall:** not met: the engines rule holds and the test catches its mutants; only the note about a past timing can't be checked.
+
+Fixed after this pass: the note names the run's log and the line it shows.
+
+### Re-check 2 — the `health.db.test.ts` deadline note
+
+Witnessed: 2026-11-20 16:18 EST, by a fresh agent (blind). Commit: 86591284 + working tree. Machine: macOS 27.2.1 (arm64), Node v26.13.1 (default), v22.14.0 for the runs below.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Since re-check 1, the working tree changed only that note in PLAN.md | no | confirmed | `git diff` compared with re-check 1's: only PLAN.md's note differs; the same 12 files; `node-versions.js` byte-identical |
+| 2 | `188-t7-runtime.log` is a `pnpm test:runtime` run on Node v22.14.0 | yes | confirmed | Line 1 `RONNE_TEST_SCOPE=runtime turbo run test --filter=!@ronneai/repo-tools`; lines 5116 and 5635 `Node.js v22.14.0` |
+| 3 | In it, "keeps one deadline…" failed with "expected 4516.288042 to be less than 4500" | yes | confirmed | log:5612-5613; 16.3 ms over `toBeLessThan(4_500)` |
+| 4 | The run's only other failure was the `registerHooks` telemetry test | yes | confirmed | log:5610 "Failed Tests 2"; log:5624-5628 the `registerHooks` SyntaxError; web 2 failed, 4699 passed, 20 skipped; the other packages passed |
+| 5 | The file passes on its own on 22.14.0 | yes | confirmed | `vitest run --project db src/server/http/health.db.test.ts` with 22.14.0 first on PATH → 18 passed |
+| 6 | The first pass's full run on 22.14.0 passed the file | yes | confirmed | `188-t7-blind/runtime.clean.log`: `✓ db src/server/http/health.db.test.ts (18 tests)`, web 383 files passed |
+
+**Overall:** met: the note matches its log, the file passes alone and in a full run on 22.14.0, and nothing but the note changed since re-check 1, where every other claim was confirmed.
+
+## Task 8 — The website
+
+Witnessed: 2026-11-20 18:05 EST, by a fresh agent (blind). Commit: bbf572c (ronne-web, branch feat/marketplace-188-node-26, plus the uncommitted `git diff`; facts from marketplace 46056158). Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The home page's stack line says Node.js 26, in en, pt and fr | no | confirmed | `git diff www/messages/*.json` → `home.marketplace.stack` "… · Node.js 24" → "… · Node.js 26" in all three; built `/en.html`, `/pt.html`, `/fr.html` (probe `visible-node.mjs`) → "… · Node.js 26" |
+| 2 | The marketplace facts' `nodeRuntime.target` is 26 and the runtime fact shows it in all three languages | no | confirmed | `www/src/content/marketplace.ts:53` → `{ target: "26", minimum: "22.14" }`, used by `Hero.tsx:28` (`nodeValue`); probe → `/en/marketplace.html` "Node.js 26 (22.14+ works)", pt "Node.js 26 (22.14+ também funciona)", fr "Node.js 26 (22.14+ fonctionne aussi)" |
+| 3 | The contributor setup step (From a clone) says 26 in en, pt and fr | no | confirmed | `git diff` → `clone.description` in all three ("You need Node.js 26 (22.14 or later works)…", "Você precisa do Node.js 26…", "Il vous faut Node.js 26…"); only the number changed; the same text in the 3 built marketplace pages |
+| 4 | `docs/product-facts.md`'s runtime row says 26 | no | confirmed | `docs/product-facts.md:47` → "Runtime: Node.js 26 LTS target (marketplace 188; 24 before it); 22.14 or later works…", source "README; marketplace #315 …, 188" |
+| 5 | The facts match the marketplace branch | no | confirmed | marketplace 46056158: `.nvmrc` → `26`; `node-version.ts` → `MIN_NODE = "22.14.0"`; every `engines.node` → `^22.14.0 \|\| >=23.6.0`; `CONTRIBUTING.md:23` → "Node.js 26 LTS … run on 22.14 or later" |
+| 6 | A search for "Node.js 24" and `target: "24"` in `www/src` and `www/messages` finds nothing | no | confirmed | both `grep -rn` → rc=1, no output; a wider regex (node/nvm near 24, "24 LTS", "v24.") finds nothing; after the build `grep -rl 'Node.js 24' .next/server/app` → 0 files. "Node 24" left in ronne-web is the site's own runtime (`CLAUDE.md` Deployment, `docs/deploy.md`, `docs/stack.md`), finished specs and a quoted example in `docs/translation-guide.md:281`, none a product claim |
+| 7 | ronne-web's checks pass | no | confirmed | from `www/` on Node v26.13.1, pnpm 12.6.0: `pnpm lint` → rc=0, 290 files; `pnpm typecheck` → rc=0; `pnpm test` → 33 files, 198 tests passed; `pnpm build` → rc=0, /en /pt /fr and the marketplace pages prerendered |
+| 8 | No topic changes, so `topics.ts` doesn't | no | confirmed | `git status --porcelain` → only `docs/product-facts.md`, the 3 message files and `www/src/content/marketplace.ts` |
+
+**Overall:** met: the home stack line, the runtime fact, the From a clone step and the product-facts row say Node.js 26 in en, pt and fr, the two searches find nothing, and lint, typecheck, test and build pass.
+
+No ronne-web test reads the version text, so no test could be broken to prove it; the rendered-page probe stands in. Committed after the pass as ronne-web `486a25a`: the same 5 files, and the pre-commit checks passed.
+
+## Task 9 — Finish
+
+Witnessed: 2026-11-20 18:11 EST, by a fresh agent (blind). Commit: 6d6c4fb9 + uncommitted diff (SPEC.md criteria ticked, the README index row, PLAN.md notes); ronne-web 486a25a (branch feat/marketplace-188-node-26). Machine: macOS 27.2.1 (arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | AC1: on Node.js 26, install, lint, typecheck, test, build, build:server, packages:check and release:smoke pass, and `pnpm dev` starts | no | confirmed | fresh `git clone` at 6d6c4fb9, v26.13.1: `pnpm install --frozen-lockfile` → rc 0; `pnpm lint` → rc 0, 2522 files; `pnpm typecheck` → 7/7; `pnpm test` → 8/8 (web 523, core 42, rmk 23, repo-tools 22, marketplace 15, mcp 5 files); `pnpm build` → 5/5, 0 cached; `pnpm build:server` → rc 0; `pnpm packages:check` → 4 packages "all on the allowlist". `release:smoke` and `pnpm dev` start servers, left out of this pass: they rest on Task 1 rows 10–11 (788a01c5, Node 26); the later change to the start path is #315's, whose pass started the packed server |
+| 2 | AC2: `test:runtime` leaves out `*.test.tsx` and repo-tools, runs everything else (SQLite db tests included), passes on 22.14.0, and has a CONTRIBUTING row | no | confirmed | Task 2 rows 2–4, 9 and re-check rows 3, 4, 12 (468 files, the expected list, 199 `[db]`); Task 7 rows 7–8 (22.14.0, 7/7, 0 `.test.tsx`); `ci.yml` runs `pnpm test:runtime` only when `matrix.role == 'minimum'` |
+| 3 | AC3: `ci.yml` has two role-named jobs; the target runs everything the Node 24 job ran, the minimum only install and `test:runtime`; no `if:` names a version | no | confirmed | Task 3 rows 2–6 and re-check row 1; matrix `22.14.0/minimum/"Runtime tests (minimum Node.js)"` and `26/target/"Lint, typecheck, test, build (target Node.js)"`; every step `if:` uses `matrix.role` or `needs.changes` |
+| 4 | AC4: `server-checks.yml` has 6 install jobs, no 24 job; services take the target from `.nvmrc` (setup-node on Linux, Homebrew on macOS, failing on a major mismatch) | no | confirmed | Task 3 row 8; Task 4 rows 10, 12, 13 and re-checks (fake-brew probe); `node: [22.14.0, 26]` × 3 OSes; `node-version-file: .nvmrc` (line 76); `tr -d '[:space:]' < .nvmrc` and `::error::` on mismatch (122–129) |
+| 5 | AC5: the minimum's entries in both workflows are exactly `MIN_NODE` | no | confirmed | Task 7 rows 1, 2, 4 and re-check 1 row 7; `ci.yml` `- node: 22.14.0`, `server-checks.yml` axis and include `22.14.0`; `node-version.test.ts:13` expects "22.14.0" |
+| 6 | AC6: `.nvmrc` 26; Dockerfile `node:26-trixie-slim` by digest, prints v26; `NODE_MAJOR` 26, `bundle.js` verifies a 26 build; the feed workflow uses 26, golden files match | no | confirmed | Task 4 rows 1, 5–9 (`docker run … node --version` → v26.13.1; SHASUMS256 match; golden test with a mutation); `od -c .nvmrc` → `2 6 \n`; `Dockerfile:9` `node:26-trixie-slim@sha256:e6bedef2…20bc`; `bundle.js:31`; `feed-workflow.ts:44,78` and both golden files |
+| 7 | AC7: `bundles.yml` and `packages.yml` read `.nvmrc` | no | confirmed | Task 4 row 11; `bundles.yml:46`, `packages.yml:58` `node-version-file: .nvmrc` |
+| 8 | AC8: the drift guard passes, and fails on a wrong major, a minimum entry that isn't `MIN_NODE`, or wrong or missing `engines` | no | confirmed | Task 5 row 2 and re-checks 1–5; Task 7 rows 3–5, 14 and re-check 1 rows 1–6; `pnpm --filter @ronneai/repo-tools test` → 22 files, 221 passed |
+| 9 | AC9: the N-API guard passes, finds both native modules, fails on a non-N-API or per-version `.node` | no | confirmed | Task 5 rows 7–9, 12; re-check 1 row 10; the same 221-test run |
+| 10 | AC10: tsdown's target and `@types/node` unchanged; `engines`, `MIN_NODE` and "22.14 or later" are #315's | no | confirmed | `git diff 52d1d818 HEAD` in `*package.json`, `node-version.ts`, tsdown configs, `packages/config` → only `+"test:runtime"`; `apps/web/tsdown.config.ts:32` `target: "node22"`; `@types/node` 22.20.5; CONTRIBUTING's "22.14 or later" line changes 24 → 26 only |
+| 11 | AC11: the listed documents state the 26 target and the CI split, and nothing outside history calls 24 the target | no | confirmed | Task 6 rows 4–13 and re-check rows 2, 3, 17; Task 7 row 12; `git grep` for `Node(.js)? 24`, `node:24`, `node@24`, `node-version: 24`, `24 LTS` outside history and tests → only 188's SPEC and PLAN and `image-security-updates.md:16` (dated). Wording: `test-runs.md` names the target through `.nvmrc`, and `turbo-test-inputs.md:14` is dated history; neither says "26" |
+| 12 | AC12: the website says Node.js 26 wherever it named 24 as the target, in en, pt and fr | no | confirmed | Task 8, all 8 rows; ronne-web 486a25a clean, `git diff --stat bbf572c 486a25a` → the same 5 files; `grep -rn 'Node.js 24\|target: "24"' www/src www/messages` → rc 1 |
+| 13 | AC13 and the plan step: no required check on `main` is one of the renamed jobs | yes | confirmed | `gh api …/branches/main/protection/required_status_checks --jq .contexts` → the 9 contexts the note lists; `gh api …/rules/branches/main` → `deletion`, `non_fast_forward`, `pull_request` only; `git diff main -- .github/workflows` renames the CI check job, "Install and run (…)" and one step, none required |
+| 14 | 188's status is set in the index, like other finished features with website Documentation | no | confirmed | row 188 → `done (the Documentation in ronne-web \`feat/marketplace-188-node-26\`)`, the form of 132, 134–137; the branch exists at 486a25a |
+| 15 | `pnpm witness:check` and `pnpm docs:check` pass, and all 13 criteria are ticked | no | confirmed | on the working tree: both rc 0; `git diff` SPEC.md → 13 `[ ]` → `[x]`, nothing else |
+
+**Overall:** met: every acceptance criterion is ticked and backed by a witness pass (tasks 1–8, plus this pass's runs at 6d6c4fb9), no renamed job is a required check, and both checks pass.
+
+After the pass, criterion 11 was reworded to match row 11: `test-runs.md` takes the target from `.nvmrc`, and `turbo-test-inputs.md` keeps its dated history. Nothing else changed.

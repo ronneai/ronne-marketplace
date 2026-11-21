@@ -24,8 +24,14 @@ jobs:
   changes:
     uses: ./.github/workflows/changes.yml
 
+  # One job per role, never per version (188): the target LTS runs everything; the minimum runs only
+  # what can differ on a person's oldest supported Node.js, the tests of the code that runs there
+  # (`pnpm test:runtime`). Versions between them get no job: what passes on both ends runs on them,
+  # and the server's native modules are N-API, one binary for every version
+  # (docs/knowledge/test-runs.md). The names hold the role, so the required checks survive an LTS
+  # move.
   checks:
-    name: Lint, typecheck, test, build (Node ${{ matrix.node }})
+    name: ${{ matrix.name }}
     needs: changes
     # Runs even if detection failed: its steps skip only on an explicit "false".
     if: ${{ !cancelled() }}
@@ -34,8 +40,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The minimum supported LTS and the target LTS (docs/policies/dependencies.md §2).
-        node: [22, 24]
+        # The minimum supported Node.js, exactly `MIN_NODE` (the newest 22.x would hide a version it
+        # can't run on, #315), and the target LTS (docs/policies/dependencies.md §2).
+        include:
+          - node: 22.14.0
+            role: minimum
+            name: Runtime tests (minimum Node.js)
+          - node: 26
+            role: target
+            name: Lint, typecheck, test, build (target Node.js)
     steps:
       - name: Documentation only, nothing to check
         if: needs.changes.outputs.code == 'false'
@@ -60,28 +73,30 @@ jobs:
           restore-keys: turbo-${{ runner.os }}-node${{ matrix.node }}-
       - run: pnpm install --frozen-lockfile
         if: needs.changes.outputs.code != 'false'
+      # Lint, typecheck, the build and the packing don't depend on Node's version, so they run once,
+      # on the target. server-package.yml installs and runs the packed server on both roles.
       - run: pnpm lint
-        if: needs.changes.outputs.code != 'false' && matrix.node == 24
+        if: needs.changes.outputs.code != 'false' && matrix.role == 'target'
       - run: pnpm typecheck
-        if: needs.changes.outputs.code != 'false' && matrix.node == 24
+        if: needs.changes.outputs.code != 'false' && matrix.role == 'target'
       - run: pnpm test
-        if: needs.changes.outputs.code != 'false'
+        if: needs.changes.outputs.code != 'false' && matrix.role == 'target'
+      # Every suite but the component tests and repo-tools (188).
+      - run: pnpm test:runtime
+        if: needs.changes.outputs.code != 'false' && matrix.role == 'minimum'
       - run: pnpm build
-        if: needs.changes.outputs.code != 'false'
-      # Lint, typecheck and the packing below don't depend on Node's version, so they run once, on the
-      # target LTS; Node 22 runs the tests and the build. server-package.yml installs the packed
-      # server on Node 22 and 24.
+        if: needs.changes.outputs.code != 'false' && matrix.role == 'target'
       # The web app's standalone build, which packing @ronneai/marketplace copies in (082).
       - run: pnpm build:server
-        if: needs.changes.outputs.code != 'false' && matrix.node == 24
+        if: needs.changes.outputs.code != 'false' && matrix.role == 'target'
       # What the four packages would publish: dist code, README and LICENSE, and the server's app/
       # without a .env or a native binary (034, 082).
       - run: pnpm packages:check
-        if: needs.changes.outputs.code != 'false' && matrix.node == 24
+        if: needs.changes.outputs.code != 'false' && matrix.role == 'target'
       # Installs the packed tarballs with npm and runs rmk, rmk-mcp and rmk-server, as a user would
       # (034, 082).
       - run: pnpm release:smoke
-        if: needs.changes.outputs.code != 'false' && matrix.node == 24
+        if: needs.changes.outputs.code != 'false' && matrix.role == 'target'
 
   # The state witness records (docs/knowledge/state-witness.md), and the contributor
   # documentation's lists (187: CONTRIBUTING.md's commands, the knowledge index). They are

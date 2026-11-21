@@ -37,13 +37,16 @@ install process runs.
 
   | Component | Target | Minimum supported |
   |---|---|---|
-  | Node.js | Newest **Active LTS**: 24 today (development, CI, Docker image) | Oldest LTS still receiving security fixes: 22 until its end of life in April 2027, from 22.14.0, the first 22.x with N-API 10, which `better-sqlite3` needs ([#315](../issues/315-node-22-14-minimum/SPEC.md); on the odd line 23, 23.6.0). `MIN_NODE` and `engines` say the same. Then the minimum moves to 24. |
+  | Node.js | Newest **Active LTS**: 26 today (development, CI, Docker image, bundles; since 2026-11-20, [188](../features/188-node-26-target/SPEC.md)) | Oldest LTS still receiving security fixes: 22 until its end of life in April 2027, from 22.14.0, the first 22.x with N-API 10, which `better-sqlite3` needs ([#315](../issues/315-node-22-14-minimum/SPEC.md); on the odd line 23, 23.6.0). `MIN_NODE` and `engines` say the same. Then the minimum moves to 24. |
   | Databases | The versions in [feature 004](../features/004-ci-db-matrix/SPEC.md), all still maintained upstream | — |
   | Docker base | `node:<target LTS>-slim` on the current Debian stable | — |
   | pnpm | Latest stable, pinned in `packageManager` | — |
   | Proxy (`compose.yaml`) | Latest stable Caddy 2.x, the official `caddy` image (Apache-2.0), pinned by tag and digest ([080](../features/080-docker-https/SPEC.md)) | — |
 
 - **When a new Node.js LTS arrives** (every October), the target moves in its own pull request once CI passes on it.
+  CI tests the minimum and the target only, never the versions between, as long as every native
+  module the server loads is N-API ([test-runs.md](../knowledge/test-runs.md#which-nodejs-version-runs-what));
+  `repo-tools`' node-versions test fails when a place that names the target drifts from `.nvmrc`.
 - **Pinning.** `apps/web` and all dev dependencies use exact versions. Packages published to npm
   (`core`, `rmk`, `mcp`) use `^` ranges for their runtime dependencies, so users can dedupe and get
   fixes. The lockfile is always committed, and CI installs with `--frozen-lockfile`.
@@ -104,7 +107,7 @@ unmodified and checked against a SHA-256 before it's shipped; each one's licence
 
 | Program | License | Shipped in | Pinned as |
 |---|---|---|---|
-| Node.js 24 | MIT (with its bundled dependencies' licences) | The self-contained bundles' `node/` (`bundle.js`, 084), and so the `.deb` and `.rpm` (085) | The newest 24 when the bundle is built (or `--node`), from nodejs.org, checked against that release's `SHASUMS256.txt` |
+| Node.js 26 | MIT (with its bundled dependencies' licences) | The self-contained bundles' `node/` (`bundle.js`, 084), and so the `.deb` and `.rpm` (085) | The newest 26 (the target LTS, `NODE_MAJOR`) when the bundle is built (or `--node`), from nodejs.org, checked against that release's `SHASUMS256.txt` |
 
 **Tools an operator installs, that Ronne runs but never ships.** Optional: Ronne works without
 them, they aren't in the pnpm tree, the image or the bundles, and the operator installs them at the
