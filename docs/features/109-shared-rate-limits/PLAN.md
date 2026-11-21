@@ -68,7 +68,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the drafts, usage and feedback tests pass, each limit holds across two app
     instances, and the threat model's upload and feedback rows are updated.
 
-- [ ] **6. The purge.** [risky]
+- [x] **6. The purge.** [risky]
   - The retention purge deletes expired `rate_limits` rows in batches, and its result counts them
     (`rateLimitsDeleted`).
   - The count appears in the Privacy tab's last run (three languages), in `rmk-server purge`'s
@@ -103,3 +103,8 @@ goes into `SPEC.md` instead.
   checked. The later end is the earliest an entry can pass, so the answer is now the true wait.
   `AppAuth.rateLimits` is the instance's store; SSO, the device limits and SCIM build their
   limiters on it per request, so nothing is kept on `globalThis`.
+- **Task 6, the purge and SQLite.** The counters' rule runs each batch in `writeTransaction`, so
+  `rmk-server purge` from cron waits for a server writing the same SQLite file instead of failing
+  with `SQLITE_BUSY_SNAPSHOT`. The purge's other rules (102, 127, 139) still use a deferred
+  `db.transaction()` and can fail that way when the server writes between a batch's read and its
+  write; that predates 109 and is left for a follow-up.

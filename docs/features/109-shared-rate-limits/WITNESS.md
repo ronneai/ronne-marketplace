@@ -336,3 +336,78 @@ Witnessed: 2026-11-21 01:40 EST, by a fresh agent (blind). Commit: 08e01af3 + wo
 | 7 | drafts-api tests still pass on SQLite and one server | no | confirmed | SQLite 33/33; PostgreSQL 33/33 (a control run on port 1 got `ECONNREFUSED`) |
 
 **Overall:** met.
+
+## Task 6 — The purge
+
+Witnessed: 2026-11-21 01:47 EST, by a fresh agent (blind). Commit: 54a0fc6a + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The purge deletes `rate_limits` rows whose `expires_at` has passed and keeps the live ones | no | confirmed | `deleteExpiredRateLimits`: `expires_at < now` in the select and the delete. SQLite 84/84 (with the UI and command tests); `pnpm test:db:{postgres,mysql,mariadb}` 28/28 each. Mutations (both filters dropped; `<` → `<=`) fail "deletes counters whose window has ended…" |
+| 2 | It deletes in batches of `PURGE_BATCH`, and the result counts them | no | confirmed | `inBatches`, `.limit(PURGE_BATCH)`, by `key_hash`. Probe `probe-109t6.db.test.ts` (2,005 expired, one ending 1 ms ago, one live) → 2,004 deleted on all four dialects |
+| 3 | It runs under the job's lease | no | confirmed | `retention-job.ts:40-45`: inside `runJob`, `onBatch` renews the lease |
+| 4 | A dry run counts without deleting | no | confirmed | "counts without deleting on a dry run" → 2 counted, 2 left; removing the dry-run branch fails it |
+| 5 | The count appears in the Privacy tab's last run, in all three languages | no | confirmed | `LastRun.tsx` `rateLimits: n(c.rateLimitsDeleted ?? 0)`; the `done` message in en, pt, fr has `{rateLimits, plural…}`; `admin-settings.test.tsx` and `translations.test.tsx` pass; mutation `rateLimits: n(0)` fails |
+| 6 | The count appears in `rmk-server purge`'s output | no | confirmed | `setup/purge.ts:24`; `purge.test.ts`; removing the line fails it |
+| 7 | The count appears in the job's log event | no | confirmed | `flattenCounts` adds it, `run-job.ts:77` logs `...counts`, `events.ts` lists it; the probe sees `job.finished.rateLimitsDeleted` = 2004 and `last_result.counts.rateLimitsDeleted` = 2004 on 4 dialects |
+| 8 | Tests show the counts in the tab, the command and the log | no | partly | No test for the log: with `rateLimitsDeleted` removed from `flattenCounts`, jobs/, log/, setup/purge and admin-settings → 387/387 pass |
+| 9 | "A key used by no one again" stays until its window ends and the purge runs | no | confirmed | The row with `expires_at` = now is kept, strictly older ones go; a second run deletes 0 |
+| 10 | Threat model: the setup code row | no | confirmed | `threat-model.md:137` |
+| 11 | Threat model §5: the in-memory row covers only the setup code and Better Auth, and says why | no | confirmed | `threat-model.md:228` |
+| 12 | MVP.md "Rate limits" row drops "(109's task 6, not yet built)" | no | confirmed | `git diff docs/MVP/MVP.md`; no "not yet built" left |
+
+**Overall:** not met (row 8).
+
+### Adversarial pass
+
+Witnessed: 2026-11-21 01:55 EST, by a fresh agent (adversarial). Commit: 54a0fc6a + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The purge deletes counters whose window ended before `now`, keeps running ones, strictly, on all four dialects | no | confirmed | SQLite 84 passed; servers 22/22 each. Mutation `<` → `<=` fails. SQLite's `at` always comes from `toISOString()` |
+| 2 | A consume restarting a window on a row the batch already selected keeps its row, on the servers | no | confirmed | `probe-adv.db.test.ts` 4/4 on each server: a consume committed between the select and the delete, a consume holding `FOR UPDATE` while the delete waits, a purge deleting a row a consume waits on (re-made, hits 1), and 2,500 rows purged next to 3 concurrent consumers (lost 0), 3 runs each |
+| 3 | The repo's tests fail without the delete's recheck | no | not met | Dropping the delete's `expires_at` condition → 22/22 still pass; probe (d) catches it |
+| 4 | The purge's delete and concurrent consumes can't deadlock | no | partly | On PostgreSQL the batch's delete is a Bitmap Heap Scan, locking in heap order, not key order: a consume holding A then asking for B, with B before A on the heap → `purge: 40P01`. MySQL and MariaDB: no deadlock. `retryOnDeadlock` absorbed it in probe (d); the comment is wrong |
+| 5 | When the purge is the deadlock victim, the batch runs again, and a test shows it | no | partly | `retryOnDeadlock` wraps each batch; replacing it with a plain call → 22/22 pass |
+| 6 | Batches end and don't loop forever | no | confirmed | PURGE_BATCH+5 test on 4 dialects; a batch shrunk by the recheck ends the run, the rest waits for the next |
+| 7 | A dry run counts without deleting | no | confirmed | Removing the dry-run line fails its test |
+| 8 | The Privacy tab shows the count in three languages, the same ICU placeholders | no | confirmed | admin-settings and translations tests; `messages.parity` and `english-fragments` 57 passed; mutation fails 3 tests |
+| 9 | A `last_result` from before 109 doesn't break the tab | no | confirmed | `probe-lastrun.test.tsx` 3/3 (en, pt, fr show 0) |
+| 10 | `rmk-server purge` prints the count | no | confirmed | `purge.test.ts`; a real run gives `Rate limit counters deleted: 2` |
+| 11 | `job.finished` and `last_result` carry `rateLimitsDeleted` | no | partly | They do (`probe-joblog.db.test.ts`), but dropping it from `flattenCounts` → 78/78 pass |
+| 12 | On SQLite, `rmk-server purge` from cron next to a running server doesn't fail when the server writes | no | partly | `sqlite-busy.cjs` (WAL, busy_timeout 5000, deferred `begin`, select, another connection writes, delete) → `SQLITE_BUSY_SNAPSHOT after 0 ms`; no live row lost, but the run fails. Every purge rule uses this pattern (predates 109) |
+| 13 | Threat model: the setup code row and §5 name only the setup code and Better Auth | no | confirmed | `threat-model.md:137`, `:228` |
+| 14 | MVP.md's "Rate limits" row no longer marks the purge as not built | no | confirmed | MVP.md:1026 |
+
+**Overall:** not met (rows 3, 4, 5, 11, 12).
+
+### Re-check 1
+
+Witnessed: 2026-11-21 02:20 EST, by a fresh agent (blind). Commit: 54a0fc6a + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The purge deletes `rate_limits` rows whose `expires_at` has passed and keeps the live ones | no | confirmed | `deleteExpiredRateLimits` reads keys with `expires_at < now`; `deleteExpiredRateLimitKeys` locks them with `forUpdate`, filters and deletes with `expires_at < at` (`retention-purge.ts:385-436`). retention-purge, run-job and the probe → SQLite, PostgreSQL, MySQL 31/31 each; the row ending exactly now and the live row are kept |
+| 2 | It deletes in batches of `PURGE_BATCH`, and the result counts them | no | confirmed | `inBatches` + `.limit(PURGE_BATCH)`; the probe expects 2,004 of 2,005 → passes on SQLite, PostgreSQL, MySQL |
+| 4 | A dry run counts without deleting | no | confirmed | Removing the counters rule's dry-run line → its test fails |
+| 8 | Tests show the counts in the tab, the command and the log | no | confirmed | Removing `rateLimitsDeleted` from `flattenCounts` → "runs the retention purge by root's policy, under its own name" fails; restored → 6/6 |
+
+**Overall:** met (MariaDB not rerun in this pass).
+
+### Adversarial re-check 1
+
+Witnessed: 2026-11-21 01:59 EST, by a fresh agent (adversarial). Commit: 54a0fc6a + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The purge deletes counters whose window ended before `now` and keeps running ones, on all four dialects | no | confirmed | `retention-purge.db.test.ts` + `run-job.db.test.ts` + `probe-adv.db.test.ts` → 34/34 on SQLite, PostgreSQL, MySQL, MariaDB |
+| 2 | A consume that restarts a window on a row the batch already read keeps its row | no | confirmed | `probe-deadlock2.db.test.ts` "B-only-then-restart" → `purge deleted 1`, `b:1` left, on the three servers; `probe-adv` (a)–(d) 4/4 each |
+| 3 | The repo's tests fail without the recheck | no | confirmed | M-recheck (JS filter and the DELETE's `expires_at` condition removed) → "keeps a counter whose window an attempt restarted…" fails. Removing only the JS filter passes, as the DELETE still guards |
+| 4 | The purge's batch and concurrent consumes don't deadlock | no | confirmed | PostgreSQL `EXPLAIN … order by key_hash for update` → `LockRows -> Sort (key_hash) -> Bitmap Heap Scan`: key order. The heap-order probe → `consume ok`, `purge deleted 1`, deadlocks +0; MySQL and MariaDB `Innodb_deadlocks` +0. `key_hash` is lowercase hex, so the JS sort and the database's agree |
+| 5 | When the purge is the deadlock victim, the batch runs again, and a test shows it | no | confirmed | M-retry → "runs a batch again when the database ended a deadlock" fails; it passes on all four dialects |
+| 6 | Batches end and don't loop forever | no | confirmed | `inBatches` (`retention-purge.ts:71`) |
+| 11 | `job.finished` and `last_result` carry `rateLimitsDeleted` | no | confirmed | M-flatten → `run-job.db.test.ts:182-191` fails |
+| 12 | On SQLite, the counters rule doesn't fail when another process holds the write lock and restarts a counter | no | confirmed | `probe-sqlite-cron.db.test.ts` with `sqlite-holder.cjs` (a child holds `begin immediate` 800 ms after restarting k2) → the purge waited 911 ms, `rateLimitsDeleted: 1`, `2:1` left. A deferred `db.transaction()` → `SQLITE_BUSY`. No repo test covers the purge's use of `writeTransaction` (the helper is tested in `locks.db.test.ts`); the older rules' deferred transactions predate 109 (PLAN.md Notes) |
+| 15 | The new comments are true | no | confirmed | `retention-purge.ts:378-383`, `:418-423`; no "can't deadlock" claim left |
+
+**Overall:** met. Rows 7–10, 13, 14 not re-checked: nothing they cover changed.

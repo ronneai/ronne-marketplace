@@ -161,16 +161,34 @@ describe("a scheduled job's run (102)", () => {
         created_at: toDbDate(new Date("2026-01-01T00:00:00.000Z"), t.dialect),
       })
       .execute();
+    // An ended rate limit counter (109): its count goes in the log line and the last result too.
+    await t.db
+      .insertInto("rate_limits")
+      .values({
+        key_hash: "0".repeat(64),
+        window_started_at: toDbDate(new Date("2026-01-01T00:00:00.000Z"), t.dialect),
+        hits: 1,
+        expires_at: toDbDate(new Date("2026-01-01T00:01:00.000Z"), t.dialect),
+      })
+      .execute();
     const run = await runRetentionJob(deps);
     expect(run).toMatchObject({
       status: "done",
-      counts: { ipsCleared: 1, emailsCleared: 0, sessionsDeleted: 0, grantsDeleted: 0 },
+      counts: {
+        ipsCleared: 1,
+        emailsCleared: 0,
+        sessionsDeleted: 0,
+        grantsDeleted: 0,
+        rateLimitsDeleted: 1,
+      },
     });
-    expect(events("job.finished")).toMatchObject([{ job: RETENTION_JOB, ipsCleared: 1 }]);
+    expect(events("job.finished")).toMatchObject([
+      { job: RETENTION_JOB, ipsCleared: 1, rateLimitsDeleted: 1 },
+    ]);
     expect(JSON.stringify(lines)).not.toContain("203.0.113.7");
     expect((await jobStatus(deps, RETENTION_JOB)).lastResult).toMatchObject({
       status: "ok",
-      counts: { ipsCleared: 1 },
+      counts: { ipsCleared: 1, rateLimitsDeleted: 1 },
     });
   });
 });
