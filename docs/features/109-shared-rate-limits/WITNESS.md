@@ -303,3 +303,36 @@ Witnessed: 2026-11-21 01:28 EST, by a fresh agent (adversarial). Commit: 1bde85c
 | 19 | Lint and typecheck are clean | no | confirmed | `tsc --noEmit` exit 0; Biome on the two files → no errors |
 
 **Overall:** met.
+
+## Task 5 — Uploads, submits, usage and feedback
+
+Witnessed: 2026-11-21 01:34 EST, by a fresh agent (blind). Commit: 08e01af3 + working-tree diff. Machine: macOS (Darwin 27.2), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The upload, submit, usage and feedback limiters count in the database store, keyed by user as before | no | confirmed | Each `createRateLimiter({ store, name })` gets `(deps.app ?? getAppAuth()).rateLimits` (`drafts-api.ts`, `usage-api.ts`) or `app.rateLimits` (feedback action); keys unchanged; names distinct |
+| 2 | Limits and windows unchanged | no | confirmed | Constants unchanged against `git show 08e01af3:…`; the "refuses the 31st / 11th / 61st …" tests pass |
+| 3 | The `globalThis` copies of the four limiters are gone | no | confirmed | Only `__ronneSetupCodeLimiter` (`setup-code-limit.ts:58-63`) left, as intended |
+| 4 | The setup code's limiter uses the memory store, still 10 per address and 30 in all per 10 min | no | confirmed | One `createMemoryRateLimitStore()` shared by `setup-code` and `setup-code-all`; `install.ts` awaits `check` and `recordWrong`; `install.db.test.ts` (`setup_code_rate_limited` cases at :411-452) passes |
+| 5 | `LoginRateLimiter` is gone; `loginRateLimitKeys` stays | no | confirmed | `login-rate-limiter.ts` keeps only `LOGIN_LIMIT`, `BACKUP_CODES_LIMIT`, `backupCodesKey`, `loginRateLimitKeys`; no `LoginRateLimiter` anywhere |
+| 6 | The answers don't change | no | not met | **Before setup, submit changed:** `submitDrafts` builds `createSubmitLimiter((deps.app ?? getAppAuth()).rateLimits)` before `requireToken`, so `getAppAuth()` throws `NotConfiguredError` and the route answers 500. Probe `probe-109-preset.test.ts` → `{"submit":"threw NotConfiguredError","upload":503,"usage":503}`; at 08e01af3 all 503 |
+| 7 | The drafts, usage and feedback tests pass on SQLite | no | confirmed | 32 files, 315 passed, 2 skipped |
+| 8 | The same on PostgreSQL, MySQL and MariaDB | no | confirmed | drafts-api 33/33, usage-api 7/7, feedback 10/10, no-secrets 1/1 on each |
+| 9 | Each limit holds across two app instances | no | confirmed | The four new tests pass; mutation (each limiter on a fresh memory store) → exactly those 4 fail |
+| 10 | The threat model's upload and feedback rows are updated | no | confirmed | `threat-model.md:143` and `:149`. Remark: §5's row at `:228` is out of date (task 6 rewrites it) |
+| 11 | `setup-code-limit.ts` and MVP.md's Feedback row say where each count lives | no | confirmed | `setup-code-limit.ts:9-15`; `MVP.md:1010` |
+| 12 | MVP.md §15's two rows lose "Planned" | no | confirmed | `MVP.md:987` "Counted in the database since 109"; `:1026` "Every limit … is counted", the purge marked as task 6 |
+
+**Overall:** not met (row 6).
+
+### Re-check 1
+
+Witnessed: 2026-11-21 01:40 EST, by a fresh agent (blind). Commit: 08e01af3 + working-tree diff (drafts-api.ts, new before-setup.test.ts). Machine: macOS 27.2.1, Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | Before setup, submit, upload and usage answer 503 (not a 500) | no | confirmed | The probe and `before-setup.test.ts` pass: `{submit:503, upload:503, usage:503}`. `submitDrafts` passes `() => deps.submitLimiter ?? createSubmitLimiter(...)`, called by `readSelection` only after `requireToken` passes |
+| 6a | `before-setup.test.ts` fails when the submit limiter is built eagerly again | no | confirmed | Mutation (limiter built before `readSelection`) → the test fails with `NotConfiguredError`; restored, `cmp` clean |
+| 7 | drafts-api tests still pass on SQLite and one server | no | confirmed | SQLite 33/33; PostgreSQL 33/33 (a control run on port 1 got `ECONNREFUSED`) |
+
+**Overall:** met.

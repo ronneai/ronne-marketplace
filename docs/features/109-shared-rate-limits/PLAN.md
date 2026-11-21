@@ -60,7 +60,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* their db tests pass on SQLite and the servers, each limit is shown holding across
     two app instances, and the threat model's `/device` row is updated.
 
-- [ ] **5. Uploads, submits, usage and feedback.**
+- [x] **5. Uploads, submits, usage and feedback.**
   - The four limiters on the database store, keyed by user as today. Their `globalThis` copies go.
   - The setup code's limiter moves to the memory store, and `LoginRateLimiter` goes, leaving
     `loginRateLimitKeys` in identity's models. `setup-code-limit.ts` and MVP.md's Feedback row say
@@ -75,6 +75,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     output and in the job's log event.
   - The threat model: the setup code row, and §5's "in one process's memory" row, now only for the
     setup code and Better Auth.
+  - MVP.md §15's "Rate limits" row loses "(109's task 6, not yet built)" from the purge.
   - *Done when:* a db test shows expired rows deleted and live ones kept, a dry run counting
     without deleting, and the counts in the tab, the command and the log.
 

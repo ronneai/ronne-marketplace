@@ -47,7 +47,8 @@ export const sendFeedback = async (
   if (!user) return;
   const checked = checkFeedback(input);
   if (!checked.ok) throw new InvalidFeedbackError(checked.problem);
-  if (!deps.limiter.consume(user.id).allowed) throw new FeedbackLimitError(FEEDBACK_PER_HOUR);
+  if (!(await deps.limiter.consume(user.id)).allowed)
+    throw new FeedbackLimitError(FEEDBACK_PER_HOUR);
   await deps.feedback.insert(user.id, checked.feedback, {
     version: deps.version,
     at: now(deps),

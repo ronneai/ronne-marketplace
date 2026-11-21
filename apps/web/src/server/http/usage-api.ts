@@ -1,11 +1,11 @@
-import type { AppAuth } from "../domains/identity/repositories/auth-instance";
+import { type AppAuth, getAppAuth } from "../domains/identity/repositories/auth-instance";
 import { recordUsageAs, usageSettingsAs } from "../domains/usage/actions/usage";
 import { InvalidUsageReportError, UsageDisabledError } from "../domains/usage/exceptions/errors";
 import { logger } from "../log";
 import { domainErrorResponse, errorResponse, rateLimitedResponse } from "./errors";
 import { readJsonObjectWithin } from "./read-json";
 import { requireToken, type TokenGuardDeps } from "./require-token";
-import { type UsageLimiter, usageLimiter } from "./usage-rate-limit";
+import { createUsageLimiter, type UsageLimiter } from "./usage-rate-limit";
 
 /**
  * The usage API (feature 046): `rmk` reports daily counts of installs, removals and runs of the
@@ -52,7 +52,9 @@ export const getUsage = async (request: Request, deps: UsageApiDeps = {}) => {
 export const postUsage = async (request: Request, deps: UsageApiDeps = {}) => {
   const guard = await requireToken(request, deps.guard);
   if (!guard.ok) return guard.response;
-  const rate = (deps.limiter ?? usageLimiter()).consume(guard.auth.user.id);
+  const rate = await (
+    deps.limiter ?? createUsageLimiter((deps.app ?? getAppAuth()).rateLimits)
+  ).consume(guard.auth.user.id);
   if (!rate.allowed) {
     logger.child({ domain: "usage" }).event("usage.rate_limited", { limit: "usage_reports" });
     return rateLimitedResponse(

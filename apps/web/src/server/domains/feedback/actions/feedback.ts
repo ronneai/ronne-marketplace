@@ -4,7 +4,7 @@ import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { kyselyFeedbackRepository } from "../repositories/kysely-feedback-repository";
 import * as service from "../services/feedback";
-import { feedbackLimiter } from "../services/feedback-limiter";
+import { createFeedbackLimiter } from "../services/feedback-limiter";
 
 export { FEEDBACK_BULK_MAX } from "../services/feedback";
 
@@ -15,7 +15,7 @@ const context = async (headers: Headers, app: AppAuth) => {
     actor: { user, ip: clientIp(headers, app.trustProxy) },
     deps: {
       feedback: kyselyFeedbackRepository(app.db, app.dialect),
-      limiter: feedbackLimiter(),
+      limiter: createFeedbackLimiter(app.rateLimits),
       version,
     } satisfies service.FeedbackDeps,
   };

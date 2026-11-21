@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { memoryRateLimiter } from "../../../rate-limit/memory-store";
 import { clientIp } from "./client-ip";
-import { LoginRateLimiter, loginRateLimitKeys } from "./login-rate-limiter";
+import { LOGIN_LIMIT, loginRateLimitKeys } from "./login-rate-limiter";
 import { hasSessionCookie } from "./session-cookie";
 
 const headers = (xff?: string) => new Headers(xff ? { "x-forwarded-for": xff } : {});
@@ -23,59 +24,41 @@ describe("clientIp", () => {
   });
 });
 
-describe("LoginRateLimiter", () => {
-  const limiter = (now: { t: number }) => new LoginRateLimiter({ now: () => now.t });
+describe("sign-in's limit (LOGIN_LIMIT, 006)", () => {
+  const limiter = (now: { t: number }) => memoryRateLimiter({ ...LOGIN_LIMIT, now: () => now.t });
 
-  it("allows 5 attempts a minute per key and refuses the 6th", () => {
+  it("allows 5 attempts a minute per key and refuses the 6th", async () => {
     const now = { t: 0 };
     const l = limiter(now);
     for (let i = 0; i < 5; i++)
-      expect(l.consume(["email:a@example.com"])).toEqual({ allowed: true });
+      expect(await l.consume(["email:a@example.com"])).toEqual({ allowed: true });
     now.t = 20_000;
-    expect(l.consume(["email:a@example.com"])).toEqual({ allowed: false, retryAfterSeconds: 40 });
-    expect(l.consume(["email:b@example.com"])).toEqual({ allowed: true });
+    expect(await l.consume(["email:a@example.com"])).toEqual({
+      allowed: false,
+      retryAfterSeconds: 40,
+    });
+    expect(await l.consume(["email:b@example.com"])).toEqual({ allowed: true });
   });
 
-  it("opens again after the window, and refused attempts don't extend it", () => {
+  it("opens again after the window, and refused attempts don't extend it", async () => {
     const now = { t: 0 };
     const l = limiter(now);
-    for (let i = 0; i < 5; i++) l.consume(["email:a@example.com"]);
+    for (let i = 0; i < 5; i++) await l.consume(["email:a@example.com"]);
     now.t = 59_999;
-    expect(l.consume(["email:a@example.com"]).allowed).toBe(false);
+    expect((await l.consume(["email:a@example.com"])).allowed).toBe(false);
     now.t = 60_000;
-    expect(l.consume(["email:a@example.com"])).toEqual({ allowed: true });
+    expect(await l.consume(["email:a@example.com"])).toEqual({ allowed: true });
   });
 
-  it("refuses when any key is used up: one IP trying many emails", () => {
+  it("refuses when any key is used up: one IP trying many emails", async () => {
     const now = { t: 0 };
     const l = limiter(now);
-    for (let i = 0; i < 5; i++) l.consume(loginRateLimitKeys(`u${i}@example.com`, "203.0.113.9"));
-    expect(l.consume(loginRateLimitKeys("u9@example.com", "203.0.113.9")).allowed).toBe(false);
-    expect(l.consume(loginRateLimitKeys("u9@example.com", null)).allowed).toBe(true);
-  });
-});
-
-describe("LoginRateLimiter's check and record (105)", () => {
-  it("checks without counting, and counts only what's recorded", () => {
-    const now = { t: 0 };
-    const limiter = new LoginRateLimiter({ max: 2, now: () => now.t });
-    const keys = ["email:a@b.c"];
-    for (let i = 0; i < 10; i++) expect(limiter.check(keys)).toEqual({ allowed: true });
-    limiter.record(keys);
-    expect(limiter.check(keys)).toEqual({ allowed: true });
-    limiter.record(keys);
-    expect(limiter.check(keys)).toEqual({ allowed: false, retryAfterSeconds: 60 });
-    now.t = 60_000;
-    expect(limiter.check(keys)).toEqual({ allowed: true });
-  });
-
-  it("shares its count with consume", () => {
-    const limiter = new LoginRateLimiter({ max: 2 });
-    const keys = ["email:a@b.c"];
-    limiter.record(keys);
-    expect(limiter.consume(keys)).toEqual({ allowed: true });
-    expect(limiter.check(keys).allowed).toBe(false);
-    expect(limiter.consume(keys).allowed).toBe(false);
+    for (let i = 0; i < 5; i++)
+      await l.consume(loginRateLimitKeys(`u${i}@example.com`, "203.0.113.9"));
+    expect((await l.consume(loginRateLimitKeys("u9@example.com", "203.0.113.9"))).allowed).toBe(
+      false,
+    );
+    expect((await l.consume(loginRateLimitKeys("u9@example.com", null))).allowed).toBe(true);
   });
 });
 

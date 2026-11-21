@@ -1,7 +1,7 @@
 import { formatScopeName, parseItemName } from "@ronneai/core";
 import { loadConfig } from "../config";
 import type { Authenticated } from "../domains/identity/actions/access-tokens";
-import type { AppAuth } from "../domains/identity/repositories/auth-instance";
+import { type AppAuth, getAppAuth } from "../domains/identity/repositories/auth-instance";
 import { listScopesAs } from "../domains/items/actions/scopes";
 import {
   createDraftFromFilesAs,
@@ -27,7 +27,7 @@ import { parseLimit, parseSearch } from "./api-query";
 import { domainErrorResponse, errorResponse, rateLimitedResponse } from "./errors";
 import { MIB, readJsonObjectWithin } from "./read-json";
 import { requireToken, type TokenGuardDeps } from "./require-token";
-import { submitLimiter, type UploadLimiter, uploadLimiter } from "./upload-rate-limit";
+import { createSubmitLimiter, createUploadLimiter, type UploadLimiter } from "./upload-rate-limit";
 
 /**
  * The API that creates drafts (feature 037): what `rmk export` and the MCP server's export tools
@@ -176,7 +176,9 @@ type ReadUpload =
 const readUpload = async (request: Request, deps: DraftsApiDeps): Promise<ReadUpload> => {
   const guard = await requireToken(request, deps.guard);
   if (!guard.ok) return { ok: false, response: guard.response };
-  const rate = (deps.limiter ?? uploadLimiter()).consume(guard.auth.user.id);
+  const rate = await (
+    deps.limiter ?? createUploadLimiter((deps.app ?? getAppAuth()).rateLimits)
+  ).consume(guard.auth.user.id);
   if (!rate.allowed) {
     log.event("upload.rate_limited", { limit: "uploads" });
     return {
@@ -356,14 +358,15 @@ const parseSelection = (
 const readSelection = async (
   request: Request,
   deps: DraftsApiDeps,
-  limiter: UploadLimiter | null,
+  /** Built only once the token is checked: before setup there's no instance to count in. */
+  limiter: (() => UploadLimiter) | null,
 ): Promise<
   { ok: true; auth: Authenticated; selection: BulkSelection } | { ok: false; response: Response }
 > => {
   const guard = await requireToken(request, deps.guard);
   if (!guard.ok) return guard;
   if (limiter) {
-    const rate = limiter.consume(guard.auth.user.id);
+    const rate = await limiter().consume(guard.auth.user.id);
     if (!rate.allowed) {
       log.event("upload.rate_limited", { limit: "submits" });
       return {
@@ -460,7 +463,11 @@ export const checkDrafts = async (request: Request, deps: DraftsApiDeps = {}) =>
  * its user's drafts (owner, 2026-10-01); each submit's audit event names it.
  */
 export const submitDrafts = async (request: Request, deps: DraftsApiDeps = {}) => {
-  const read = await readSelection(request, deps, deps.submitLimiter ?? submitLimiter());
+  const read = await readSelection(
+    request,
+    deps,
+    () => deps.submitLimiter ?? createSubmitLimiter((deps.app ?? getAppAuth()).rateLimits),
+  );
   if (!read.ok) return read.response;
   try {
     const { results, more } = await submitManyDraftsAs(
