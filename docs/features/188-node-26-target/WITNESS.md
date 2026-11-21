@@ -426,3 +426,82 @@ Witnessed: 2026-11-20 18:11 EST, by a fresh agent (blind). Commit: 6d6c4fb9 + un
 **Overall:** met: every acceptance criterion is ticked and backed by a witness pass (tasks 1–8, plus this pass's runs at 6d6c4fb9), no renamed job is a required check, and both checks pass.
 
 After the pass, criterion 11 was reworded to match row 11: `test-runs.md` takes the target from `.nvmrc`, and `turbo-test-inputs.md` keeps its dated history. Nothing else changed.
+
+## Task 10 — libatomic
+
+Witnessed: 2026-11-20 22:11 EST, by a fresh agent (blind). Commit: 8e6fc070. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Node.js 26's Linux binary links `libatomic.so.1` and 24's didn't | no | confirmed | official `node-v26.13.1` and `node-v24.22.3` `linux-x64` and `linux-arm64` (all `shasum -c` OK against SHASUMS256.txt), DT_NEEDED read with `probes/elf-needed.mjs`: 26.13.1 lists `libatomic.so.1` on both arches, 24.22.3 on neither |
+| 2 | #318's `packages.yml` failed on it before the fix | no | confirmed | `gh run view 44848070447 --log-failed`, attempts 1 and 2 (head 11ea8d3e), Packages (x64) and (arm64): `/opt/rmk-server/node/bin/node: error while loading shared libraries: libatomic.so.1: cannot open shared object file`, then `✗ postinstall didn't install the service` on rmk-pkg-ubuntu |
+| 3 | `nfpm.yaml` makes the deb depend on `libatomic1` and the rpm on `libatomic.so.1()(64bit)` | no | confirmed | `nfpm.yaml:42`, `:53`; parsed with yaml 2.9.1 → `overrides.deb.depends` and `overrides.rpm.depends` hold them; run 44859097767's `linux-packages-x64` artifact: deb `Depends: libc6 (>= 2.34), libstdc++6 (>= 11), libatomic1`, rpm header `libatomic.so.1()(64bit)` (arm64 artifact not inspected; row 6 covers arm64) |
+| 4 | `package-linux.test.js` checks both, and the repo-tools tests pass | no | confirmed | `pnpm --filter @ronneai/repo-tools test` → 22 files, 221 passed; in a scratch copy, deleting either line fails the test, restoring passes 5/5. Weakness: a text `toContain`, so `# - libatomic1` still passes |
+| 5 | The release notes name libatomic for the Linux archives | no | confirmed | `release.yml:439`: "…glibc 2.34 or later … and libatomic (`apt install libatomic1` or `dnf install libatomic` where it's missing: Node.js needs it)"; the file parses (11 jobs) |
+| 6 | `packages.yml`'s x64 and arm64 jobs pass on #318 at 8e6fc070 | no | confirmed | `gh run view 44859097767 --json headSha,conclusion` → `8e6fc070… success`; both jobs log `✓ install …`, `✓ upgrade … (200)`, `✓ install again` on ubuntu, debian and fedora, then `✓ the packages install, upgrade and remove on Ubuntu 24.04, Debian 13 and Fedora 42`; `test-in-containers.sh:48-50` never installs libatomic |
+| 7 | `test-runs.md`'s table has the risk | no | confirmed | `docs/knowledge/test-runs.md:100` |
+| 8 | SPEC.md has the table row and the edge case | no | confirmed | `SPEC.md:118` (matches the run's log); `SPEC.md:160-163`, facts match rows 1–3 and 5 |
+| 9 | The new acceptance criterion would be true if ticked | no | confirmed | `SPEC.md:222`, unticked; each part holds: rows 3, 5, 6 |
+
+**Overall:** met: the packages declare libatomic in both formats, the unit test guards both strings, the release notes and test-runs.md name it, and #318's x64 and arm64 package jobs pass at 8e6fc070 where they failed on libatomic before.
+
+Finding (not blocking): the test checks `nfpm.yaml` as text, so a commented-out or misplaced dependency passes it; only `packages.yml` would catch it. Fixed in 980c7287 (re-check 1 below).
+
+## Task 10 — libatomic (adversarial)
+
+Witnessed: 2026-11-20 22:22 EST, by a fresh agent (adversarial). Commit: 8e6fc070. Machine: macOS 27.2.1 (arm64; Docker 29.9.3, amd64 emulated), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Node.js 26's Linux binary links `libatomic.so.1` and 24's doesn't, on x64 and arm64, and needs no other new library | no | confirmed | node-v26.13.1-linux-{x64,arm64}, node-v24.22.3-linux-x64, SHASUMS256 `OK`; `readelf -d`: both 26 builds NEEDED `libatomic.so.1` (`LIBATOMIC_1.0`), 24 not; every other NEEDED entry the same as 24's (`elf-node.txt`) |
+| 2 | #318's `packages.yml` failed on it before the fix | no | confirmed | run 44848070447 (11ea8d3e), both jobs, attempts 1 and 2; jobs 136674024935 (x64) and 136706229829 (arm64): `✗ postinstall didn't install the service`, `libatomic.so.1: cannot open shared object file` |
+| 3 | The CI containers lacked libatomic, so the later pass comes from the dependency | no | confirmed | the 3 images built with `test-in-containers.sh`'s install lines: Ubuntu 24.04, Debian 13, Fedora 42 → `no libatomic` (`ci-images-libatomic.txt`); the only build-relevant change 11ea8d3e → 8e6fc070 is `nfpm.yaml` |
+| 4 | The `.deb` depends on `libatomic1` | no | confirmed | `nfpm.yaml:42` under `overrides.deb.depends`; CI artifacts, `dpkg-deb -f`, amd64 and arm64 → `Depends: libc6 (>= 2.34), libstdc++6 (>= 11), libatomic1` |
+| 5 | The `.rpm` depends on `libatomic.so.1()(64bit)`, resolvable on both arches, RHEL 9 and openSUSE too | no | confirmed | `rpm -qp --requires` x86_64 and aarch64 → `libatomic.so.1()(64bit)`; `dnf`/`zypper install` of the CI rpm in clean containers: aarch64 Fedora 42, Rocky 9.9, UBI 9.9, Amazon Linux 2023, openSUSE Leap 15.6; x86_64 Fedora 42, Rocky 9.9, Leap 15.6 → libatomic pulled in, exit 0, `node: v26.13.1` (`distros-*.txt`) |
+| 6 | `libatomic1` installs on the oldest systems the .deb claims | no | confirmed | `apt-get install ./rmk-server_0.8.0-1_<arch>.deb` in clean debian:12 and ubuntu:22.04, arm64 and amd64 → `libatomic1 12.2.0-14+deb12u1` / `12.3.0-1ubuntu1~22.04.3`, exit 0, `node: v26.13.1`; Ubuntu 24.04 and Debian 13 the same |
+| 7 | Nothing else in the packaged tree needs an undeclared library | no | confirmed | `ldd` on node and every `*.node` under `/opt/rmk-server`, 15 container runs: only `libc.musl-*.so.1` not found, from better-sqlite3's `linuxmusl-*` prebuilds, which glibc never loads (`pkg-meta.txt`) |
+| 8 | `package-linux.test.js` checks both dependencies | no | partly | deleting either line fails it; but `toContain` on the whole file: with line 42 as `      # - libatomic1` → `Tests 5 passed`; moved to the other format or under `suggests` also passes |
+| 9 | The repo-tools tests pass | no | confirmed | `pnpm --filter @ronneai/repo-tools test` → 22 files, 221 passed; on a `git archive 8e6fc070` copy, `package-linux.test.js` → 5 passed (the copy's one other failure, node-versions, is its missing `packages/server/node_modules`) |
+| 10 | `packages.yml`'s x64 and arm64 jobs pass on #318 at 8e6fc070 | no | confirmed | run 44859097767, headSha 8e6fc070, success; jobs 136709081085 (x64) and 136709081006 (arm64): install, upgrade, remove, install-again and purge `✓` lines on Ubuntu, Debian and Fedora |
+| 11 | The release notes name libatomic for the Linux archives | no | confirmed | `release.yml:439` run through bash → "…and libatomic (`apt install libatomic1` or `dnf install libatomic` where it's missing: Node.js needs it)…", backticks escaped |
+| 12 | `test-runs.md`'s table has the risk | no | confirmed | `test-runs.md:100`; `SPEC.md:118` |
+| 13 | The install script, the bundles and the Docker image have no such gap | no | confirmed | `install.sh:274-283` installs through `apt-get`/`dnf install -y`; the image's `node:26-trixie-slim@sha256:e6bedef…` has `libatomic1 14.2.0-19`, `ldd node` resolves it, runtime stage `FROM base`; `bundle.js` writes no requirement text, the release notes cover the archives |
+| 14 | No other doc states the packages' or archives' requirements without libatomic | no | confirmed | `README.md:150-152`, `install.md:199`, ronne-web `install.tsx:248` give glibc 2.34 for the apt/dnf packages, which install libatomic themselves; `git grep` finds no other text on the Linux archives |
+| 15 | The new acceptance criterion would be true | no | confirmed | rows 4–5, 11, 10; unticked at the commit (`SPEC.md:222`) |
+
+**Overall:** not met: everything holds, the dependency on every distribution and arch tried included, except row 8: the unit test passes with the deb dependency commented out.
+
+## Task 10 — libatomic (re-check 1)
+
+Witnessed: 2026-11-20 22:23 EST, by a fresh agent (adversarial). Commit: 980c7287. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The test reads each format's own `overrides.<deb\|rpm>.depends` list, not the whole file's text | yes | confirmed | `git show 980c7287`: `toContain` became `expect(dependsOf(template, "deb"\|"rpm")).toEqual([...])`; `dependsOf` (`package-linux.test.js:17-32`) skips `#` lines, stops at the first non-item line; a self-test covers comments and `suggests` |
+| 2 | It fails when deb's `- libatomic1` is commented out | yes | confirmed | `probes/run.sh comment` (scratch copy) → `1 failed \| 5 passed`; `rpmcomment` → 1 failed; restored, `cmp` clean |
+| 3 | It fails when `libatomic1` is moved to the rpm list | yes | confirmed | `probes/run.sh moved` → 1 failed |
+| 4 | It fails when `libatomic1` is moved under deb's `suggests:` | yes | confirmed | `probes/run.sh suggests` → 1 failed |
+| 5 | The real `nfpm.yaml` passes, with the two expected lists | yes | confirmed | `vitest run src/package-linux.test.js` → `6 passed`; yaml.v3 (`goprobe/probe orig.yaml`) → the same two lists, same order |
+| 6 | The repo-tools tests pass | yes | confirmed | 22 files, 222 tests passed; `biome check` on the test → no issues |
+| 7 | Nothing else changed between 8e6fc070 and 980c7287 | yes | confirmed | `git diff --name-only 8e6fc070 980c7287` → only `package-linux.test.js` (+48 −6) |
+| 8 | No edit of `nfpm.yaml` that drops a dependency from a package still passes the test | no | partly | comment out, move, `suggests`, CRLF (`2 failed`) fail; a second deb `depends:` passes (`dupdepends`), though yaml.v3 refuses it; **`decoy` passes**: `- libatomic1` dropped from `overrides.deb.depends`, a copy of the deb block inside `description: \|-` → `6 passed`, while yaml.v3 gives deb only libc6 and libstdc++6. `dependsOf` matches the first `  deb:` anywhere. `overrides:` renamed to `x-overrides:` also passes |
+
+**Overall:** not met: the three mutations from the last pass now fail, and the real file and the repo-tools tests pass, but `dependsOf` doesn't check that `  deb:` sits under `overrides:`, so a copy of the block elsewhere hides a dropped dependency.
+
+Fixed after this pass: `dependsOf` reads only inside the top-level `overrides:`, returns `undefined` without one or with two `depends:` in a format, and the self-test covers a copy before and after `overrides:`, a renamed `overrides:` and a second `depends:`. With it, all eight of the probe's mutations (`comment moved suggests rpmcomment decoy renamed crlf dupdepends`) fail the test, and the real file passes.
+
+## Task 10 — libatomic (re-check 2)
+
+Witnessed: 2026-11-20 22:29 EST, by a fresh agent (blind). Commit: 8b76acee (the same tree as 0b0cc7b4 on `feat/188-libatomic-test`: `git rev-parse 8b76acee^{tree} HEAD^{tree}` → `25825012…` for both). Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Only the test file changed between 980c7287 and 8b76acee | no | confirmed | `git diff --stat 980c7287 8b76acee` → `packages/repo-tools/src/package-linux.test.js` (+32 −9) |
+| 2 | The real `nfpm.yaml` passes with both full lists, and the repo-tools tests pass | no | confirmed | `pnpm --filter @ronneai/repo-tools test` → 22 files, 222 passed; `toEqual` on the three deb and three rpm entries; yaml.v3 gives the same lists; `pnpm exec biome check` → clean |
+| 3 | `dependsOf` reads only inside the top-level `overrides:`, so a copy of the deb block elsewhere doesn't count | no | confirmed | `run.sh decoy` → 1 failed; with 980c7287's `dependsOf` put back, the new self-test fails (`expected [ 'decoy' ] to deeply equal [ 'libc6' ]`) |
+| 4 | `undefined` without `overrides:` | no | confirmed | `run.sh renamed` → 1 failed, `expected undefined …`; the self-test asserts it |
+| 5 | `undefined` with two `depends:` in a format | no | confirmed | `run.sh dupdepends` → 1 failed; the self-test's `twice` case |
+| 6 | The earlier mutations still fail | no | confirmed | `run.sh comment moved suggests rpmcomment crlf` → each 1 failed (crlf 2); `cmp` clean after each |
+| 7 | No edit of `nfpm.yaml` drops a dependency (as a YAML parser reads it) and still passes the test | no | not met | `run2.sh quoted`: the description as one double-quoted scalar holding a full `overrides:` block, `libatomic1` dropped from the real list → yaml.v3 (strict, as nFPM: `KnownFields(true)`) deb = libc6, libstdc++6; test `6 passed`. `run2.sh seconddoc`: the real key as `overrides: # per format` without `libatomic1`, a full block in a second document after `---` → same, `6 passed` (nFPM reading one document inferred from yaml.v3). A merge key `<<:` before or after the list and an alias of the deb block fail the test or the parse |
+
+**Overall:** not met: rows 1–6 hold, but two contrived edits still drop `libatomic1` from the deb package and pass the test; a line-by-line reader can't settle row 7.

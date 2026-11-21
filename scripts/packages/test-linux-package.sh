@@ -38,6 +38,32 @@ case $old in
     ;;
   *) fail "give two .deb or two .rpm files" ;;
 esac
+
+# What the newer package declares, read from the built file rather than nfpm.yaml, so no edit of the
+# template slips by: the libraries its Node.js and native modules need (084; libatomic since Node.js
+# 26, 188). The containers have none of them beyond the base system's, so a missing one also fails
+# the install below, but this names it.
+case $new in
+  *.deb)
+    declared=$(dpkg-deb -f "$new" Depends | tr ',' '\n' | sed 's/^ *//')
+    needed='libc6 (>= 2.34)
+libstdc++6 (>= 11)
+libatomic1'
+    ;;
+  *.rpm)
+    declared=$(rpm -qp --requires "$new" 2>/dev/null)
+    needed='libc.so.6(GLIBC_2.34)(64bit)
+libstdc++.so.6(GLIBCXX_3.4.29)(64bit)
+libatomic.so.1()(64bit)'
+    ;;
+esac
+while IFS= read -r dep; do
+  printf '%s\n' "$declared" | grep -qxF -- "$dep" ||
+    fail "$(basename "$new") doesn't depend on $dep (it declares: $(printf '%s' "$declared" | tr '\n' ';'))"
+done <<NEEDED
+$needed
+NEEDED
+step "$(basename "$new") depends on glibc 2.34, GCC 11's libstdc++ and libatomic"
 pid() { systemctl show rmk-server -p MainPID --value; }
 # Whether the last package command's output says $1 in full. The scripts fold rmk-server's messages
 # at spaces, dnf prefixes each line with ">>> " and pads it, and apt's lines end in \r\n (dpkg runs
