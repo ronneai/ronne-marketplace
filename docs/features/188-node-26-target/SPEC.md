@@ -115,6 +115,7 @@ newest 22.x, so it never saw it. Testing "22" proves only the newest 22; the min
 | Newer Node.js removed or changed something | `pnpm test` | **26** |
 | A native module needs a newer N-API than the minimum has, or has no binary for an OS | `server-checks.yml`: install the packed server with npm, start it, set it up, sign in (`server-probe.js`) | **`MIN_NODE`** and **26**, on Linux, macOS and Windows |
 | A native module built per ABI, so that 24 could differ | The N-API guard: none is allowed without a decision | The guard runs with the repo-tools tests, on 26 |
+| The Node.js the server package carries links a system library a minimal Linux lacks (26's links `libatomic.so.1`, 24's didn't) | `packages.yml`: install the `.deb` and `.rpm` in clean Ubuntu 24.04, Debian 13 and Fedora 42 containers, which have only what the packages declare | **26** (the bundles carry the target), on x64 and arm64 |
 | Component tests (`*.test.tsx`) | Their subject is markup, and its JavaScript is held to ES2023 by typecheck; the server probe renders real pages on `MIN_NODE` | **26** |
 | The repository's own guards (`packages/repo-tools`), lint, typecheck, packing (`packages:check`, `release:smoke`) | They run in CI and development, never on a person's Node.js | **26** |
 | Build output (`pnpm build`, `build:server`) | The same JavaScript whichever Node.js built it (`tsdown` targets node22); the packed server is then run on every version by `server-checks.yml` | **26** |
@@ -156,6 +157,10 @@ adds them later, the role-based names stay the same across LTS moves.
 - **Intl or ICU output differs between versions** (a date or number formatted differently): only
   the minimum's runtime tests and the target's full tests see it. A test that pins such output must
   pass on both; the component tests, which print most formatted values, run on 26 only.
+- **The new Node.js needs a system library the old one didn't.** Node.js 26's Linux binary links
+  `libatomic.so.1`; 24's didn't, and a clean Ubuntu doesn't have it. The packages declare it
+  (`libatomic1`, `libatomic.so.1()(64bit)`), so apt and dnf install it; the release notes name it for
+  the Linux archives, which have no package manager behind them. #318's first CI run found it.
 - **`.nvmrc` changes:** `ci-scope.js` already runs every suite when it changes, so the move's own
   pull request runs the image, the server package and the install scripts.
 - **Someone develops on 22 or 24:** it works (`engines` allows it), but `pnpm test` there is
@@ -214,6 +219,9 @@ adds them later, the role-based names stay the same across LTS moves.
 - [x] The website says Node.js 26 wherever it named 24 as the target, in en, pt and fr.
 - [x] No required check on `main` changes name: the renamed jobs aren't on branch protection's
   list.
+- [ ] The `.deb` and `.rpm` depend on libatomic (`libatomic1`, `libatomic.so.1()(64bit)`), the
+  release notes name it for the Linux archives, and `packages.yml` installs both packages on x64
+  and arm64.
 
 ## Open questions
 

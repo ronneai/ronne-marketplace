@@ -436,7 +436,7 @@ jobs:
             echo
             echo "**On Windows:** \`npx @ronneai/marketplace\` runs the server in a terminal, without a service (best-effort); to run it at boot, use WSL 2 or a Linux virtual machine, with the Linux steps. \`rmk\` and \`rmk-mcp\` run on Windows itself."
             echo
-            echo "**Without Docker or Node.js:** rmk-server with Node.js ${NODE_VERSION#v} inside, one archive per system: \`rmk-server-$VERSION-linux-x64.tar.gz\`, \`rmk-server-$VERSION-linux-arm64.tar.gz\`, \`rmk-server-$VERSION-darwin-x64.tar.gz\`, \`rmk-server-$VERSION-darwin-arm64.tar.gz\`. Unpack and run \`bin/rmk-server\`. The Linux archives need glibc 2.34 or later (Debian 12, Ubuntu 22.04, RHEL 9 and newer: SQLite's prebuilt module needs it); elsewhere, Alpine (musl) included, use Docker. Each holds THIRD_PARTY_NOTICES."
+            echo "**Without Docker or Node.js:** rmk-server with Node.js ${NODE_VERSION#v} inside, one archive per system: \`rmk-server-$VERSION-linux-x64.tar.gz\`, \`rmk-server-$VERSION-linux-arm64.tar.gz\`, \`rmk-server-$VERSION-darwin-x64.tar.gz\`, \`rmk-server-$VERSION-darwin-arm64.tar.gz\`. Unpack and run \`bin/rmk-server\`. The Linux archives need glibc 2.34 or later (Debian 12, Ubuntu 22.04, RHEL 9 and newer: SQLite's prebuilt module needs it) and libatomic (\`apt install libatomic1\` or \`dnf install libatomic\` where it's missing: Node.js needs it); elsewhere, Alpine (musl) included, use Docker. Each holds THIRD_PARTY_NOTICES."
             echo
             # nFPM writes a pre-release's "-" as "~" in the packages' versions (1.0.0~rc.1).
             PACKAGE_VERSION=${VERSION/-/\~}

@@ -53,15 +53,17 @@ describe("the Linux packages (085)", () => {
     expect(() => fillTemplate("a: ${NOPE}", {})).toThrow("${NOPE}");
   });
 
-  it("asks for glibc 2.34 and GCC 11's libstdc++ in both formats (084)", () => {
+  it("asks for glibc 2.34, GCC 11's libstdc++ and libatomic in both formats (084, 188)", () => {
     const template = readFileSync(
       fileURLToPath(new URL("../../../packaging/linux/nfpm.yaml", import.meta.url)),
       "utf8",
     );
     expect(template).toContain("- libc6 (>= 2.34)");
     expect(template).toContain("- libstdc++6 (>= 11)");
+    expect(template).toContain("- libatomic1");
     expect(template).toContain("- libc.so.6(GLIBC_2.34)(64bit)");
     expect(template).toContain("- libstdc++.so.6(GLIBCXX_3.4.29)(64bit)");
+    expect(template).toContain("- libatomic.so.1()(64bit)");
   });
 
   // dnf cuts each line a package script prints at 80 columns, its ">>> " prefix included.

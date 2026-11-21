@@ -138,6 +138,14 @@ comes before the version move, so the move's pull request already runs the new j
   *Done when:* `pnpm witness:check` and `pnpm docs:check` pass, and every acceptance criterion is
   ticked with a witness pass behind it.
 
+- [ ] **10. libatomic.** [risky] Node.js 26's Linux binary links `libatomic.so.1`, which 24's
+  didn't, and #318's `packages.yml` failed on it: in the clean containers `node` doesn't start, so
+  the service isn't installed. `packaging/linux/nfpm.yaml` depends on `libatomic1` (deb) and
+  `libatomic.so.1()(64bit)` (rpm), `package-linux.test.js` checks both, the release notes name it
+  for the Linux archives, and `test-runs.md`'s table has the risk. *Done when:* the repo-tools tests
+  pass, `packages.yml`'s x64 and arm64 jobs pass on #318, and the new acceptance criterion is
+  ticked.
+
 ## Notes
 
 Things learned while building that the next person should know. Anything that changes behaviour
