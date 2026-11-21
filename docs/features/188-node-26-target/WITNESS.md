@@ -548,3 +548,25 @@ Witnessed: 2026-11-20 23:09 EST, by a fresh agent (adversarial). Commit: 6331a39
 **Overall:** not met: the exact match closes re-check 3's hole, the real packages (0.8.0 and 0.0.1) pass, every earlier mutation fails, a failure stops the job, and #319's Packages jobs pass; but a package that `provides` a library itself passes the check without pulling it in (row 10), low severity: a deliberate template edit, and for libatomic the install step still fails.
 
 Fixed after this pass (the owner chose one more round): the check also requires the newer package to provide nothing but itself (deb: no `Provides`; rpm: exactly `rmk-server = <version>-<release>`, as the real packages do), and fails with a message when `dpkg-deb` or `rpm` can't read the package. On the probe's packages: `provides` → `✗ … provides [libatomic1], not only itself []` (deb) and `[libatomic.so.1()(64bit);rmk-server = 0.8.0-1]` (rpm); `fields` → `✗ dpkg-deb can't read …'s control file`; every other mutation still fails in its format, and the real 0.8.0 and 0.0.1 packages pass.
+
+## Task 10 — libatomic (re-check 5)
+
+Witnessed: 2026-11-20 23:27 EST, by a fresh agent (adversarial). Commit: 28e91e4d. Machine: macOS 27.2.1 (arm64; probes in Docker debian:13 and fedora:42, arm64), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | deb: `dpkg-deb -f … Provides` must be empty | no | confirmed | `test-linux-package.sh:49-50,71-72`; `check.sh pk/provides` → `✗ … provides [libatomic1], not only itself []`; a lowercase `deb.fields: provides:` (`pk/lcprov`) fails the same way |
+| 2 | rpm: `rpm -qp --provides` must be exactly `rmk-server = <VERSION>-<RELEASE>` | no | confirmed | `pk/provides` → `✗ … provides [libatomic.so.1()(64bit);rmk-server = 0.8.0-1], not only itself […]`; `pk/selfname` (named `libatomic1`) → rpm ✗ |
+| 3 | It fails with a message when `dpkg-deb` can't read the package | no | confirmed | 100 random bytes (`pk/garbage`), an empty file (`pk/empty`), a duplicate `Depends` (`pk/fields`) on debian:13 → exit 1, `✗ dpkg-deb can't read …'s control file` |
+| 4 | It fails with a message when `rpm` can't read the package | no | not met | the same files on fedora:42 → exit 3 / 1, empty log: line 56's `declared=$(rpm -qp --requires …)` has no `\|\| fail`, so `set -e` ends the script first; the job still fails |
+| 5 | The real 0.8.0 and 0.0.1 packages pass | no | confirmed | `pk/orig`, `pk/v001` → ✓ in both formats; a pre-release `pk/rc` (`0.9.0~rc.1-1`) also passes |
+| 6 | The `provides` package and every earlier mutation fail in the format they change | no | confirmed | drop, droplibc, weak (both); predep, recommends, foldalt, fields (deb); recommends, richnl (rpm); provides (both); unchanged formats pass |
+| 7 | No package passes without really depending on all three libraries | no | partly | `pk/selfname` (`name: libatomic1`, Provides empty, Depends exact) → debian:13 ✓, and apt installs it with no real libatomic1: the deb side never checks `Package`; CI would still stop at the upgrade (`trying to overwrite '/opt/rmk-server/bin/rmk-server'`) |
+| 8 | A failure still stops the job | no | confirmed | `test-in-containers.sh:6` `set -euo pipefail`, `:57` `docker exec … sh /s/test-linux-package.sh`; every failing probe exited non-zero |
+| 9 | On #319 at 28e91e4d (run 44865257610) both Packages jobs pass and log the check | no | confirmed | headSha 28e91e4d, success; jobs 136728256724, 136728256767: 3 ✓ dependency lines each |
+| 10 | The docs match the script | no | partly | PLAN.md:146-147, SPEC.md:222-225, test-runs.md:100 match lines 49-72, except row 4 (rpm) and row 7 (deb name) |
+| 11 | Task 10's Done when and the criterion are now true | no | partly | `package-linux.test.js` 6 passed; Packages pass on #319; the rpm "can't read" message doesn't exist (row 4) |
+
+**Overall:** not met: the provides check refuses every package that provides a library and passes the real 0.8.0, 0.0.1 and rc packages, but an unreadable rpm stops the script without a message, and a deb named after a library passes the check.
+
+Fixed after this pass: `rpm -qp --requires` gets `|| fail "rpm can't read …"`, and the deb side reads `dpkg-deb -f … Package Provides`, which must be exactly `Package: rmk-server`. On all 16 of the probe's packages: orig, v001 and rc pass in both formats; `pk/empty` and `pk/garbage` → `✗ rpm can't read …` on fedora:42 and `✗ dpkg-deb can't read …` on debian:13; `pk/selfname` → `✗ libatomic1_0.8.0-1_arm64.deb provides [Package: libatomic1], not only itself [Package: rmk-server]`; every other mutation fails in the format it changes.

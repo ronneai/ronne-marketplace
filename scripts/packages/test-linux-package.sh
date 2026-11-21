@@ -46,14 +46,14 @@ esac
 case $new in
   *.deb)
     declared=$(dpkg-deb -f "$new" Depends | tr ',' '\n' | sed 's/^ *//')
-    provided=$(dpkg-deb -f "$new" Provides) || fail "dpkg-deb can't read $(basename "$new")'s control file"
-    itself=''
+    provided=$(dpkg-deb -f "$new" Package Provides) || fail "dpkg-deb can't read $(basename "$new")'s control file"
+    itself='Package: rmk-server'
     needed='libc6 (>= 2.34)
 libstdc++6 (>= 11)
 libatomic1'
     ;;
   *.rpm)
-    declared=$(rpm -qp --requires "$new" 2>/dev/null)
+    declared=$(rpm -qp --requires "$new" 2>/dev/null) || fail "rpm can't read $(basename "$new")"
     provided=$(rpm -qp --provides "$new" 2>/dev/null) || fail "rpm can't read $(basename "$new")"
     itself="rmk-server = $(rpm -qp --qf '%{VERSION}-%{RELEASE}' "$new" 2>/dev/null)"
     needed='libc.so.6(GLIBC_2.34)(64bit)
@@ -66,8 +66,9 @@ esac
 # is added here and in nfpm.yaml together.
 [ "$declared" = "$needed" ] ||
   fail "$(basename "$new") declares [$(printf '%s' "$declared" | tr '\n' ';')], not exactly [$(printf '%s' "$needed" | tr '\n' ';')]"
-# And provides nothing but itself: a package that provided one of those libraries would satisfy
-# its own dependency, and apt or dnf would install it without the library.
+# And is rmk-server, providing nothing but itself: a package that provided one of those libraries,
+# or was named after one, would satisfy its own dependency, and apt or dnf would install it without
+# the library.
 [ "$provided" = "$itself" ] ||
   fail "$(basename "$new") provides [$(printf '%s' "$provided" | tr '\n' ';')], not only itself [$itself]"
 step "$(basename "$new") depends on glibc 2.34, GCC 11's libstdc++ and libatomic"
