@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Decision.**
+- [x] **1. Decision.**
   - MVP.md: §9.5 and §15's "Web sign-in" row say people can create their own account when root
     allows it. A new "Self-registration" row records the decisions in the spec.
   - CLAUDE.md's "Users are created only in the web app" stays true. Add "or by themselves, when root
