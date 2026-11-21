@@ -221,8 +221,8 @@ adds them later, the role-based names stay the same across LTS moves.
   list.
 - [ ] The `.deb` and `.rpm` depend on libatomic (`libatomic1`, `libatomic.so.1()(64bit)`), the
   release notes name it for the Linux archives, and `packages.yml` installs both packages on x64
-  and arm64, after checking that each built package declares glibc 2.34, GCC 11's libstdc++ and
-  libatomic.
+  and arm64, after checking that each newly built package declares exactly glibc 2.34, GCC 11's libstdc++
+  and libatomic.
 
 ## Open questions
 

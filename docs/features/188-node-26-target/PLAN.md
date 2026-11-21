@@ -143,8 +143,8 @@ comes before the version move, so the move's pull request already runs the new j
   the service isn't installed. `packaging/linux/nfpm.yaml` depends on `libatomic1` (deb) and
   `libatomic.so.1()(64bit)` (rpm), `package-linux.test.js` checks both, the release notes name it
   for the Linux archives, and `test-runs.md`'s table has the risk. `test-linux-package.sh` reads what
-  the built package declares (`dpkg-deb -f … Depends`, `rpm -qp --requires`) and fails when one of
-  the three libraries is missing. *Done when:* the repo-tools tests pass, `packages.yml`'s x64 and
+  the built package declares (`dpkg-deb -f … Depends`, `rpm -qp --requires`) and fails unless it is
+  exactly the three libraries, in order. *Done when:* the repo-tools tests pass, `packages.yml`'s x64 and
   arm64 jobs pass (on #318, and on the follow-up pull request with the package check), and the new
   acceptance criterion is ticked.
 

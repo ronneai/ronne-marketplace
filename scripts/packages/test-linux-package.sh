@@ -57,12 +57,11 @@ libstdc++.so.6(GLIBCXX_3.4.29)(64bit)
 libatomic.so.1()(64bit)'
     ;;
 esac
-while IFS= read -r dep; do
-  printf '%s\n' "$declared" | grep -qxF -- "$dep" ||
-    fail "$(basename "$new") doesn't depend on $dep (it declares: $(printf '%s' "$declared" | tr '\n' ';'))"
-done <<NEEDED
-$needed
-NEEDED
+# Exactly these, in this order: a rich rpm dependency written across lines ("(bash or" / the
+# library / ")") would put the library on a line of its own without needing it. A new dependency
+# is added here and in nfpm.yaml together.
+[ "$declared" = "$needed" ] ||
+  fail "$(basename "$new") declares [$(printf '%s' "$declared" | tr '\n' ';')], not exactly [$(printf '%s' "$needed" | tr '\n' ';')]"
 step "$(basename "$new") depends on glibc 2.34, GCC 11's libstdc++ and libatomic"
 pid() { systemctl show rmk-server -p MainPID --value; }
 # Whether the last package command's output says $1 in full. The scripts fold rmk-server's messages

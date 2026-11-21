@@ -505,3 +505,25 @@ Witnessed: 2026-11-20 22:29 EST, by a fresh agent (blind). Commit: 8b76acee (the
 | 7 | No edit of `nfpm.yaml` drops a dependency (as a YAML parser reads it) and still passes the test | no | not met | `run2.sh quoted`: the description as one double-quoted scalar holding a full `overrides:` block, `libatomic1` dropped from the real list → yaml.v3 (strict, as nFPM: `KnownFields(true)`) deb = libc6, libstdc++6; test `6 passed`. `run2.sh seconddoc`: the real key as `overrides: # per format` without `libatomic1`, a full block in a second document after `---` → same, `6 passed` (nFPM reading one document inferred from yaml.v3). A merge key `<<:` before or after the list and an alias of the deb block fail the test or the parse |
 
 **Overall:** not met: rows 1–6 hold, but two contrived edits still drop `libatomic1` from the deb package and pass the test; a line-by-line reader can't settle row 7.
+
+## Task 10 — libatomic (re-check 3)
+
+Witnessed: 2026-11-20 22:58 EST, by a fresh agent (adversarial). Commit: bf01ecc5. Machine: macOS 27.2.1 (arm64; Docker, arm64 containers), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `test-linux-package.sh` reads the newer built package's `Depends` (deb) and `Requires` (rpm) before installing | no | confirmed | `test-linux-package.sh:46-66`: `dpkg-deb -f "$new" Depends`, `rpm -qp --requires "$new"`, `grep -qxF` per needed line, before `install "$old"`; `probes/check.sh` on #318's CI arm64 artifacts → ✓ (debian:13, fedora:42) |
+| 2 | It fails, naming the library, when one is dropped from `nfpm.yaml` | no | confirmed | nFPM 2.47.0 Darwin_arm64 (`shasum -c checksums.txt` OK), `probes/build.sh`: `drop` → `✗ … doesn't depend on libatomic1 (it declares: libc6 (>= 2.34);libstdc++6 (>= 11))`, the same for `libatomic.so.1()(64bit)`; `droplibc` → names `libc6 (>= 2.34)` and the libstdc++ line; nothing installed |
+| 3 | A weakened version, a weak dependency, `Pre-Depends` or a second `Depends` field doesn't pass it | no | confirmed | `weak`, `recommends` → ✗ both formats; `predep` → deb ✗; `fields` → `dpkg-deb -f` fails (`duplicate value for 'Depends' field`), empty → ✗; `foldalt` (`libatomic1 \| dpkg`) → ✗ |
+| 4 | No way the check passes on a package that doesn't really declare the dependency | no | not met | `richnl`: rpm depends `"(bash or\nlibc.so.6(GLIBC_2.34)(64bit)\n)"`, the same for libatomic; `rpm -qp --requires` (rpm 4.20.1) prints `(bash or` / the library / `)` on separate lines, `grep -x` matches → ✓; `dnf install` in clean fedora:42 → exit 0, `package libatomic is not installed` |
+| 5 | So any edit of `nfpm.yaml` that drops one of them fails CI | no | not met | follows from row 4; for libatomic the Fedora install would still fail (node doesn't start), but fedora:42's base has glibc 2.41 and libstdc++ 15.2.1, so the rich form on those lines passes the check and the install |
+| 6 | A failure stops the job | no | confirmed | dash (debian:13, ubuntu:24.04) and bash-as-sh (fedora:42) → exit 1 after the ✗ line; `probes/exec-status.sh` (bash `-euo pipefail` around `docker exec … sh test-linux-package.sh`, as `test-in-containers.sh:56`) → `caller exit=1` |
+| 7 | The check reads only the newer package, and both arches run it | no | confirmed | `case $new` (`:46`); `packages.yml` x64 and arm64 both call `test-in-containers.sh older linux-packages`; the older 0.0.1 comes from the same template in the same step |
+| 8 | On #319's CI (Server package run 44861706181) both Packages jobs pass and log the check | no | confirmed | headSha `bf01ecc5…`, success; jobs 136717169235 (x64), 136717169314 (arm64): the ✓ dependency line for the `.deb` on ubuntu and debian and the `.rpm` on fedora, then install, upgrade, remove, install-again and purge ✓ |
+| 9 | The PLAN text, the SPEC criterion and `test-runs.md` describe the check | no | confirmed | `PLAN.md:141-149`, `SPEC.md:222-225`, `test-runs.md:100`; wording: `test-runs.md` says "each built", only the newer one is read |
+| 10 | The repo-tools tests pass | no | confirmed | 22 files, 222 passed |
+| 11 | Task 10's Done when and the last acceptance criterion are now true | no | partly | the jobs pass on #318 and #319, the tests pass, the packages declare libatomic; but a rich rpm dependency passes the check (rows 4–5) |
+
+**Overall:** not met: the deb check holds against every mutation tried and failures stop the job, but the rpm check matches lines of `rpm -qp --requires`, so a rich dependency written across lines passes it without needing the library.
+
+Fixed after this pass: the check requires the declared list to be exactly the three expected lines, in order (`[ "$declared" = "$needed" ]`; the real packages declare exactly those, and nothing else in `Depends` or `Requires`), and `test-runs.md` says "the newly built". With the probe's nine packages, every mutated format fails (`drop`, `droplibc`, `weak`, `recommends` in both; `predep`, `fields`, `foldalt` in the deb; `richnl` in the rpm: `declares [(bash or;libc.so.6(GLIBC_2.34)(64bit););…], not exactly […]`), and the real packages pass.
