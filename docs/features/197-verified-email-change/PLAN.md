@@ -27,7 +27,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - `confirmEmailChange`: the code, the checks again, the change in one transaction (unique address,
     the exact-match rule for MySQL and MariaDB, other sessions ended, 194's flows and open codes
     ended, audited), then the `email_changed` notice to the old address and the confirmation to the
-    new one (189's `sendSecurityNotice`, a new kind).
+    new one (189's `queueSecurityNotice`, a new kind).
   - The refusals for SCIM-managed and company-provider accounts.
   - *Done when:* db tests cover a full change, each wrong step, the taken path (same result, no
     working code, its email queued), a race on the address, each mid-change edge case in the spec,

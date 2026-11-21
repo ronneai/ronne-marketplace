@@ -1,10 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { sql } from "kysely";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { memoryRateLimiter } from "../../../rate-limit/memory-store";
 import type { RateLimiter } from "../../../rate-limit/rate-limiter";
 import { listAuditEvents } from "../../audit/actions/audit";
+import { openBody } from "../../mail/models/outbox";
+import { saveMailSetup } from "../../mail/services/mail-setup";
+import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
 import { COOKIE_PREFIX } from "../models/session-cookie";
 import type { CurrentUser } from "../models/user";
 import type { AppAuth } from "../repositories/auth-instance";
@@ -56,6 +60,8 @@ let deps: IdentityProviderDeps;
 let limiter: RateLimiter;
 
 const AUTH_SECRET = "test-secret-test-secret-test-secret-00";
+
+const MAIL_SECRET = "test-secret-test-secret-test-secret-00";
 
 beforeEach(async () => {
   t = await createTestDb();
@@ -403,6 +409,76 @@ describe("the decision list", () => {
     // Second time: the known link, no second link.
     expect(await sessionUser((await signIn()).response)).toBe("ana@acme.com");
     expect(await audit("user.sso_linked")).toHaveLength(1);
+  });
+
+  it("tells the person when a company sign-in is linked to their account (189), once", async () => {
+    vi.stubEnv("AUTH_SECRET", MAIL_SECRET);
+    try {
+      await saveMailSetup(
+        { repo: kyselySettingsRepository(t.db, t.dialect) },
+        { user: root, ip: null },
+        {
+          transport: "resend",
+          fromAddress: "marketplace@acme.com",
+          replyTo: "it-help@acme.com",
+          contact: "it-help@acme.com",
+          secret: "re_test_key",
+        },
+        { authSecret: MAIL_SECRET, allowedHosts: new Set() },
+      );
+      const id = await createTestUser(app, {
+        email: "ana@acme.com",
+        password: "correct horse battery",
+      });
+      await signIn();
+      await signIn();
+      const rows = await t.db.selectFrom("mail_outbox").selectAll().execute();
+      expect(rows.map((r) => [r.template, r.user_id])).toEqual([["sso_linked", id]]);
+      const body = openBody(MAIL_SECRET, rows[0]?.id ?? "", rows[0]?.body_enc ?? "");
+      expect(body).toMatchObject({ to: "ana@acme.com" });
+      expect(body?.text).toContain("with Acme SSO.");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("links and notifies in one transaction: with the audit unwritable, neither stays (189)", async () => {
+    vi.stubEnv("AUTH_SECRET", MAIL_SECRET);
+    try {
+      await saveMailSetup(
+        { repo: kyselySettingsRepository(t.db, t.dialect) },
+        { user: root, ip: null },
+        {
+          transport: "resend",
+          fromAddress: "marketplace@acme.com",
+          replyTo: "it-help@acme.com",
+          contact: "it-help@acme.com",
+          secret: "re_test_key",
+        },
+        { authSecret: MAIL_SECRET, allowedHosts: new Set() },
+      );
+      const id = await createTestUser(app, {
+        email: "ana@acme.com",
+        password: "correct horse battery",
+      });
+      await sql`alter table audit_log rename to audit_log_away`.execute(t.db);
+      try {
+        await signIn().catch(() => undefined);
+      } finally {
+        await sql`alter table audit_log_away rename to audit_log`.execute(t.db);
+      }
+      expect(await t.db.selectFrom("mail_outbox").select("id").execute()).toEqual([]);
+      expect(
+        await t.db
+          .selectFrom("account")
+          .select("id")
+          .where("user_id", "=", id)
+          .where("provider_id", "=", "acme")
+          .execute(),
+      ).toEqual([]);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("doesn't link by email when the provider says not to", async () => {

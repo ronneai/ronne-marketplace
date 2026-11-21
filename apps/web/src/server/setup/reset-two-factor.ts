@@ -6,6 +6,7 @@ import {
   UserNotFoundError,
 } from "../domains/identity/exceptions/errors";
 import { scriptCommand } from "../runtime";
+import { withNoticesSent } from "./cli-mail";
 import { readEnvFile } from "./env-file";
 import { InvalidInputError, MissingInputError } from "./non-interactive-prompts";
 import type { SetupPrompts } from "./prompts";
@@ -46,7 +47,9 @@ export const runResetTwoFactor = async (options: {
       });
       if (!sure) throw new SetupFailedError("Cancelled. Nothing was reset.");
     }
-    const result = await resetTwoFactorFromCli(db, dialect, options.email);
+    const result = await withNoticesSent(db, dialect, appDir, () =>
+      resetTwoFactorFromCli(db, dialect, options.email),
+    );
     if (!result.reset) {
       prompts.log.info(`${result.email} has no two-factor sign-in now: nothing to reset.`);
       return { reset: false };

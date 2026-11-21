@@ -519,3 +519,145 @@ Witnessed: 2026-11-21 13:04 EST, by a fresh agent (blind). Commit: f38ee589 + wo
 | 3 | The spec's status and test-limit wording matches `mail-admin.ts` | no | confirmed | `SPEC.md:77-78` and `:95-97` against `mail-admin.ts:70-72,103-118` |
 
 **Overall:** met. With the first pass's rows 1–13 confirmed, every row is met.
+
+## Task 8 — Security notices
+
+Witnessed: 2026-11-21 13:18 EST, by a fresh agent (blind). Commit: ae42a47a + working-tree diff (13 modified files, 2 untracked). Machine: macOS (Darwin 27.2.0), Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass on all four dialects | no | confirmed | security-notices and sso: 48 on SQLite and on each server |
+| 2 | `changePassword` queues one, own address, language, contact | no | confirmed | `session.ts` `record`; M1 (removed) → 3 fail |
+| 3 | Both password resets queue one | no | confirmed | M7 → the CLI test fails |
+| 4 | Two-factor on, new codes, off each queue one in the audit row's transaction | no | confirmed | M6 → fails |
+| 5 | Both two-factor resets queue one; one that changes nothing queues none | no | confirmed | probe C |
+| 6 | The SSO link queues one, with the provider's name, own address and language | no | confirmed | M4 → fails; fr probe |
+| 7 | The contact when set, the reply line when empty | no | confirmed | probes B, B2; M5 → fails |
+| 8 | The locale rule | no | confirmed | probes B, E |
+| 9 | Address and language from the account; can't be turned off | no | confirmed | `notices.ts` |
+| 10 | A failed change queues none | no | confirmed | tests and probe C |
+| 11 | None with email off | no | confirmed | probe A on 4 dialects; M2 survives (`queueMail`'s own guard) |
+| 12 | A rolled-back change leaves no row | no | confirmed | probe D on 4 dialects |
+| 13 | Ids handed on only once committed | no | partly | behaviour holds; M3 (handed on at once) → tests pass |
+| 14 | Send-at-once registered at start; terminal notices wait for the scheduler | no | confirmed | `instrumentation.ts`; kick probe |
+| 15 | Spec and plan name the API that exists | no | partly | `sendSecurityNotice` named; the function is `queueSecurityNotice` |
+
+**Overall:** not met (rows 13, 15).
+
+### Adversarial pass
+
+Witnessed: 2026-11-21 13:20 EST, by a fresh agent (adversarial). Commit: ae42a47a + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Each event path queues exactly one | no | confirmed | 8 audit sites, each with its notice; SCIM and the API write none; Better Auth's own endpoints 404 |
+| 2 | To the account's own address | no | confirmed | P8 |
+| 3 | In the person's language | no | confirmed | P11 |
+| 4 | The contact, or the reply line | no | confirmed | tests |
+| 5 | In the change's transaction | no | partly | P1 holds; M1 (after the commit) and M3 (outside) → tests pass |
+| 6 | None with email off or AUTH_SECRET missing | no | confirmed | P6 |
+| 7 | Handed on only once committed | no | partly | P1, P2 hold; M2 → tests pass |
+| 8 | No hand-on before an outer commit | no | confirmed | P3: Kysely refuses nested transactions |
+| 9 | A refused change queues none | no | confirmed | tests |
+| 10 | Nothing leaks into body, logs, audit | no | confirmed | P8, P11 |
+| 11 | CLI paths: queued, sent later | no | confirmed | P12; with RONNE_JOBS=off never sent |
+| 12 | Send-at-once registered at start | no | confirmed | P12; no repo test |
+| 13 | Erased and disabled accounts | no | confirmed | P13 |
+| 14 | Tests pass on 4 databases | no | confirmed | 48 each |
+| 15 | Removing a notice call fails a test | no | confirmed | M4 |
+
+**Overall:** not met (rows 5, 7). Owner's call raised: terminal notices with RONNE_JOBS=off are never sent. Note: Better Auth commits its changes before the audit-and-notice transaction.
+
+Fixes after both passes:
+- Tests: a rolled-back transaction hands on and leaves nothing, and a committed one hands on only after it commits (the early hand-on now fails a test); with the outbox unwritable, a password change and two-factor off leave no audit row; with the audit unwritable, a password change and a root's reset leave no notice. Each notice is now written before its audit row. M1 after, M1 before and M3 each fail a test (rerun by the implementer, files restored and `cmp`-checked).
+- Terminal: `reset-root-password` and `reset-two-factor` run through `withNoticesSent`, which reads the instance's own settings file and sends the notices before the command exits (RONNE_JOBS off included); a test sends through a fake.
+- Docs: the spec and plan name `queueSecurityNotice(userId, kind, at, provider?)`; the spec states Better Auth's order and the terminal's sending.
+- 4175 on SQLite; 112 on each server.
+
+### Re-check (blind)
+
+Witnessed: 2026-11-21 13:32 EST, by a fresh agent (blind). Commit: ae42a47a + working-tree diff (14 modified, 3 untracked). Machine: macOS (Darwin 27.2.0), Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass on all four dialects | no | confirmed | 52 on SQLite and on each server |
+| 13 | Ids handed on only once committed | no | partly | Code right; M3 → fails; M3b (hand on after `work`, before COMMIT) and M3 on the SSO repository → pass |
+| 15 | Spec and plan name the API that exists | no | partly | 189 fixed; 194, 196 and 197 still say `sendSecurityNotice` |
+| 16 | The notice is in the change's transaction | no | confirmed | M1 → 7 fail |
+| 17 | The terminal commands send before they exit | no | confirmed | M8 → fails |
+| 18 | …from their own settings file | no | partly | probe holds; M9 (`setNoticeConfig` removed) → tests pass |
+
+**Overall:** not met (rows 13, 15, 18): test gaps and a stale name.
+
+### Re-check (adversarial)
+
+Witnessed: 2026-11-21 13:37 EST, by a fresh agent (adversarial). Commit: ae42a47a + working-tree diff. Machine: macOS (Darwin 27.2.0), Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tests and reset-root pass | no | confirmed | 56 on SQLite; 52 on PostgreSQL |
+| 2 | Each of the nine notices in its transaction | no | partly | Code holds; "out" on PostgreSQL caught at 2 of 9 sites |
+| 3 | Each written before its audit row | no | partly | By reading; "after" passes everywhere: not observable |
+| 4 | Ids handed on only after commit | no | confirmed | test and P2 |
+| 5 | The terminal reads its own settings file | no | confirmed | P1, P1b |
+| 6 | The override doesn't leak | no | confirmed | P2 |
+| 7 | A failed or no-op command sends nothing | no | confirmed | P4 |
+| 8 | A throwing or hanging send doesn't hold the command | no | partly | throwing → failed for good (task 5's rule), not "stays queued"; hanging → never returns |
+| 9 | Right address and language; nothing leaks | no | confirmed | P6, P1 |
+| 10 | Nothing else broken | no | can't check here | over budget |
+
+**Overall:** not met (rows 2, 3, 8).
+
+Fixes after both re-checks:
+- Tests: one test changes each of the nine events with `audit_log` unwritable and expects no notice of it (Bea for two-factor on, since Better Auth turns it on before Ronne's transaction; the resets before turning off, which Better Auth commits). The "out" mutation now fails a test at all nine sites on PostgreSQL (rerun by the implementer, files restored and `cmp`-checked); the SSO link has its own audit-away test in `sso.db.test.ts`. A hand-on test counts one per committed transaction and none for a rollback in both repositories (M3 on the SSO repository → fails). A test with AUTH_SECRET, PUBLIC_URL and RONNE_ENV_FILE emptied reads the secret and the public address from `appDir`'s `.env` (M9 → fails).
+- M3b is not testable: Kysely resolves `execute()` after COMMIT, and a hand-on placed just before it can't be told apart from outside; the code calls `mailQueued` after `execute()` returns.
+- `withNoticesSent` waits at most 30 seconds for its sends (tested with a send that never answers: the command returns and the row stays `sending`, for the server to take again).
+- Spec: the notice and the audit row share the transaction (no claim about their order); a terminal try that fails follows the outbox's rules. 194, 196 and 197 name `queueSecurityNotice`.
+- 4180 on SQLite; 182 on each server.
+
+### Re-check 2 (blind)
+
+Witnessed: 2026-11-21 13:45 EST, by a fresh agent (blind; it read the implementer's fixes list above to choose the rows, and says so in the notes column). Commit: ae42a47a + working-tree diff (14 modified, 3 untracked). Machine: macOS (Darwin 27.2.0), Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass on SQLite and the servers | yes | confirmed | 57 on SQLite, PostgreSQL and MySQL; MariaDB not run |
+| 13 | Ids handed on only once committed, both repositories | yes | confirmed | M3-SSO → fails; M3b checked by reading only |
+| 15 | Spec and plan name the API that exists | yes | confirmed | 194, 196, 197 say `queueSecurityNotice` |
+| 18 | The terminal reads its own settings file | yes | confirmed | M9 → fails |
+
+**Overall:** met.
+
+### Re-check 2 (adversarial)
+
+Witnessed: 2026-11-21 13:54 EST, by a fresh agent (adversarial). Commit: ae42a47a + working-tree diff (14 modified, 3 untracked). Machine: macOS (Darwin 27.2.0), Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass on all four dialects | no | confirmed | 65 on SQLite; 61 on each server |
+| 2 | Each of the nine notices in its change's transaction | no | confirmed | "out" at each of the 9 sites on PostgreSQL → each fails a test |
+| 3 | Ids handed on only after the commit, both repositories | no | confirmed | hand-on at queue time → fails in each |
+| 4 | The terminal reads its own settings file | no | confirmed | `setNoticeConfig` removed → fails |
+| 5 | The terminal waits at most 30 seconds | no | confirmed | timer disabled → the hang test fails at 30 s |
+| 6 | No notice for a change that didn't happen | no | confirmed | read; Better Auth's routes limited to `/get-session` and `/ok` |
+| 7 | No notice missing for one that did | no | confirmed | exactly 9 writers, each with its notice |
+| 8 | Right address, no secret, no injection | no | confirmed | read; provider name trimmed on save |
+| 9 | A server that doesn't answer no longer holds the command | no | can't check here | `withNoticesSent` returns at 30 s, but the scripts don't exit, so a trickling SMTP server keeps the process alive; needs a real server |
+
+**Overall:** not met (row 9, unverifiable here). Findings: a send delivered after the 30 s wait isn't recorded and is sent again by the server (a duplicate); remarks on `--database-url` with another instance's database, the cap dropping a notice, and concurrent turn-offs (before this task).
+
+Fixes after re-check 2, at the owner's choice ("Fix, then a short third check"): `withNoticesSent` sets `noticesStillSending()` when its 30-second wait runs out, and `reset-root-password` and `reset-two-factor` then exit at once with their own code, so a server that keeps the connection open can't hold the terminal; the spec says a message the server got after the wait may arrive twice.
+
+### Re-check 3 (adversarial)
+
+Witnessed: 2026-11-21 14:35 EST, by a fresh agent (adversarial, a third round at the owner's request). Commit: ae42a47a + working-tree diff. Machine: macOS 27.2.1, Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The flag is set only when the wait runs out | no | confirmed | `cli-mail.ts:55-64`; probe: sent, throwing, a retry within the wait, a refused command → flag stays false |
+| 2 | The scripts exit at once with the right code | no | confirmed | probe `scripts/probe-exit.ts`: hung → 0 in 0 s; refused → 2; finished → 0; without the line, held until killed |
+| 3 | The hang test fails without the flag | no | confirmed | mutation `void finished;` → fails; `cmp` after restore |
+| 4 | The scripts' own tests pass | no | confirmed | 3 files, 23 passed |
+| 5 | The spec's sentence matches | no | confirmed | `SPEC.md:180-183` against `SEND_WAIT_MS`, the exit, the row left `sending` |
+
+**Overall:** met. With re-check 2 (blind) met, both latest passes are met. Gap left: no repo test asserts the flag stays off after a finished send (the probe does).

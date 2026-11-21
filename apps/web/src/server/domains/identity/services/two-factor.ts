@@ -214,16 +214,21 @@ export const confirmTwoFactor = (
       return failed(deps, user, { ok: false, error: "wrong_code" } as const);
     // The enrolment's code is used: it can't sign in or turn it off within its window.
     await deps.twoFactor.spendCode(user.id, code);
-    await deps.repo.recordAudit(
-      {
-        actorId: user.id,
-        action: "auth.two_factor_enabled",
-        target: { type: "user", id: user.id },
-        metadata: { method: "totp" },
-        ipAddress: context.ip,
-      },
-      now(deps),
-    );
+    const at = now(deps);
+    // The audit row and the notice to the account's own address (189), together.
+    await deps.repo.transaction(async (repo) => {
+      await repo.queueSecurityNotice(user.id, "two_factor_enabled", at);
+      await repo.recordAudit(
+        {
+          actorId: user.id,
+          action: "auth.two_factor_enabled",
+          target: { type: "user", id: user.id },
+          metadata: { method: "totp" },
+          ipAddress: context.ip,
+        },
+        at,
+      );
+    });
     log.event("auth.two_factor_enabled", { userId: user.id });
     return { ok: true, headers };
   });
@@ -262,16 +267,21 @@ export const regenerateBackupCodes = (
       if (codes === "signed_out") return { ok: false, error: "not_signed_in" };
       if (!codes) return await failed(deps, user, { ok: false, error: "wrong_password" } as const);
       made = true;
-      await deps.repo.recordAudit(
-        {
-          actorId: user.id,
-          action: "auth.backup_codes_regenerated",
-          target: { type: "user", id: user.id },
-          metadata: { count: codes.length },
-          ipAddress: context.ip,
-        },
-        now(deps),
-      );
+      const at = now(deps);
+      // The audit row and the notice to the account's own address (189), together.
+      await deps.repo.transaction(async (repo) => {
+        await repo.queueSecurityNotice(user.id, "backup_codes_regenerated", at);
+        await repo.recordAudit(
+          {
+            actorId: user.id,
+            action: "auth.backup_codes_regenerated",
+            target: { type: "user", id: user.id },
+            metadata: { count: codes.length },
+            ipAddress: context.ip,
+          },
+          at,
+        );
+      });
       return { ok: true, backupCodes: codes };
     } finally {
       // No set made (a refusal, or an error): the next try needn't wait.
@@ -320,15 +330,20 @@ export const turnOffTwoFactor = (
     if (!headers) return failed(deps, user, { ok: false, error: "wrong_password" } as const);
     // Turned off: turning it on again gives new codes at once, so the gap goes too.
     await deps.backupCodes.release([backupCodesKey(user.id)]);
-    await deps.repo.recordAudit(
-      {
-        actorId: user.id,
-        action: "auth.two_factor_disabled",
-        target: { type: "user", id: user.id },
-        ipAddress: context.ip,
-      },
-      now(deps),
-    );
+    const at = now(deps);
+    // The audit row and the notice to the account's own address (189), together.
+    await deps.repo.transaction(async (repo) => {
+      await repo.queueSecurityNotice(user.id, "two_factor_disabled", at);
+      await repo.recordAudit(
+        {
+          actorId: user.id,
+          action: "auth.two_factor_disabled",
+          target: { type: "user", id: user.id },
+          ipAddress: context.ip,
+        },
+        at,
+      );
+    });
     log.event("auth.two_factor_disabled", { userId: user.id });
     return { ok: true, headers };
   });

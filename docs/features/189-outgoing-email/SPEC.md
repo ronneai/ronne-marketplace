@@ -153,7 +153,7 @@ possible, and follow the standards (owner, 2026-11-20).
   The locale is the person's (`user.locale`), else the instance's default language, else English,
   by the screens' rule (141): with choosing off, or a saved language that isn't offered, the
   instance's default.
-- **Security notices:** `sendSecurityNotice(user, kind)` queues one in the transaction of the change.
+- **Security notices:** `queueSecurityNotice(userId, kind, at, provider?)` queues one in the transaction of the change.
   189 sends them for the events that exist today:
 
   | Event (audit action) | Notice |
@@ -167,6 +167,25 @@ possible, and follow the standards (owner, 2026-11-20).
 
   A notice can't be turned off by the person, as NIST asks. With email not set up, nothing is
   queued. Later features add their own kinds (190, 192, 194, 197).
+
+  It's a repository method (`queueSecurityNotice(userId, kind, at, provider?)` on the identity and
+  SSO repositories), called in the transaction that writes the event's audit row, so the services
+  stay free of the database. It reads the account's address and language at the change, never one
+  the request typed, and the company sign-in's name for `user.sso_linked`. Once the transaction
+  commits, its notices are handed to the outbox's send-at-once (`onMailQueued`, registered at
+  start); a rolled-back change hands on none. The notice and the audit row share that
+  transaction, so a failure of either undoes both. The terminal's `reset-root-password` and
+  `reset-two-factor` read their own instance's settings file and send their notices before they
+  exit, so those go out with `RONNE_JOBS=off` too. A try that fails then follows the outbox's
+  rules (retried by the server's scheduler, or failed for good), and a server that doesn't answer
+  within 30 seconds no longer holds the command: it exits, the row's claim runs out and the
+  server's outbox takes it again. A message that reached the server after those 30 seconds isn't
+  recorded as sent, so the person may get it twice: a duplicate notice rather than a lost one.
+
+  Better Auth commits a password change, and turning two-factor on or off or making new backup
+  codes, before Ronne's transaction for the audit row and the notice. If that transaction fails,
+  the change stands without either, and the person sees the error; the root resets, the terminal
+  commands and the company sign-in link are one transaction from start to end.
 - **Audit:**
   - `settings.mail` records what changed, a secret only as *replaced*;
   - `mail.test_sent` records the result;

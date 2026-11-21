@@ -1,5 +1,6 @@
 import type { KeysetPage, SortDir } from "../../../db/keyset";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
+import type { MailNotice } from "../../mail/services/templates";
 import type { Locale } from "../models/locale";
 import type { CoverageRow } from "../models/two-factor-coverage";
 import type { CurrentUser, Role, RootAccount, UserSummary, WorkspaceRole } from "../models/user";
@@ -36,6 +37,11 @@ export type UserPageQuery = UserFilters & {
 export interface IdentityRepository {
   /** Runs `work` in one database transaction, with a repository bound to it. */
   transaction<T>(work: (repo: IdentityRepository) => Promise<T>): Promise<T>;
+  /**
+   * Queues a security notice to the account's own address (189), in this transaction: it exists
+   * only if the change does, and is sent once the transaction commits. Nothing while email is off.
+   */
+  queueSecurityNotice(userId: string, kind: MailNotice, at: Date, provider?: string): Promise<void>;
   /** The oldest root, disabled or not (never erased, 103): the one setup created. Null before setup. */
   findFirstRoot(): Promise<RootAccount | null>;
   /** Every root, disabled or not, oldest first; never an erased row (103). */

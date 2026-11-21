@@ -89,8 +89,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     replaced, a relay host refused unless the operator lists it, the instance contact (valid, `http://`, with a user
     name, empty), the test's success, failure and limit, and Stop sending; the phone sweep passes on the tab.
 
-- [ ] **8. Security notices.** [risky]
-  - `sendSecurityNotice` and its kinds, queued in the transaction of `changePassword`, the two
+- [x] **8. Security notices.** [risky]
+  - `queueSecurityNotice` and its kinds, queued in the transaction of `changePassword`, the two
     password resets (`user-admin.ts`, `root-account.ts`), `confirmTwoFactor`, `turnOffTwoFactor`,
     `regenerateBackupCodes`, the two-factor resets and `sso-sign-in.ts`'s link.
   - Nothing is queued when email isn't set up. Every notice ends with the instance contact when one

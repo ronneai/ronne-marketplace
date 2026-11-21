@@ -6,6 +6,7 @@ import { forUpdate, readCommittedTransaction } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import { mailQueued, queueSecurityNotice } from "../../mail/services/notices";
 import { notify } from "../../notifications/services/notify";
 import { kyselyIdentityRepository } from "./kysely-identity-repository";
 import type { SsoRepository, SsoSignInState } from "./sso-repository";
@@ -16,6 +17,8 @@ const STATE_PREFIX = "sso-state:";
 export const kyselySsoRepository = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
+  /** Inside a transaction: the notices it queued, handed on once it commits (189). */
+  queued?: string[],
 ): SsoRepository => {
   const at = (date: Date) => toDbDate(date, dialect);
   const identity = kyselyIdentityRepository(db, dialect);
@@ -192,10 +195,22 @@ export const kyselySsoRepository = (
 
     // READ COMMITTED: after waiting for the provider's lock, the checks see what the sign-in
     // before committed (MySQL's REPEATABLE READ would read an older snapshot).
-    transaction: (work) =>
-      readCommittedTransaction(db, dialect).execute((trx) =>
-        work(kyselySsoRepository(trx, dialect)),
-      ),
+    transaction: async (work) => {
+      const ids: string[] = queued ?? [];
+      const result = await readCommittedTransaction(db, dialect).execute((trx) =>
+        work(kyselySsoRepository(trx, dialect, ids)),
+      );
+      if (!queued) mailQueued(ids);
+      return result;
+    },
+
+    async queueSecurityNotice(userId, kind, at, provider) {
+      const result = await queueSecurityNotice(db, dialect, { userId, kind, provider }, at);
+      if (!result.queued) return;
+      // In a transaction, sent once it commits; on its own, it has committed already.
+      if (queued) queued.push(result.id);
+      else mailQueued([result.id]);
+    },
 
     async recordAudit(event, now) {
       await recordAudit(db, dialect, event, now);

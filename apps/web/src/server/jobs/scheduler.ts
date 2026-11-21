@@ -3,6 +3,7 @@ import { isConfigured, loadConfig } from "../config";
 import { getAppDb } from "../db/instance";
 import { parseMailRelays } from "../domains/mail/models/mail-settings";
 import type { MailTransport } from "../domains/mail/models/message";
+import { onMailQueued } from "../domains/mail/services/notices";
 import { deliverDue } from "../domains/mail/services/outbox";
 import { logger } from "../log";
 import { MAIL_OUTBOX_JOB, runMailOutboxJob } from "./mail-outbox-job";
@@ -299,3 +300,12 @@ export const kickMailOutbox = (
   mailKicks.__ronneMailRun = loop();
   return mailKicks.__ronneMailRun;
 };
+
+/**
+ * What `register()` calls at start (189): every notice a request queued is tried as soon as its
+ * transaction commits, through the kick above, whether or not RONNE_JOBS is on.
+ */
+export const sendQueuedMailAtOnce = (env: Record<string, string | undefined> = process.env): void =>
+  onMailQueued((ids) => {
+    void kickMailOutbox(ids, env);
+  });

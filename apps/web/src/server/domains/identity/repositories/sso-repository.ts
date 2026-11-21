@@ -1,4 +1,5 @@
 import type { NewAuditEvent } from "../../audit/models/audit-event";
+import type { MailNotice } from "../../mail/services/templates";
 import type { NewNotification } from "../../notifications/models/notification";
 import type { MappedRole } from "../models/identity-provider";
 import type { UserSummary } from "../models/user";
@@ -65,6 +66,11 @@ export interface SsoRepository {
   ): Promise<void>;
   removeMembership(userId: string, workspaceId: string): Promise<void>;
   transaction<T>(work: (repo: SsoRepository) => Promise<T>): Promise<T>;
+  /**
+   * Queues a security notice to the account's own address (189), in this transaction: it exists
+   * only if the change does, and is sent once the transaction commits. Nothing while email is off.
+   */
+  queueSecurityNotice(userId: string, kind: MailNotice, at: Date, provider?: string): Promise<void>;
   recordAudit(event: NewAuditEvent, at: Date): Promise<void>;
   /** Writes a notification (139), in the same transaction as the change it tells about. */
   notify(notification: NewNotification, now: Date): Promise<void>;

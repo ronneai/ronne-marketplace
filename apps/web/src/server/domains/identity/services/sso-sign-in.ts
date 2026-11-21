@@ -166,6 +166,7 @@ export const signInWithProvider = async (
       };
     if (plan.action === "link") {
       await trx.linkAccount(plan.user.id, provider.id, identity.subject, context.now);
+      await trx.queueSecurityNotice(plan.user.id, "sso_linked", context.now, provider.name);
       await trx.recordAudit(
         {
           actorId: plan.user.id,
