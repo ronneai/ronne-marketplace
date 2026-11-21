@@ -97,7 +97,7 @@ between.** JavaScript that runs on both ends runs between them, and the server's
 | Newer Node.js removed or changed something | `pnpm test` | The target |
 | A native module needs a newer N-API than the minimum, or has no binary for an OS | `server-checks.yml`: install the packed server with npm and run `server-probe.js` | Minimum and target, on Linux, macOS and Windows |
 | A native module built per Node.js ABI | `repo-tools`' node-versions test: every `.node` file in the server's runtime tree must be N-API | The target, with the repo-tools tests |
-| The Node.js the server package carries links a system library a minimal Linux lacks (26's links `libatomic.so.1`) | `packages.yml` installs the `.deb` and `.rpm` in clean containers, which have only what the packages declare (`nfpm.yaml`'s `depends`) | The target, on x64 and arm64 |
+| The Node.js the server package carries links a system library a minimal Linux lacks (26's links `libatomic.so.1`) | `packages.yml` reads what the newly built `.deb` and `.rpm` declare, which must be exactly the expected list, with nothing provided but the package itself (`test-linux-package.sh`), then installs it in clean containers, which have only what the packages declare (`nfpm.yaml`'s `depends`) | The target, on x64 and arm64 |
 | Component tests, the repository's own tools, lint, the build, packing | Version-independent | The target |
 
 - **`pnpm test:runtime`** is every suite but the component tests (`*.test.tsx`) and `repo-tools`:

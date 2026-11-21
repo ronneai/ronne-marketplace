@@ -10,6 +10,37 @@ const script = (name) =>
     "utf8",
   );
 const SCRIPTS = ["postinstall.sh", "preremove.sh", "postremove.sh"];
+/**
+ * The `depends` list of one format in `nfpm.yaml`'s top-level `overrides`, read line by line
+ * (repo-tools has no YAML parser): only inside `overrides:` (a copy of the block elsewhere, in the
+ * description say, doesn't count), and a commented-out entry, or one under `suggests`, isn't in it.
+ * `undefined` when there's no `overrides:`, or the format has two `depends:`.
+ */
+const dependsOf = (template, format) => {
+  const lines = template.split("\n");
+  const top = lines.indexOf("overrides:");
+  if (top < 0) return undefined;
+  const after = lines.findIndex((line, i) => i > top && /^\S/.test(line) && !line.startsWith("#"));
+  const block = lines.slice(top + 1, after < 0 ? undefined : after);
+  const start = block.indexOf(`  ${format}:`);
+  if (start < 0) return [];
+  const next = block.findIndex(
+    (line, i) => i > start && /^ {2}\S/.test(line) && !/^\s*#/.test(line),
+  );
+  const own = block.slice(start + 1, next < 0 ? undefined : next);
+  const list = own.indexOf("    depends:");
+  if (list < 0) return [];
+  // YAML refuses a key twice, and so would nFPM: never pick one of two lists.
+  if (own.lastIndexOf("    depends:") !== list) return undefined;
+  const items = [];
+  for (const line of own.slice(list + 1)) {
+    if (/^\s*#/.test(line)) continue;
+    const item = line.match(/^ {6}- (.+)$/);
+    if (!item) break;
+    items.push(item[1]);
+  }
+  return items;
+};
 /** The `wrapped` function a script defines, as text. */
 const wrappedOf = (text) => text.match(/^wrapped\(\) \{\n[\s\S]*?\n\}\n/m)?.[0];
 
@@ -58,12 +89,46 @@ describe("the Linux packages (085)", () => {
       fileURLToPath(new URL("../../../packaging/linux/nfpm.yaml", import.meta.url)),
       "utf8",
     );
-    expect(template).toContain("- libc6 (>= 2.34)");
-    expect(template).toContain("- libstdc++6 (>= 11)");
-    expect(template).toContain("- libatomic1");
-    expect(template).toContain("- libc.so.6(GLIBC_2.34)(64bit)");
-    expect(template).toContain("- libstdc++.so.6(GLIBCXX_3.4.29)(64bit)");
-    expect(template).toContain("- libatomic.so.1()(64bit)");
+    expect(dependsOf(template, "deb")).toEqual([
+      "libc6 (>= 2.34)",
+      "libstdc++6 (>= 11)",
+      "libatomic1",
+    ]);
+    expect(dependsOf(template, "rpm")).toEqual([
+      "libc.so.6(GLIBC_2.34)(64bit)",
+      "libstdc++.so.6(GLIBCXX_3.4.29)(64bit)",
+      "libatomic.so.1()(64bit)",
+    ]);
+  });
+
+  it("reads only a format's own depends list, not comments, suggests or a copy elsewhere", () => {
+    const template = [
+      "description: |-",
+      "  A copy of the block, as text:",
+      "  deb:",
+      "    depends:",
+      "      - decoy",
+      "overrides:",
+      "  deb:",
+      "    depends:",
+      "      - libc6",
+      "      # - libatomic1",
+      "    suggests:",
+      "      - caddy",
+      "  rpm:",
+      "    depends:",
+      "      - libc.so.6",
+      "after:",
+      "  deb:",
+      "    depends:",
+      "      - decoy",
+      "",
+    ].join("\n");
+    expect(dependsOf(template, "deb")).toEqual(["libc6"]);
+    expect(dependsOf(template, "rpm")).toEqual(["libc.so.6"]);
+    expect(dependsOf(template.replace("overrides:", "x-overrides:"), "deb")).toBeUndefined();
+    const twice = template.replace("    suggests:\n      - caddy", "    depends:\n      - libc6");
+    expect(dependsOf(twice, "deb")).toBeUndefined();
   });
 
   // dnf cuts each line a package script prints at 80 columns, its ">>> " prefix included.
