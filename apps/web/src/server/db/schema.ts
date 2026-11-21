@@ -527,7 +527,7 @@ export interface MailOutboxTable {
   attempts: number;
   next_attempt_at: Timestamp;
   /** While `sending`: until when the claim holds, and whose it is. */
-  claimed_until: Timestamp | null;
+  claim_expires_at: Timestamp | null;
   claim_id: string | null;
   /** A code's email is dropped past this, never sent late. */
   expires_at: Timestamp | null;

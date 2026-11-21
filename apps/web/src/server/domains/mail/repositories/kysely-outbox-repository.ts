@@ -58,7 +58,7 @@ export const kyselyOutboxRepository = (db: Db, dialect: DatabaseDialect) => {
           status: "queued",
           attempts: 0,
           next_attempt_at: at(row.nextAttemptAt),
-          claimed_until: null,
+          claim_expires_at: null,
           claim_id: null,
           expires_at: row.expiresAt ? at(row.expiresAt) : null,
           last_error: null,
@@ -114,7 +114,7 @@ export const kyselyOutboxRepository = (db: Db, dialect: DatabaseDialect) => {
           status: row.status,
           attempts: 1,
           next_attempt_at: at(row.at),
-          claimed_until: null,
+          claim_expires_at: null,
           claim_id: null,
           expires_at: null,
           last_error: row.lastError,
@@ -132,7 +132,7 @@ export const kyselyOutboxRepository = (db: Db, dialect: DatabaseDialect) => {
         .where((eb) =>
           eb.or([
             eb.and([eb("status", "=", "queued"), eb("next_attempt_at", "<=", at(now))]),
-            eb.and([eb("status", "=", "sending"), eb("claimed_until", "<", at(now))]),
+            eb.and([eb("status", "=", "sending"), eb("claim_expires_at", "<", at(now))]),
           ]),
         )
         .orderBy("next_attempt_at")
@@ -154,14 +154,14 @@ export const kyselyOutboxRepository = (db: Db, dialect: DatabaseDialect) => {
         .set((eb) => ({
           status: "sending",
           claim_id: claimId,
-          claimed_until: at(until),
+          claim_expires_at: at(until),
           attempts: eb("attempts", "+", 1),
         }))
         .where("id", "=", id)
         .where((eb) =>
           eb.or([
             eb.and([eb("status", "=", "queued"), eb("next_attempt_at", "<=", at(now))]),
-            eb.and([eb("status", "=", "sending"), eb("claimed_until", "<", at(now))]),
+            eb.and([eb("status", "=", "sending"), eb("claim_expires_at", "<", at(now))]),
           ]),
         )
         .executeTakeFirst();
@@ -215,7 +215,7 @@ export const kyselyOutboxRepository = (db: Db, dialect: DatabaseDialect) => {
               };
       const result = await db
         .updateTable("mail_outbox")
-        .set({ ...set, claim_id: null, claimed_until: null })
+        .set({ ...set, claim_id: null, claim_expires_at: null })
         .where("id", "=", id)
         .where("claim_id", "=", claimId)
         .where("status", "=", "sending")
@@ -232,7 +232,7 @@ export const kyselyOutboxRepository = (db: Db, dialect: DatabaseDialect) => {
           body_enc: null,
           last_error: "stopped",
           claim_id: null,
-          claimed_until: null,
+          claim_expires_at: null,
         })
         .where("status", "in", ["queued", "sending"])
         .executeTakeFirst();
@@ -261,7 +261,7 @@ export const kyselyOutboxRepository = (db: Db, dialect: DatabaseDialect) => {
           body_enc: null,
           last_error: "unreadable",
           claim_id: null,
-          claimed_until: null,
+          claim_expires_at: null,
         })
         .where("id", "=", id)
         .where("body_enc", "=", from)

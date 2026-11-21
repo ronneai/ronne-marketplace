@@ -274,7 +274,7 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
 - **Migration:** `mail_outbox` with columns
   - `id` (ULID), `template`, `locale`, `recipient_hmac`, `user_id` (nullable, no foreign key, so
     the row outlives a deleted user until it's purged);
-  - `body_enc` (nullable text), `status`, `attempts`, `next_attempt_at`, `claimed_until`,
+  - `body_enc` (nullable text), `status`, `attempts`, `next_attempt_at`, `claim_expires_at`,
     `claim_id` (whose claim it is: only its holder may end the try), `expires_at`, `last_error`;
   - `created_at` and `sent_at`.
 

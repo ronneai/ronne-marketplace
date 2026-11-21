@@ -33,7 +33,7 @@ export const mailOutbox: AppMigration = (dialect) => ({
       .addColumn("status", t.string(16), (c) => c.notNull())
       .addColumn("attempts", "integer", (c) => c.notNull().defaultTo(0))
       .addColumn("next_attempt_at", t.timestamp(), (c) => c.notNull())
-      .addColumn("claimed_until", t.timestamp())
+      .addColumn("claim_expires_at", t.timestamp())
       .addColumn("claim_id", t.id())
       .addColumn("expires_at", t.timestamp())
       .addColumn("last_error", t.string(32))
