@@ -105,7 +105,7 @@ possible, and follow the standards (owner, 2026-11-20).
   - **The `mail_outbox` job** runs every 30 seconds under the jobs lease (102), 50 rows at a time. It
     picks up what wasn't sent, the claims that ran out, and the retries.
   - **Retries:** after 1, 5, 15 and 60 minutes, then every 3 hours, for at most 8 attempts. SMTP
-    `5xx` and HTTP `4xx` other than `429` fail at once; `429` waits as long as `Retry-After` says.
+    `5xx` and HTTP `4xx` other than `408` and `429` fail at once (an SMTP `4xx`, at any stage, is retried); `429` waits as long as `Retry-After` says, in whole seconds or an HTTP date.
   - **A message can carry `expires_at`:** a code's email is dropped when its code has expired, never
     sent late.
   - **Queuing makes the answer take the same time** whether or not an email goes out, which 190 and

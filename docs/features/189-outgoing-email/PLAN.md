@@ -24,7 +24,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* `pnpm install --frozen-lockfile`, `pnpm licenses:check` and
     `pnpm audit --audit-level high` pass, and the checklist answers are in Notes.
 
-- [ ] **3. The transports.** [risky]
+- [x] **3. The transports.** [risky]
   - The `mail` domain: the `MailTransport` port and the message type, composed once with
     nodemailer's composer.
   - `smtp`: the TLS modes, required STARTTLS, verified certificates, the timeouts, and the host
@@ -137,3 +137,43 @@ goes into `SPEC.md` instead.
   **The version is 10.6.0, not 10.6.1.** 10.6.1 came out on 2026-11-20, inside the 3 days
   `minimumReleaseAge` holds back. Its changes are DKIM signing, its `fetch` helper's cookies and one
   new well-known service, none of which Ronne uses; Dependabot will offer it.
+- **Task 3, the web APIs (checked against the vendors' documentation on 2026-11-21).**
+  - **SES:** `POST /v2/email/outbound-emails` on `email.<region>.amazonaws.com`, `Content.Raw.Data`
+    base64, `Destination.ToAddresses`; `{ MessageId }` on 200. `TooManyRequestsException` (429) and
+    `ThrottlingException` (400, "the AWS SDKs automatically retry") are retried; `MessageRejected`,
+    `MailFromDomainNotVerifiedException` and the other 400s aren't. The pages didn't name the
+    SigV4 service: `ses` is the signing name AWS uses for SES v2, and the signer passes AWS's
+    published examples; the real sandbox test (an acceptance criterion) confirms it by hand.
+  - **Mailgun:** `POST /v3/<domain>/messages.mime`, multipart `to` and `message` (the MIME string
+    as a file), basic auth; `{ id, message }` on 200; 400, 401, 429 and 500 documented. The API
+    overview gives `https://api.mailgun.net/` for US domains and `https://api.eu.mailgun.net/` for
+    EU ones; the authentication page gives HTTP Basic with the user `api` and the key as the
+    password, and says a domain sending key may post to `/messages.mime`.
+  - **Postmark:** `POST https://api.postmarkapp.com/email`, `X-Postmark-Server-Token`, JSON
+    `From` (`"Name <address>"`), `To`, `ReplyTo`, `Subject`, `TextBody`, `HtmlBody`, `Headers`,
+    `MessageStream` (`outbound` by default); no raw MIME. Errors are `{ ErrorCode, Message }`: 422
+    for the request, 401 for the token, 429 for the rate, 500 and 503 (codes 100 and 101) for
+    Postmark's own trouble, which are retried.
+  - **Resend:** `POST https://api.resend.com/emails`, `Authorization: Bearer`, a `User-Agent`
+    required (403 without), JSON `from`, `to`, `reply_to`, `subject`, `text`, `html`, `headers`;
+    `{ id }` on 200. `Idempotency-Key` (up to 256 characters, kept 24 hours); 409
+    `concurrent_idempotent_requests` is retried, `invalid_idempotent_request` isn't; 429 comes
+    with `retry-after`.
+  - **SMTP tests** use an in-process fake (`domains/mail/testing/smtp-fake.ts`) and a self-signed
+    certificate `openssl` makes for each run, so `openssl` must be on the test machine (it is on
+    macOS and the CI runners).
+- **Task 3, what a provider's answer may show.** Root's test email shows the provider's answer
+  (`detail`). At SMTP's AUTH stage it shows only the reply's codes (`authentication refused (535
+  5.7.8)`): a careless server can echo the client's line back, the password in any encoding or
+  split over reply lines, and no list of encodings catches them all. Elsewhere the answer is
+  cleaned of every secret in the forms `secretForms` lists (raw, URL- and form-encoded,
+  JSON-escaped, base64 with and without padding, base64url, hex in either case). That holds for
+  every answer but AUTH's: the web APIs' bodies, SMTP's replies at the other stages, and
+  nodemailer's own messages. A secret in another encoding there (quoted-printable, an HTML
+  entity, double URL-encoding, upper case) or split across reply lines would get through; no
+  provider is known to echo a credential outside AUTH.
+- **Task 3, a server that answers STARTTLS with `454`.** It's retried, as every SMTP `4xx` is
+  (SPEC), so root's test email names a temporary server problem rather than TLS. A server that
+  says yes and then answers the client's handshake with plain text fails at once as TLS. One that
+  sends plain text together with its yes, before the client starts TLS, is read as a handshake
+  that never comes: retried as a timeout after the greeting timeout (10 seconds). Neither sends anything.
