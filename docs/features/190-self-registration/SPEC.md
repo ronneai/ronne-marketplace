@@ -48,8 +48,16 @@ and standards".
   - Compared in constant time (`timingSafeEqual`). Single use. Ends at the code lifetime.
   - 5 wrong tries end the code. Asking for a new one ends the previous one for the same purpose and
     subject. A new code can be asked for after 60 seconds, and at most 3 emails go to one address
-    for one purpose in an hour (counted from `email_codes` rows), under 189's outbox cap of 10
-    messages an hour to any one address.
+    for one purpose in an hour, under 189's outbox cap of 10 messages an hour to any one address.
+    Both limits are counted by 109's database-backed limiter before the transaction that issues
+    the code (`reserveEmailCodeSend`), all or nothing under row locks, so sends racing on several
+    replicas can't pass either window. Its windows are fixed, as for every limit 109 counts: an
+    hour starts at its window's first send. The stored codes are checked again to the second as
+    the code is issued, so sends one after another never pass 3 in any 60 minutes; sends racing
+    just as a window opens can reach 5 in 60 minutes, never more (and 189's cap of 10 stands
+    behind it). A code leaves the hour exactly 60 minutes after it was sent: "in any 60 minutes"
+    is a span that includes its last moment and not its first. The minute per subject holds
+    exactly, racing or not. A reserved send whose transaction then fails still counts.
 - **The sign-up page**, `/sign-up`, in the auth shell (`components/auth-shell/AuthShell.tsx`):
   - Name, email, password (the password rule in `identity/models/password.ts`, with a show button
     and no second password field), the terms checkbox when root set a link.
@@ -218,7 +226,9 @@ the check. Try again." Past the limits: "Too many tries. Wait a few minutes and 
 - **`terms_acceptances`:** user_id, version, accepted_at. One row per acceptance, never updated.
 - **`user`:** `approval_pending_at`, `signed_up_at`, both nullable.
 - **Settings keys:**
-  - `sign_up_enabled`, `sign_up_domains` (JSON: `"any"` or a list), `sign_up_approval`;
+  - `sign_up_enabled`, `sign_up_domains` (JSON: `"any"` or a list; only an absent key is `"any"`,
+    and a stored value that can't be read, an empty one included, is an empty list, which lets no
+    domain in), `sign_up_approval`;
   - `sign_up_block_throwaway`, `email_code_minutes`, `sign_up_challenge`;
   - `terms_url`, `terms_version`, `terms_required_version` (the version everyone must have
     accepted; it moves only when the box is ticked).

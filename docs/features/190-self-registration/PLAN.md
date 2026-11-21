@@ -18,10 +18,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* the three say what this spec says, and `pnpm witness:check` and `pnpm docs:check`
     pass.
 
-- [ ] **2. Migration and models.** [risky]
-  - One migration: `pending_sign_ups`, `email_codes`, `challenges_used`, `terms_acceptances`, the
-    two `user` columns, and the settings keys with their defaults (sign-up off, any domain, no
-    approval, throwaway domains blocked, 15 minutes, challenge on).
+- [x] **2. Migration and models.** [risky]
+  - One migration: `pending_sign_ups`, `email_codes`, `challenges_used`, `terms_acceptances` and the
+    two `user` columns. The settings keys with their defaults (sign-up off, any domain, no
+    approval, throwaway domains blocked, 15 minutes, challenge on) in a settings model that reads
+    an absent key as its default (see Notes).
   - The email-code model in the identity domain: generate, HMAC with the HKDF key, verify in
     constant time, the 5 tries, ending the previous code, the 60-second resend and the hourly cap.
   - *Done when:* the migration's db test passes on SQLite, PostgreSQL, MySQL and MariaDB
@@ -114,3 +115,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Task 2: the settings' defaults live in code, not in the migration.** `settings/models/sign-up-policy.ts` reads an absent key as its default (sign-up off, any domain, no approval, throwaway domains blocked, 15 minutes, challenge on), as 141's language policy does, so migration 0046 writes no `instance_settings` rows and a restore or an upgrade can't leave a stale default behind.
+- **Task 2: email codes are bound to their purpose and subject.** The HMAC covers `code:<purpose>:<subject>:<code>`, so a code for one sign-up never works for another; a new code ends the subject's earlier ones (`consumed_at`); a right answer and a wrong try each change the row only by a conditional update, so racing requests get one success and no more than five tries.
+- **For task 5: a listed domain is compared exactly, never as a pattern.** `sign_up_domains` reads `["any"]` as the domain `any` and `["*"]` as the domain `*` (only the JSON string `"any"` means every domain). The domain check must compare the address's domain to each listed one exactly, so neither ever works as a wildcard.

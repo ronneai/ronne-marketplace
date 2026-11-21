@@ -43,6 +43,7 @@ import { notificationWorkspaces } from "./0042_notification_workspaces";
 import { auditContext } from "./0043_audit_context";
 import { rateLimits } from "./0044_rate_limits";
 import { mailOutbox } from "./0045_mail_outbox";
+import { selfRegistration } from "./0046_self_registration";
 import type { AppMigration } from "./types";
 
 /**
@@ -95,4 +96,5 @@ export const migrations: Record<string, AppMigration> = {
   "0043_audit_context": auditContext,
   "0044_rate_limits": rateLimits,
   "0045_mail_outbox": mailOutbox,
+  "0046_self_registration": selfRegistration,
 };
