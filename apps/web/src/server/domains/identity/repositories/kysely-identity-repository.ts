@@ -10,6 +10,7 @@ import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import { kyselyOutboxRepository } from "../../mail/repositories/kysely-outbox-repository";
 import { isLocale, type Locale } from "../models/locale";
 import { isRole, isWorkspaceRole, type RootAccount, type UserSummary } from "../models/user";
 import type {
@@ -520,6 +521,18 @@ export const kyselyIdentityRepository = (
         .set({ secret_enc: secretEnc })
         .where("id", "=", id)
         .execute();
+    },
+
+    async mailBodies() {
+      return kyselyOutboxRepository(db, dialect).sealedBodies();
+    },
+
+    async setMailBody(id, from, to) {
+      return kyselyOutboxRepository(db, dialect).setBody(id, from, to);
+    },
+
+    async dropMailBody(id, from) {
+      return kyselyOutboxRepository(db, dialect).dropUnreadable(id, from);
     },
 
     async instanceSecrets() {

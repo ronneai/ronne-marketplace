@@ -24,6 +24,7 @@ export type UserDataSection =
   | "favorites"
   | "feedback"
   | "notifications"
+  | "emails"
   | "items"
   | "submissions"
   | "comments"
@@ -99,6 +100,17 @@ export type UserDataFeedback = {
   status: string;
   sentAt: Date;
   handledAt: Date | null;
+};
+
+/**
+ * An email Ronne sent or queued to the person (189): which one, when, and what became of it. Its
+ * address and body are gone once it was sent, failed or dropped, and never part of the download.
+ */
+export type UserDataEmail = {
+  template: string;
+  status: string;
+  queuedAt: Date;
+  sentAt: Date | null;
 };
 
 /**
@@ -185,6 +197,7 @@ export type UserData = {
   favorites: UserDataFavorite[];
   feedback: UserDataFeedback[];
   notifications: UserDataNotification[];
+  emails: UserDataEmail[];
   onboarding: UserDataOnboarding;
   items: UserDataItem[];
   submissions: UserDataSubmission[];

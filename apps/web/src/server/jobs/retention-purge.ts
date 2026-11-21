@@ -31,6 +31,8 @@ export type PurgeCounts = {
   notificationsDeleted: number;
   /** Rate limit counters whose window had ended, deleted (109). */
   rateLimitsDeleted: number;
+  /** Outbox rows older than the IP retention, whatever became of them, deleted (189). */
+  mailDeleted: number;
 };
 
 export type PurgeOptions = {
@@ -438,6 +440,32 @@ const deleteExpiredRateLimits = async (
   });
 };
 
+/**
+ * Deletes outbox rows (189) queued before the IP retention's cutoff: sent, failed, dropped or
+ * still waiting. A sent row keeps no address or body already; this removes the rest (its keyed
+ * hash, template and times). Oldest first, by `created_at` then `id`, as the other rules.
+ */
+const deleteOldMail = async (db: Db, dialect: DatabaseDialect, cutoff: Date, o: PurgeOptions) => {
+  const matching = (q: Db) =>
+    q.selectFrom("mail_outbox").where("created_at", "<", toDbDate(cutoff, dialect));
+  if (o.dryRun) return count(matching(db).select((eb) => eb.fn.countAll().as("n")));
+  return inBatches(o, () =>
+    db.transaction().execute(async (trx) => {
+      const ids = (
+        await matching(trx)
+          .select("id")
+          .orderBy("created_at")
+          .orderBy("id")
+          .limit(PURGE_BATCH)
+          .execute()
+      ).map((r) => r.id);
+      if (ids.length === 0) return 0;
+      const result = await trx.deleteFrom("mail_outbox").where("id", "in", ids).executeTakeFirst();
+      return Number(result.numDeletedRows);
+    }),
+  );
+};
+
 /** One purge at `now`, by `policy`. The rules run in the spec's order; each ends before the next. */
 export const runRetentionPurge = async (
   db: Db,
@@ -471,6 +499,7 @@ export const runRetentionPurge = async (
     deleteOldNotifications(db, dialect, cutoff.notifications, o),
   );
   const rateLimitsDeleted = await rule((o) => deleteExpiredRateLimits(db, dialect, now, o));
+  const mailDeleted = await rule((o) => deleteOldMail(db, dialect, cutoff.ip, o));
   return {
     ipsCleared: { auditLog, sessions, deviceGrants },
     emailsCleared,
@@ -479,5 +508,6 @@ export const runRetentionPurge = async (
     feedbackDeleted,
     notificationsDeleted,
     rateLimitsDeleted,
+    mailDeleted,
   };
 };

@@ -320,6 +320,22 @@ export const kyselyUserDataRepository = (
       }));
     },
 
+    async emails(userId, limit) {
+      const rows = await db
+        .selectFrom("mail_outbox")
+        .select(["template", "status", "created_at", "sent_at"])
+        .where("user_id", "=", userId)
+        .orderBy("id")
+        .limit(limit)
+        .execute();
+      return rows.map((row) => ({
+        template: row.template,
+        status: row.status,
+        queuedAt: fromDbDate(row.created_at),
+        sentAt: row.sent_at ? fromDbDate(row.sent_at) : null,
+      }));
+    },
+
     async onboarding(userId) {
       const row = await db
         .selectFrom("user_onboarding")

@@ -52,7 +52,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     refused; `audit-event.test.ts`
     knows the two actions.
 
-- [ ] **5. The outbox.** [risky]
+- [x] **5. The outbox.** [risky]
   - Migration `mail_outbox` (all three dialects).
   - Queuing inside a caller's transaction; the sealed body and `recipient_hmac`.
   - The claim; sending at once after the response; the `mail_outbox` job in the scheduler (every 30

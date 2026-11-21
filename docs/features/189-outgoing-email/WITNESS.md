@@ -300,3 +300,145 @@ Witnessed: 2026-11-21 10:58 EST, by a fresh agent (adversarial). Commit: 31dcdda
 | — | The suite passes on SQLite and one server | no | confirmed | `mail-setup.db.test.ts` 24/24 on SQLite and PostgreSQL |
 
 **Overall:** met. With re-check 1 (blind) met, both latest passes are met. Remark: the field messages are English in `errors.ts`; the Email tab (task 7) turns field codes into screen text in three languages.
+
+After the task 4 passes, before its commit: the pre-commit hook's `pnpm test` failed on `admin-untranslated.test.ts`, the five transport names (SMTP, Amazon SES, Mailgun, Postmark, Resend) reading the same in pt and fr; they were added to its `SAME` list as 136's provider names are. Not witnessed: a test allowlist for this task's own new words.
+
+## Task 5 — The outbox
+
+Witnessed: 2026-11-21 11:21 EST, by a fresh agent (blind). Commit: 9cca5739 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Migration `mail_outbox` has the spec's columns and four indexes, on all three dialects | no | confirmed | `0045_mail_outbox.ts:24-58`; `pnpm test:db:mysql src/server/db/` → 202 passed; the outbox tests migrate on PG, MySQL, MariaDB |
+| 2 | Queued in the caller's transaction: a rolled-back change queues nothing | no | confirmed | `queueMail` writes only through the `db` given; the rollback test passes on 4 databases |
+| 3 | Sealed body bound to the row; only an HMAC of the lowercased address in clear | no | confirmed | `models/outbox.ts:35-72`; no clear text in the row; the body won't open on another ID |
+| 4 | Each status reached and tested | no | confirmed | queued, sending, sent, failed, dropped; M2 (sent keeps `body_enc`) → fails |
+| 5 | Conditional claim: two connections never send one row; tested | no | partly | Code holds (probe, same ID, 1 send on PG); M1 (claim without its condition) → the repo's tests pass on PG |
+| 6 | Only the holder finishes; a claim that ran out is taken again | no | confirmed | `finish` checks `claim_id` and `sending`; test passes on 4 databases |
+| 7 | Retry schedule, 8 tries | no | confirmed | M8 (3 h→2 h) → fails |
+| 8 | Permanent error fails at once, body deleted | no | confirmed | test passes |
+| 9 | 429 waits for Retry-After | no | confirmed | M9 → fails |
+| 10 | An expired code's email dropped | no | confirmed | M7 → fails; `expiresAt = now` → dropped |
+| 11 | Cap of 10 an hour per address | no | partly | Sequential holds (M4 → fails); two concurrent transactions → 11 rows (PG, MySQL); rotate-secret resets the count |
+| 12 | No body left after sent, failed or dropped | no | confirmed | `finish` and `dropWaiting`; M2 fails |
+| 13 | The job every 30 s under the lease, 50 at a time | no | partly | Probe holds; no repo test of `runMailOutboxJob`, `MAIL_SCHEDULE` or the `startJobsIfOn` entry |
+| 14 | Sending at once; retries the scheduler's | no | partly | The kick shares the job lease (skipped during a run) and sends every due row, retries included; no test |
+| 15 | db tests pass on SQLite, PG, MySQL, MariaDB | no | confirmed | 43 on SQLite; 41 on each server |
+| 16 | Retention purges rows older than the IP days; counted in the CLI and Privacy tab | no | confirmed | M10 → 2 tests fail |
+| 17 | Erase deletes the person's rows | no | confirmed | M5 → fails; erase mid-send → `finish` changes nothing |
+| 18 | *Your data* lists template, time, status only | no | confirmed | M11 → fails |
+| 19 | rotate-secret re-seals; unreadable rows dropped and logged | no | partly | Re-seal holds (M6 → fails); an unreadable body is left in place |
+| 20 | `mail.*` events carry no address or body | no | confirmed | `events.ts` field lists; captured lines |
+| 21 | Sent to the queued address through the transport as it is at send time | no | confirmed | `deliverDue` builds `mailSender` per row |
+
+**Overall:** not met (rows 5, 11, 13, 14, 19).
+
+### Adversarial pass
+
+Witnessed: 2026-11-21 11:13 EST, by a fresh agent (adversarial). Commit: 9cca5739 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Migration on all three dialects | no | confirmed | 42/42 on each server |
+| 2 | Rolled-back transaction queues nothing | no | confirmed | test on 4 databases; P5, 10 open transactions on separate pools committed |
+| 3 | A body copied to another row doesn't open | no | confirmed | P6 → B dropped `unreadable` |
+| 4 | `recipient_hmac` keyed and lowercased; lookalikes refused | no | confirmed | P4; M6 → 2 tests fail |
+| 5 | At most 10 an hour | no | partly | Sequential holds; 10 concurrent transactions on 10 pools → 15 rows (PG, MySQL, MariaDB) |
+| 6 | Concurrent runs never send one row twice | no | partly | P1 holds (6 pools × 30 rows); M2 (claim's `where` removed) → tests pass on PG |
+| 7 | Only the holder finishes; a dead claimer changes nothing | no | partly | P2 holds; M1 (`claim_id` condition removed) → tests pass |
+| 8 | A process dying mid-try heals | no | confirmed | P8; a crashing try is never counted (loops until the purge) |
+| 9 | `mail_last_status` right | no | not met | P2: a dead run's late failure recorded `failing` after another run sent |
+| 10 | Retry schedule | no | confirmed | M5, M12 → fail |
+| 11 | Permanent errors and thrown sends fail at once | no | confirmed | P10; M11 → 4 fail |
+| 12 | 429 waits for Retry-After | no | confirmed | M13 → fails; a huge `waitSeconds` throws `Invalid time value` (the transports cap it today) |
+| 13 | `expires_at` | no | confirmed | P3; time zones; M4 (`<=`→`<`) survives |
+| 14 | Body deleted on every end | no | confirmed | M3, M11 → fail |
+| 15 | rotate-secret re-seals; unreadable dropped and logged | no | partly | Re-seal holds; P7, an unreadable body stays queued, unlogged |
+| 16 | Retention purge | no | confirmed | M10 → 5 fail |
+| 17 | Erase | no | confirmed | M7 → fails |
+| 18 | Data download | no | confirmed | M8 → fails |
+| 19 | `mail.*` events | no | confirmed | captured lines |
+| 20 | The job every 30 s under the lease | no | partly | J1 holds; M14 (mail tick a no-op) → passes |
+| 21 | Sending at once | no | partly | The kick has no caller or test; runs under the lease |
+| 22 | db tests on 4 databases | no | confirmed | all pass |
+
+**Overall:** not met (rows 5, 6, 7, 9, 15, 20, 21). Note: the probe `adv-job.db.test.ts` built the real Resend transport and likely made one HTTPS request with a dummy key and `a@example.com`.
+
+Fixes after both passes: only the claim's holder ends a row or writes the status; a try is counted at claim, and a row cut off 8 times fails `interrupted`; the kick sends only the rows handed to it, outside the lease; Retry-After counts up to a day; rotate-secret drops and counts unreadable bodies (result, CLI, audit); tests for each. The cap stays counted, not locked: the spec now says it can be passed by racing queues and that rotate-secret restarts its count (an implementer's decision, raised with the owner).
+
+### Re-check (blind)
+
+Witnessed: 2026-11-21 11:34 EST, by a fresh agent (blind). Commit: 9cca5739 + working-tree diff. Machine: macOS 27.2.1, Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Migration columns and indexes | no | confirmed | `0045_mail_outbox.ts:26-58`; 4 databases |
+| 2 | Caller's transaction | no | confirmed | test and probe on SQLite, PG, MySQL |
+| 3 | Sealed body, keyed hash | no | confirmed | P6 (no lowercase) → 2 fail |
+| 4 | Conditional claim, `claim_id`, holder only | no | confirmed | M2b → fails "two connections…"; M9 → fails "only the claim's holder…" |
+| 5 | Each status; body deleted on sent, failed, dropped | no | confirmed | M1 → 2 fail; M8 → 4 fail |
+| 6 | Schedule, 8 tries counted at claim, `interrupted` | no | confirmed | M7 → fails; probe 8 sends then failed |
+| 7 | Permanent error | no | confirmed | M6 → fails |
+| 8 | 429, up to a day | no | confirmed | M4 → fails |
+| 9 | `expires_at` | no | confirmed | M5 → 2 fail |
+| 10 | Cap | no | confirmed | M3 → fails; probe |
+| 11 | Kick: handed rows only, outside the lease, with RONNE_JOBS=off, folding | no | confirmed | `scheduler.test.ts` batches `[["a"],["b","c"]]` |
+| 12 | The job every 30 s under the lease, off with RONNE_JOBS=off | no | confirmed | `scheduler.test.ts`; lease behaviour by probe only |
+| 13 | rotate-secret re-seals, drops and counts | no | confirmed | P4 → 2 fail; P5 → fails |
+| 14 | Retention, erase, data download | no | confirmed | P1, P2, P3 → fail |
+| 15 | db tests on 4 databases | no | confirmed | SQLite 779; 98/98 on each server |
+| 16 | `mail.*` events | no | confirmed | PG and MySQL lines |
+
+**Overall:** met. Remark: no repo test pins the job's lease behaviour.
+
+### Re-check (adversarial)
+
+Witnessed: 2026-11-21 11:29 EST, by a fresh agent (adversarial). Commit: 9cca5739 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Only the holder ends a row or writes the status | no | confirmed | Mfinish, Mstatus → fail on SQLite and a server |
+| 2 | Counted at claim; `interrupted` after 8 | no | confirmed | P3 on 4 databases; Mclaiminc → 3 fail; Minterr → fails |
+| 3 | The kick | no | partly | Code holds; a RONNE_JOBS check added to `sendMailNow` → 12/12 pass (the test stubs `run`) |
+| 4 | The mail tick at 30 s, not with RONNE_JOBS=off | no | confirmed | Mfirst, Mevery, Mnostart → fail |
+| 5 | Retry-After up to a day; NaN safe | no | partly | P2 on 4 databases; `DAY_S = 60*60` → passes |
+| 6 | rotate-secret drops and counts (result, CLI, audit) | no | partly | Result pinned; dropping `mailDropped` from the audit → passes; no test of the CLI lines |
+| 7 | Two connections, same ID, sent once | no | confirmed | Mclaim → fails on PG and MySQL; P5 |
+| 8 | The expiry boundary | no | confirmed | Mexp → fails |
+| 9 | The cap documented honestly | no | confirmed | SPEC lines 126-133 and the docblock |
+| 10 | Attempts in each end path | no | confirmed | P3 |
+| 11 | Data download, purge, erase | no | confirmed | Mexport2, Merase, Mpurge → fail |
+| 12 | No address or body in a row, log or audit | no | confirmed | P4, P1 |
+
+**Overall:** not met (rows 3, 5, 6): no behavioural bug. Remark: the last status is last-writer-wins across rows.
+
+Fixes after the re-checks: tests run the real `sendMailNow` with RONNE_JOBS=off, check the day's wait to the second, the mail counts in the audit metadata, and the CLI lines. Each mutation above now fails a test.
+
+### Re-check 2 (adversarial)
+
+Witnessed: 2026-11-21 11:47 EST, by a fresh agent (adversarial). Commit: 9cca5739 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `sendMailNow` runs with RONNE_JOBS=off, and a test fails if it refuses | no | confirmed | Three refusals in `sendMailNow` and one in `kickMailOutbox` → each fails a test |
+| 2 | Retry-After counts up to exactly one day | no | confirmed | `DAY_S` −1 s, +1 s, 12 h, 48 h, `Math.min` removed → each fails "waits at most a day…" |
+| 3a | `mailResealed` and `mailDropped` reach the audit metadata | no | partly | Removing either fails; `{ mailDropped: mailResealed }` passes (1 and 1 in the test) |
+| 3b | The CLI's mail lines, counts and plurals | no | partly | Probe right for 1/3 and 0/0; four plural mutations pass (the test checks one form of each) |
+| 4 | The `test` option on `sendMailNow` isn't reachable in a way that matters | no | confirmed | Callers grep; the kick passes two arguments; no `"use server"` |
+| 5 | Mail folder on SQLite and one server | no | confirmed | 163 passed; PG 49 passed |
+
+**Overall:** not met (rows 3a, 3b): test gaps only.
+
+Fixes after re-check 2: the rotate-secret test has 2 re-sealed and 1 dropped and checks `{ mailResealed: 2, mailDropped: 1 }`; the CLI test adds 1 re-sealed and 2 dropped, checking both singular and plural lines. Rerun by the implementer: `{ mailDropped: mailResealed }` and the four plural mutations each fail a test; files restored and `cmp`-checked.
+
+### Re-check 3 (adversarial)
+
+Witnessed: 2026-11-21 12:32 EST, by a fresh agent (adversarial, a third round at the owner's request). Commit: 9cca5739 + working-tree diff. Machine: macOS (Darwin 27.2.0), Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3a | rotate-secret's `mailResealed` and `mailDropped` reach the audit metadata with the right values | no | confirmed | `instance-access.ts:165-186`; 5 mutations (swap, remove each, drop counted as re-seal, +1 in the audit only) → each fails "drops and counts, on rotate-secret…" (1 failed, 24 passed) |
+| 3b | The CLI's queued-email lines: counts, wording, plurals | no | confirmed | `rotate-secret.ts:224-230`; 11 mutations (each of the 8 plural forms, both counts swapped, `> 0`→`> 1`) → each fails "says how many queued emails…" (1 failed, 26 passed) |
+| 3c | Both test files pass on SQLite; `outbox.db.test.ts` on PostgreSQL | no | confirmed | SQLite 52 passed; PostgreSQL 25 passed; `git status` unchanged |
+
+**Overall:** met. With re-check (blind) met, both latest passes are met.

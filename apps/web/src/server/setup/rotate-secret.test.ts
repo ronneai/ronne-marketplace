@@ -110,6 +110,23 @@ describe("runRotateSecret (098)", () => {
     expect(lines.join("\n")).not.toContain("Re-encrypted");
   });
 
+  it("says how many queued emails were re-encrypted, and how many were dropped (189)", async () => {
+    database.counts = { mailResealed: 2, mailDropped: 1 };
+    await rotate({ RONNE_RUNTIME: "docker" });
+    expect(lines.join("\n")).toContain("Re-encrypted 2 queued emails: they go out as planned.");
+    expect(lines.join("\n")).toContain(
+      "1 queued email was already unreadable (an older AUTH_SECRET) and won't be sent: it was dropped.",
+    );
+
+    lines = [];
+    database.counts = { mailResealed: 1, mailDropped: 2 };
+    await rotate({ RONNE_RUNTIME: "docker" });
+    expect(lines.join("\n")).toContain("Re-encrypted 1 queued email: it goes out as planned.");
+    expect(lines.join("\n")).toContain(
+      "2 queued emails were already unreadable (an older AUTH_SECRET) and won't be sent: they were dropped.",
+    );
+  });
+
   it("a database failing after the file is written: says so, with the host's commands", async () => {
     database.fails = true;
     await expect(rotate({ RONNE_RUNTIME: "docker" })).rejects.toThrow(

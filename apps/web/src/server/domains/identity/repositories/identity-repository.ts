@@ -131,6 +131,12 @@ export interface IdentityRepository {
    * back to the old one. False when it changed.
    */
   setInstanceSecret(key: string, from: string, to: string): Promise<boolean>;
+  /** The queued emails' sealed bodies (189), for rotate-secret. */
+  mailBodies(): Promise<{ id: string; bodyEnc: string }[]>;
+  /** Writes a body re-sealed under the new secret, only over the value read. */
+  setMailBody(id: string, from: string, to: string): Promise<boolean>;
+  /** Drops a queued email whose body can't be read, only over the value read. */
+  dropMailBody(id: string, from: string): Promise<boolean>;
   /** Ends every session on the instance; returns how many. */
   deleteAllSessions(): Promise<number>;
   /** Revokes every token not revoked yet, everyone's; returns how many. */

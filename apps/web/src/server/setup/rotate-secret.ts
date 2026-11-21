@@ -145,6 +145,8 @@ export const runRotateSecret = async (options: {
     let unreadable: number;
     let settingSecrets: number;
     let settingUnreadable: number;
+    let mailResealed: number;
+    let mailDropped: number;
     try {
       ({
         sessions,
@@ -153,6 +155,8 @@ export const runRotateSecret = async (options: {
         unreadable,
         settingSecrets,
         settingUnreadable,
+        mailResealed,
+        mailDropped,
       } = await endSessionsForNewSecret(
         db,
         dialect,
@@ -216,6 +220,14 @@ export const runRotateSecret = async (options: {
     if (settingUnreadable > 0)
       prompts.log.warn(
         `${settingUnreadable} ${settingUnreadable === 1 ? "secret" : "secrets"} in Admin › Settings ${settingUnreadable === 1 ? "was" : "were"} already unreadable (an older AUTH_SECRET): enter ${settingUnreadable === 1 ? "it" : "them"} again there, such as the security scan's API key.`,
+      );
+    if (mailResealed > 0)
+      prompts.log.info(
+        `Re-encrypted ${mailResealed} queued ${mailResealed === 1 ? "email" : "emails"}: ${mailResealed === 1 ? "it goes" : "they go"} out as planned.`,
+      );
+    if (mailDropped > 0)
+      prompts.log.warn(
+        `${mailDropped} queued ${mailDropped === 1 ? "email was" : "emails were"} already unreadable (an older AUTH_SECRET) and won't be sent: ${mailDropped === 1 ? "it was" : "they were"} dropped.`,
       );
     prompts.log.info("Access tokens keep working; to revoke them too, run revoke-access.");
     return { sessions, twoFactorCleared };

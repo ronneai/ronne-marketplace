@@ -512,6 +512,31 @@ export interface PluginFeedTable {
   warned_revision: number | null;
 }
 
+/** A queued, sent or failed email (migration 0045, 189). The body is sealed, and gone once done. */
+export interface MailOutboxTable {
+  id: string;
+  template: string;
+  locale: string;
+  /** HMAC-SHA256 of the lowercased address (`mail/models/outbox.ts`): never the address. */
+  recipient_hmac: string;
+  user_id: string | null;
+  /** The address, subject and bodies, sealed; null once the message is sent, failed or dropped. */
+  body_enc: string | null;
+  /** `queued`, `sending`, `sent`, `failed` or `dropped`. */
+  status: string;
+  attempts: number;
+  next_attempt_at: Timestamp;
+  /** While `sending`: until when the claim holds, and whose it is. */
+  claimed_until: Timestamp | null;
+  claim_id: string | null;
+  /** A code's email is dropped past this, never sent late. */
+  expires_at: Timestamp | null;
+  /** The reason category of the last error. */
+  last_error: string | null;
+  created_at: Timestamp;
+  sent_at: Timestamp | null;
+}
+
 /** A rate limit's counter (migration 0044, 109): one limit and key, as a keyed hash. */
 export interface RateLimitTable {
   /** HMAC-SHA256 of the limit's name and the key, hex (`rate-limit/key-hash.ts`). */
@@ -728,6 +753,7 @@ export interface Database {
   audit_log: AuditLogTable;
   jobs: JobTable;
   rate_limits: RateLimitTable;
+  mail_outbox: MailOutboxTable;
   workspaces: WorkspaceTable;
   workspace_members: WorkspaceMemberTable;
   identity_providers: IdentityProviderTable;

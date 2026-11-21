@@ -105,12 +105,20 @@ possible, and follow the standards (owner, 2026-11-20).
     message is sent, fails for good or is dropped. A code (190, 194, 197) is therefore never stored
     in clear, and never kept after it's sent.
   - **Sending at once:** after the response is sent, the server tries the message straight away, so a
-    person waiting for a code gets it in seconds. A run claims rows with a conditional update
-    (`queued` → `sending`, with a two-minute claim), so two replicas never send one row at once.
+    person waiting for a code gets it in seconds. That try takes only the rows the request queued,
+    outside the jobs lease, so a scheduled run in progress doesn't hold it up; kicks during a try
+    join the next turn of it. Every run claims rows with a conditional update (`queued` →
+    `sending`, with a two-minute claim and a `claim_id`), so two replicas never send one row at
+    once, and only the claim's holder ends the try or records the setup's status.
+  - **With `RONNE_JOBS=off`:** the try straight after the change still runs; the retries are the
+    scheduler's, so a message that fails its first try waits until the scheduler runs again.
   - **The `mail_outbox` job** runs every 30 seconds under the jobs lease (102), 50 rows at a time. It
     picks up what wasn't sent, the claims that ran out, and the retries.
-  - **Retries:** after 1, 5, 15 and 60 minutes, then every 3 hours, for at most 8 attempts. SMTP
-    `5xx` and HTTP `4xx` other than `408` and `429` fail at once (an SMTP `4xx`, at any stage, is retried); `429` waits as long as `Retry-After` says, in whole seconds or an HTTP date.
+  - **Retries:** after 1, 5, 15 and 60 minutes, then every 3 hours, for at most 8 attempts. A try is
+    counted when it's claimed, so one cut off before it ends (the process died) counts too; a row
+    cut off 8 times fails as `interrupted`, unsent. SMTP `5xx` and HTTP `4xx` other than `408` and
+    `429` fail at once (an SMTP `4xx`, at any stage, is retried); `429` waits as long as
+    `Retry-After` says, in whole seconds or an HTTP date, up to a day.
   - **A message can carry `expires_at`:** a code's email is dropped when its code has expired, never
     sent late.
   - **Queuing makes the answer take the same time** whether or not an email goes out, which 190 and
@@ -119,6 +127,10 @@ possible, and follow the standards (owner, 2026-11-20).
   together. Messages over it are dropped and logged. Each feature's own limits (190's three a
   purpose an hour) sit below it, counted by 109's limiter in the database. The cap counts the
   outbox's own rows instead, which every replica sees: it limits messages, whatever queued them.
+  It's counted, not locked, because it runs inside the caller's transaction, where a lock could
+  deadlock and undo the caller's change: messages queued in the same instant can pass it by as
+  many as race. It guards against a flood; the exact limits are 109's. The hash is keyed from
+  AUTH_SECRET, so `rotate-secret` starts the hour's count again.
 - **Templates** in `apps/web/messages/<locale>/mail.json`, in the three languages (129, the i18n
   tests checking keys and placeholders). Each message is:
   - plain text plus simple HTML: inline styles, no remote images, no tracking, no unsubscribe link;
@@ -150,7 +162,8 @@ possible, and follow the standards (owner, 2026-11-20).
   the outbox ID, template, transport and reason category, never an address or a body. 101's
   metrics count them.
 - **Personal data:**
-  - **Retention** (102) purges outbox rows after the IP-address days (90 by default).
+  - **Retention** (102) purges outbox rows after the IP-address days (90 by default), counted as
+    `mailDeleted` on the Privacy tab's last run, in `rmk-server purge` and in `job.finished`.
   - **Erase** (103) deletes the person's rows.
   - **Your data** (104) lists the emails sent to the person (template, time, status). Their bodies
     are already gone.
@@ -203,7 +216,8 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
 - **Root changes the transport while messages are queued:** each message is sent through the
   transport set at the time it's sent.
 - **`rotate-secret`:** it re-seals the settings, as for 136, and the queued `body_enc` values.
-  Rows it can't open are dropped and logged.
+  Rows it can't open are dropped, their body deleted, and counted: in its output, and as
+  `mailDropped` in the `instance.secret_rotated` audit row (`mailResealed` for the rest).
 - **A secret can't be opened** (the settings file was replaced): the status says *Failing:
   credentials can't be read, replace them*. Nothing is sent.
 - **Two replicas:** the conditional claim stops a row from being sent twice in the normal case. A
@@ -229,11 +243,11 @@ attempt, or at once on a permanent error such as `535 authentication failed`.
   - `id` (ULID), `template`, `locale`, `recipient_hmac`, `user_id` (nullable, no foreign key, so
     the row outlives a deleted user until it's purged);
   - `body_enc` (nullable text), `status`, `attempts`, `next_attempt_at`, `claimed_until`,
-    `expires_at`, `last_error`;
+    `claim_id` (whose claim it is: only its holder may end the try), `expires_at`, `last_error`;
   - `created_at` and `sent_at`.
 
-  It's indexed on `(status, next_attempt_at)` and `(recipient_hmac, created_at)`. One migration for
-  all three databases.
+  It's indexed on `(status, next_attempt_at)`, `(recipient_hmac, created_at)`, `(user_id, id)` and
+  `(created_at, id)`. One migration for all three databases.
 - **`instance_settings` keys:** `mail_transport`, `mail_from_address`, `mail_from_name`,
   `mail_smtp_host`, `mail_smtp_port`, `mail_smtp_tls`, `mail_smtp_user`, `mail_smtp_password_enc`,
   `mail_api_key_enc`, `mail_region`, `mail_domain`, `mail_ses_access_key_id`,

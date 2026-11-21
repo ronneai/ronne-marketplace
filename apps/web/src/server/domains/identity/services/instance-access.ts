@@ -114,6 +114,8 @@ export const endSessionsForNewSecret = async (
   rekey?: (providerId: string, stored: string) => string | null,
   /** The same for the instance settings holding a secret (136), by setting key. */
   rekeySetting?: (key: string, stored: string) => string | null,
+  /** The same for the queued emails' bodies (189), by outbox row. */
+  rekeyMailBody?: (id: string, stored: string) => string | null,
 ): Promise<{
   sessions: number;
   twoFactorCleared: number;
@@ -122,6 +124,9 @@ export const endSessionsForNewSecret = async (
   unreadable: number;
   /** Instance setting secrets the old key couldn't read: they stay, and stay unreadable. */
   settingUnreadable: number;
+  /** Queued emails re-sealed (189), and those whose body the old key couldn't read, dropped. */
+  mailResealed: number;
+  mailDropped: number;
 }> => {
   const now = (deps.now ?? (() => new Date()))();
   return deps.repo.transaction(async (repo) => {
@@ -155,6 +160,17 @@ export const endSessionsForNewSecret = async (
         if (done) settingSecrets++;
         else if (current !== null) settingUnreadable++;
       }
+    // The queued emails' bodies (189), written only over the value read, as above. One the old
+    // key can't open would never go: it's dropped, its body deleted, and counted.
+    let mailResealed = 0;
+    let mailDropped = 0;
+    if (rekeyMailBody)
+      for (const { id, bodyEnc } of await repo.mailBodies()) {
+        const next = rekeyMailBody(id, bodyEnc);
+        if (next === null) {
+          if (await repo.dropMailBody(id, bodyEnc)) mailDropped++;
+        } else if (await repo.setMailBody(id, bodyEnc, next)) mailResealed++;
+      }
     await repo.recordAudit(
       {
         actorId: null,
@@ -166,6 +182,8 @@ export const endSessionsForNewSecret = async (
           ...(twoFactorCleared > 0 ? { twoFactorCleared } : {}),
           ...(providerSecrets > 0 ? { providerSecretsReencrypted: providerSecrets } : {}),
           ...(settingSecrets > 0 ? { settingSecretsReencrypted: settingSecrets } : {}),
+          ...(mailResealed > 0 ? { mailResealed } : {}),
+          ...(mailDropped > 0 ? { mailDropped } : {}),
         },
       },
       now,
@@ -178,6 +196,8 @@ export const endSessionsForNewSecret = async (
       settingSecrets,
       unreadable,
       settingUnreadable,
+      mailResealed,
+      mailDropped,
     };
   });
 };

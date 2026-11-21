@@ -387,6 +387,7 @@ const counts = (n: number) => ({
   feedbackDeleted: n,
   notificationsDeleted: n,
   rateLimitsDeleted: n,
+  mailDeleted: n,
 });
 const lastRun = (locale: L, n: number) =>
   render(

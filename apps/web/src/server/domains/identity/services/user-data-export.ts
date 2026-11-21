@@ -112,6 +112,7 @@ export const exportUserData = async (
           };
         },
       );
+      const emails = list("emails", await repo.emails(userId, ask));
       const onboarding = await repo.onboarding(userId);
       const found = await repo.items(userId, ask);
       const items = [];
@@ -153,6 +154,7 @@ export const exportUserData = async (
         favorites,
         feedback,
         notifications,
+        emails,
         onboarding,
         items,
         submissions,

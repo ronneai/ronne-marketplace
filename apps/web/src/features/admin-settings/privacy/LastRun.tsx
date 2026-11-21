@@ -36,6 +36,8 @@ export const LastRun = ({ status }: { status: RetentionJobView }) => {
       notifications: n(c.notificationsDeleted ?? 0),
       // Nor, before 109, this one.
       rateLimits: n(c.rateLimitsDeleted ?? 0),
+      // Nor, before 189, this one.
+      mail: n(c.mailDeleted ?? 0),
     });
   }
   return (
