@@ -1,4 +1,4 @@
-import type { Kysely, SelectQueryBuilder } from "kysely";
+import { type Kysely, type SelectQueryBuilder, sql } from "kysely";
 import type { DatabaseDialect } from "./url";
 
 /**
@@ -19,6 +19,35 @@ export const forUpdate = <DB, TB extends keyof DB, O>(
  */
 export const readCommittedTransaction = <DB>(db: Kysely<DB>, dialect: DatabaseDialect) =>
   dialect === "sqlite" ? db.transaction() : db.transaction().setIsolationLevel("read committed");
+
+/**
+ * A transaction that reads rows and then writes them (109's counters): READ COMMITTED with
+ * `forUpdate` on PostgreSQL, MySQL and MariaDB, and `BEGIN IMMEDIATE` on SQLite. A deferred SQLite
+ * transaction that reads first and writes second fails at once with SQLITE_BUSY when another
+ * process (an `rmk-server` command, a second server on the same file) wrote meanwhile: the busy
+ * timeout only covers waiting for the lock, never a snapshot gone stale. Taking the write lock at
+ * BEGIN makes that process wait out the timeout instead. Within one process, Kysely's SQLite
+ * connection already runs one transaction at a time, so `work` uses `trx` only: calling
+ * `writeTransaction` or `db.transaction()` on the same SQLite `db` inside it waits for ever.
+ */
+export const writeTransaction = async <DB, T>(
+  db: Kysely<DB>,
+  dialect: DatabaseDialect,
+  work: (trx: Kysely<DB>) => Promise<T>,
+): Promise<T> => {
+  if (dialect !== "sqlite") return readCommittedTransaction(db, dialect).execute(work);
+  return db.connection().execute(async (conn) => {
+    await sql`begin immediate`.execute(conn);
+    try {
+      const result = await work(conn);
+      await sql`commit`.execute(conn);
+      return result;
+    } catch (error) {
+      await sql`rollback`.execute(conn).catch(() => {});
+      throw error;
+    }
+  });
+};
 
 /**
  * Whether the database chose this transaction to end a deadlock: PostgreSQL's `40P01`, MySQL's and

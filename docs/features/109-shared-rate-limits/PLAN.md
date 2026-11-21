@@ -18,7 +18,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* MVP.md and the index say what this spec says, and `pnpm witness:check` and
     `pnpm docs:check` pass.
 
-- [ ] **2. The table and the store.** [risky]
+- [x] **2. The table and the store.** [risky]
   - Migration `0044_rate_limits` (all three dialects) and its type in `db/schema.ts`.
   - `apps/web/src/server/rate-limit/`:
     - the `RateLimiter` port (`consume`, `check`, `record`, `release`, all async) and
@@ -28,7 +28,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     - the memory store, with today's rules;
     - the keyed hash.
   - *Done when:* db tests, on SQLite and on the servers (`pnpm test:db:up`), show:
-    - 20 concurrent attempts over two pools allow exactly 5;
+    - 20 concurrent attempts allow exactly 5 (over two pools on the servers, one on SQLite, where
+      another process waits for the file's lock);
     - a refused attempt counts nothing;
     - a window ending starts the count over;
     - `release`, and `check` with `record`;
@@ -85,3 +86,13 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Task 2, SQLite and two pools.** A deferred SQLite transaction that reads and then writes fails
+  at once with `SQLITE_BUSY` when another connection wrote in between: the busy timeout covers
+  waiting for the lock, not a stale snapshot. `writeTransaction` starts with `BEGIN IMMEDIATE`.
+  Two pools in one process still can't overlap transactions (better-sqlite3 blocks the process
+  while it waits), so the SQLite tests run concurrency on one pool, and a raw second connection
+  shows the lock is held from the start.
+- **Task 2, the isolation level.** No test tells `READ COMMITTED` from MySQL's `REPEATABLE READ`
+  here: `FOR UPDATE` reads the latest committed row at either level. It's kept to match the other
+  locking code (`db/locks.ts`).

@@ -66,17 +66,26 @@ Only where the count lives changes.
   they do now.
 - **Several limits at once.** One `consume` can name keys under different limits: the `/device`
   page's per-IP and per-person limits. All of them are counted, or none.
-- **Atomic across replicas.** A `consume` runs in one transaction:
-  1. it makes each missing row, ignoring a row another transaction made first (PostgreSQL and
-     SQLite `ON CONFLICT DO NOTHING`, MySQL and MariaDB `INSERT IGNORE`);
-  2. it locks the rows in key order (`forUpdate`; SQLite runs writers one at a time);
-  3. it decides, then writes the new counts.
+- **Atomic across replicas.** A `consume` locks its rows and decides in one transaction
+  (`writeTransaction` in `db/locks.ts`):
+  1. it locks the rows in key order (`forUpdate`, a locking read, which sees the latest committed
+     row), so two attempts can't deadlock each other;
+  2. it decides, then writes the new counts, and commits.
 
-  On MySQL and MariaDB the transaction is `READ COMMITTED` (`readCommittedTransaction`), so the
-  decision sees what the transaction it waited for committed. Locking in key order means two
-  attempts can't deadlock each other. If the database still ends a deadlock, the whole `consume`
-  runs again (`retryOnDeadlock`). However many requests arrive at once, on however many replicas, at
-  most `max` of them are allowed in a window.
+  A row that doesn't exist yet can't be locked. Then the transaction ends without writing, the
+  missing rows are made in a statement of their own, ignoring a row another attempt made first
+  (PostgreSQL and SQLite `ON CONFLICT DO NOTHING`, MySQL and MariaDB `INSERT IGNORE`), and the
+  transaction runs again. The same happens when the purge deleted a row in between.
+
+  On PostgreSQL, MySQL and MariaDB the transaction is `READ COMMITTED` (`readCommittedTransaction`),
+  as Ronne's other locking code is; the locking read is what makes the decision see the attempt it
+  waited for. On SQLite it starts with `BEGIN IMMEDIATE`, taking the file's write lock first, so
+  another process writing to the file (an `rmk-server` command) makes it wait out the busy timeout
+  instead of failing with `SQLITE_BUSY`. If the database still ends a deadlock, the whole
+  transaction runs again (`retryOnDeadlock`). However many requests arrive at once, on however many
+  replicas, at most `max` of them are allowed in a window.
+- **Limit names** are lower-case letters, digits and hyphens, checked when a limiter is made, so a
+  name can't run into the key after it in the hash.
 - **A window that has ended starts over** on the next attempt: the row's window restarts at that
   attempt, with a count of 1.
 - **The keys are keyed hashes,** never the email, the IP address or the account ID. A row's key is
@@ -95,8 +104,12 @@ Only where the count lives changes.
 
 ## Edge cases
 
-- **Many attempts at once:** 20 at the same moment with a limit of 5, across two connection pools
-  on the same database, allow exactly 5.
+- **Many attempts at once:** 20 at the same moment with a limit of 5 allow exactly 5: across two
+  connection pools on PostgreSQL, MySQL and MariaDB, and through the one pool a process has on
+  SQLite. On SQLite, another process writing the same file (an `rmk-server` command) waits out the
+  busy timeout, up to 5 seconds, blocking the server meanwhile, as better-sqlite3 does. Two pools
+  in one process can't take turns on a SQLite file, and Ronne never opens two; replicas need
+  PostgreSQL, MySQL or MariaDB.
 - **A window ends while an attempt waits for the lock:** the attempt decides with the time it read
   when it started. At worst it's refused, or counted in the old window, a moment before that window
   would have ended; it's never allowed past a full window.
@@ -143,8 +156,9 @@ passed, in batches of `PURGE_BATCH`, under the job's lease.
 
 1. Every limiter in the Scope table counts in `rate_limits` in the running app, with the same
    limits, windows, keys and answers as before.
-2. Twenty concurrent `consume` calls with a limit of 5, spread over two connection pools, allow
-   exactly 5, on SQLite, PostgreSQL, MySQL and MariaDB.
+2. Twenty concurrent `consume` calls with a limit of 5 allow exactly 5: spread over two connection
+   pools on PostgreSQL, MySQL and MariaDB, and on one pool on SQLite, where another process holding
+   the file's write lock makes an attempt wait rather than fail.
 3. A refused attempt counts against none of its keys, and waiting out the window lets the next one
    through.
 4. The `/device` page's two limits are counted together or not at all.
