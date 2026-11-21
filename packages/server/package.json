@@ -46,7 +46,7 @@
     "better-sqlite3": "13.2.0"
   },
   "engines": {
-    "node": ">=22.12"
+    "node": "^22.14.0 || >=23.6.0"
   },
   "os": [
     "darwin",

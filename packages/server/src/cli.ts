@@ -133,7 +133,7 @@ export const scriptArgs = (script: Script, args: string[], cwd: string): string[
   return out;
 };
 
-export const HELP = `rmk-server: run Ronne AI Marketplace on this machine (Node.js 22.12 or later).
+export const HELP = `rmk-server: run Ronne AI Marketplace on this machine (Node.js 22.14 or later).
 
 Usage:
   rmk-server [start] [--port N] [--host H] [--no-open]

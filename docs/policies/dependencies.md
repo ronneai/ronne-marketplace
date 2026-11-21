@@ -37,7 +37,7 @@ install process runs.
 
   | Component | Target | Minimum supported |
   |---|---|---|
-  | Node.js | Newest **Active LTS**: 24 today (development, CI, Docker image) | Oldest LTS still receiving security fixes: 22 until its end of life in April 2027. Then the minimum moves to 24. |
+  | Node.js | Newest **Active LTS**: 24 today (development, CI, Docker image) | Oldest LTS still receiving security fixes: 22 until its end of life in April 2027, from 22.14.0, the first 22.x with N-API 10, which `better-sqlite3` needs ([#315](../issues/315-node-22-14-minimum/SPEC.md); on the odd line 23, 23.6.0). `MIN_NODE` and `engines` say the same. Then the minimum moves to 24. |
   | Databases | The versions in [feature 004](../features/004-ci-db-matrix/SPEC.md), all still maintained upstream | — |
   | Docker base | `node:<target LTS>-slim` on the current Debian stable | — |
   | pnpm | Latest stable, pinned in `packageManager` | — |

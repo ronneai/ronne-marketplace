@@ -173,7 +173,7 @@ before running `sudo`.
 
 ### With Node.js, no clone
 
-With Node.js 22.12 or later, one command downloads and starts Ronne, with no clone, no Docker and
+With Node.js 22.14 or later, one command downloads and starts Ronne, with no clone, no Docker and
 no build:
 
 ```sh
@@ -296,7 +296,7 @@ it. It can export an item you wrote the same way: it asks which scope, shows eve
 upload, and creates the draft once you've approved. `rmk mcp-setup` adds it to each tool's MCP
 settings.
 
-Both are on npm, and need Node.js 22.12 or later:
+Both are on npm, and need Node.js 22.14 or later:
 
 ```sh
 npm install --global @ronneai/rmk @ronneai/mcp

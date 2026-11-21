@@ -20,7 +20,7 @@ following the [code of conduct](CODE_OF_CONDUCT.md).
 
 You need:
 
-- **Node.js 24 LTS** (see [`.nvmrc`](.nvmrc)); 22.12 or later also works.
+- **Node.js 24 LTS** (see [`.nvmrc`](.nvmrc)); 22.14 or later also works.
 - **pnpm**, installed directly: `npm install --global pnpm`. It then switches to the version pinned
   in `package.json` on its own. Don't use Corepack: current Corepack releases can't start pnpm 12.
   If `pnpm` is a Corepack shim on your machine, run `corepack disable pnpm` first.

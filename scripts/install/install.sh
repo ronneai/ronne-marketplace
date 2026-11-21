@@ -213,7 +213,7 @@ sha256_of() {
 
 # The ways in when this system gets no package.
 native_choices() {
-  say "Ronne runs in Docker, or with Node.js 22.12 or later: npm install --global @ronneai/marketplace," >&2
+  say "Ronne runs in Docker, or with Node.js 22.14 or later: npm install --global @ronneai/marketplace," >&2
   say "then rmk-server (and sudo rmk-server service install to keep it running at boot)." >&2
   docker_link >&2
 }

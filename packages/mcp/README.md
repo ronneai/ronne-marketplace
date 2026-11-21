@@ -17,4 +17,4 @@ Tools: `search_items`, `get_item`, `list_installed`, `check_outdated`, `plan_ins
 refused if anything it touches changed in between.
 
 The Documentation ([Registry MCP server](https://www.ronne.ai/marketplace/docs/mcp)) explains
-setting it up and each tool. Needs Node.js 22.12 or later. MIT licensed.
+setting it up and each tool. Needs Node.js 22.14 or later. MIT licensed.
