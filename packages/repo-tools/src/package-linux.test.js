@@ -10,6 +10,26 @@ const script = (name) =>
     "utf8",
   );
 const SCRIPTS = ["postinstall.sh", "preremove.sh", "postremove.sh"];
+/**
+ * The `depends` list of one format in `nfpm.yaml`'s `overrides`, read line by line (repo-tools has
+ * no YAML parser): a commented-out entry, or one under `suggests`, isn't in it.
+ */
+const dependsOf = (template, format) => {
+  const lines = template.split("\n");
+  const start = lines.indexOf(`  ${format}:`);
+  const list = lines.indexOf("    depends:", start);
+  if (start < 0 || list < 0) return [];
+  const next = lines.findIndex((line, i) => i > start && /^ {2}\S/.test(line));
+  if (next >= 0 && next < list) return [];
+  const items = [];
+  for (const line of lines.slice(list + 1)) {
+    if (/^\s*#/.test(line)) continue;
+    const item = line.match(/^ {6}- (.+)$/);
+    if (!item) break;
+    items.push(item[1]);
+  }
+  return items;
+};
 /** The `wrapped` function a script defines, as text. */
 const wrappedOf = (text) => text.match(/^wrapped\(\) \{\n[\s\S]*?\n\}\n/m)?.[0];
 
@@ -58,12 +78,34 @@ describe("the Linux packages (085)", () => {
       fileURLToPath(new URL("../../../packaging/linux/nfpm.yaml", import.meta.url)),
       "utf8",
     );
-    expect(template).toContain("- libc6 (>= 2.34)");
-    expect(template).toContain("- libstdc++6 (>= 11)");
-    expect(template).toContain("- libatomic1");
-    expect(template).toContain("- libc.so.6(GLIBC_2.34)(64bit)");
-    expect(template).toContain("- libstdc++.so.6(GLIBCXX_3.4.29)(64bit)");
-    expect(template).toContain("- libatomic.so.1()(64bit)");
+    expect(dependsOf(template, "deb")).toEqual([
+      "libc6 (>= 2.34)",
+      "libstdc++6 (>= 11)",
+      "libatomic1",
+    ]);
+    expect(dependsOf(template, "rpm")).toEqual([
+      "libc.so.6(GLIBC_2.34)(64bit)",
+      "libstdc++.so.6(GLIBCXX_3.4.29)(64bit)",
+      "libatomic.so.1()(64bit)",
+    ]);
+  });
+
+  it("reads only a format's own depends list, not comments or suggests", () => {
+    const template = [
+      "overrides:",
+      "  deb:",
+      "    depends:",
+      "      - libc6",
+      "      # - libatomic1",
+      "    suggests:",
+      "      - caddy",
+      "  rpm:",
+      "    depends:",
+      "      - libc.so.6",
+      "",
+    ].join("\n");
+    expect(dependsOf(template, "deb")).toEqual(["libc6"]);
+    expect(dependsOf(template, "rpm")).toEqual(["libc.so.6"]);
   });
 
   // dnf cuts each line a package script prints at 80 columns, its ">>> " prefix included.
