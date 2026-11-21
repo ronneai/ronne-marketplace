@@ -219,7 +219,7 @@ adds them later, the role-based names stay the same across LTS moves.
 - [x] The website says Node.js 26 wherever it named 24 as the target, in en, pt and fr.
 - [x] No required check on `main` changes name: the renamed jobs aren't on branch protection's
   list.
-- [ ] The `.deb` and `.rpm` depend on libatomic (`libatomic1`, `libatomic.so.1()(64bit)`), the
+- [x] The `.deb` and `.rpm` depend on libatomic (`libatomic1`, `libatomic.so.1()(64bit)`), the
   release notes name it for the Linux archives, and `packages.yml` installs both packages on x64
   and arm64, after checking that each newly built package declares exactly glibc 2.34, GCC 11's libstdc++
   and libatomic, and provides nothing but itself.

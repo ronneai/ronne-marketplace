@@ -570,3 +570,36 @@ Witnessed: 2026-11-20 23:27 EST, by a fresh agent (adversarial). Commit: 28e91e4
 **Overall:** not met: the provides check refuses every package that provides a library and passes the real 0.8.0, 0.0.1 and rc packages, but an unreadable rpm stops the script without a message, and a deb named after a library passes the check.
 
 Fixed after this pass: `rpm -qp --requires` gets `|| fail "rpm can't read …"`, and the deb side reads `dpkg-deb -f … Package Provides`, which must be exactly `Package: rmk-server`. On all 16 of the probe's packages: orig, v001 and rc pass in both formats; `pk/empty` and `pk/garbage` → `✗ rpm can't read …` on fedora:42 and `✗ dpkg-deb can't read …` on debian:13; `pk/selfname` → `✗ libatomic1_0.8.0-1_arm64.deb provides [Package: libatomic1], not only itself [Package: rmk-server]`; every other mutation fails in the format it changes.
+
+## Task 10 — libatomic (re-check 6)
+
+Witnessed: 2026-11-20 23:53 EST, by a fresh agent (blind). Commit: a2ca9300. Machine: macOS 27.2.1, Node v26.13.1.
+
+Scope (owner): a narrow confirming pass of re-check 5's open rows 4 and 7, plus a rerun of the existing probe packages; no hunt for new bypasses.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `rpm -qp --requires` has `\|\| fail "rpm can't read …"`: an empty and a garbage file named as the rpm fail on fedora:42 with that message | no | confirmed | `git diff 28e91e4d a2ca9300` → the `\|\| fail`; `check.sh pk/empty`, `pk/garbage` on fedora:42 → exit 1, `✗ rpm can't read rmk-server-0.8.0-1.aarch64.rpm` |
+| 2 | The deb side reads `dpkg-deb -f … Package Provides`, which must be exactly `Package: rmk-server`: `pk/selfname` fails on debian:13 | no | confirmed | `itself='Package: rmk-server'`; `check.sh pk/selfname` → `✗ libatomic1_0.8.0-1_arm64.deb provides [Package: libatomic1], not only itself [Package: rmk-server]` (✓ in re-check 5); the rpm side still fails |
+| 3 | Across the 16 probe packages, orig, v001 and rc pass in both formats, and every mutation fails in the format it changes | no | confirmed | `probes/all.sh` (32 container runs): orig, v001, rc ✓ both; drop, droplibc, weak, recommends, provides, selfname, empty, garbage ✗ both; fields, foldalt, predep, lcprov ✗ deb, ✓ rpm; richnl ✗ rpm, ✓ deb; no `rmk-w6-*` container left |
+| 4 | On #319's CI at a2ca9300 (run 44866463473), both Packages jobs pass and log the ✓ line for the .deb and the .rpm | no | confirmed | headSha a2ca9300, success; job 136731823784 (x64) and 136731823798 (arm64): the ✓ line for the `.deb` ×2 and `.rpm` ×1, then install, upgrade, remove, purge ✓ |
+| 5 | `git diff 28e91e4d a2ca9300` changes only the script and WITNESS.md | no | confirmed | `git diff --stat` → those 2 files (script 11 lines, WITNESS.md +22) |
+| 6 | The repo-tools tests pass, and task 10's Done when and the SPEC's last criterion would now be true | no | confirmed | 22 files, 222 passed; `nfpm.yaml:42,53`, `package-linux.test.js:87`, `release.yml:439`, `test-runs.md:100`; `packages.yml` x64 and arm64 pass on #318 and #319; "provides nothing but itself" covers the deb's `Package` check too |
+
+**Overall:** met: an unreadable rpm fails with `rpm can't read …`, a deb named after a library fails on its `Package` field, all 16 probe packages behave as expected in both formats, and both CI package jobs at a2ca9300 log the ✓ dependency line.
+
+## Task 10 — libatomic (re-check 7)
+
+Witnessed: 2026-11-20 23:58 EST, by a fresh agent (adversarial). Commit: a2ca9300 (merged to main as bb2bf9c5; `git diff a2ca9300 bb2bf9c5 -- scripts packaging packages` is empty). Machine: macOS 27.2.1 (arm64, Docker running debian:13 and fedora:42), Node v26.13.1.
+
+Scope (owner): a narrow confirming pass, adversarial in mode: it tries to break re-check 5's two fixes (row 4, an unreadable rpm; row 7, a deb named after a library), reruns the existing probe packages, and doesn't look for unrelated new bypasses. Re-check 6 confirmed the same fixes, but blind, and a [risky] task needs its latest adversarial pass met.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `declared=$(rpm -qp --requires …) \|\| fail "rpm can't read …"`: an unreadable rpm (empty, garbage, truncated) fails on fedora:42 with that message | no | confirmed | `test-linux-package.sh:56`; rpms cut to 60, 400, 1400, 2000 bytes and to half, plus `empty`, `garbage` → exit 1, `✗ rpm can't read rmk-server-0.8.0-1.aarch64.rpm`; from 2500 bytes on only the payload is cut: ✓, then `✗ dnf install …`; a non-rpm file read as a manifest with 255/256/257/512 missing names → `exit=254`, never 0 (`rpm-overflow.sh`); with `\|\| fail` removed from lines 49 and 56, `garbage` stops at `exit=3` with no message |
+| 2 | The deb side requires `dpkg-deb -f … Package Provides` to be exactly `Package: rmk-server`; any other `Package` or any `Provides` fails, the real deb passes | no | confirmed | `test-linux-package.sh:49-50,72-73`; debs rebuilt with `dpkg-deb --nocheck` (`deb-craft.sh`): `prefix` (rmk-server-proxy), `swap`, `provfirst`, `provself` → `✗ … provides [...], not only itself`; `dupe`, `contprov` → `can't read … control file`; `upper`, `lcpkg`, `trailws`, `provempty` pass, and dpkg reads each as `Package: rmk-server` with no Provides, so none is a bypass; debs cut to 60–700 bytes → `can't read`; cut only in data → ✓, then `✗ apt-get install` |
+| 3 | Across the 16 probe packages the real ones pass in both formats and every mutation fails in the format it changes | no | confirmed | `all.sh`: orig, v001, rc ✓ both; drop, droplibc, empty, garbage, provides, recommends, selfname, weak ✗ both; fields, foldalt, lcprov, predep ✗ deb, ✓ rpm; richnl ✗ rpm, ✓ deb |
+| 4 | On #319's CI at a2ca9300 (run 44866463473) both Packages jobs pass and log the ✓ line | no | confirmed | headSha a2ca9300bee9…, success; jobs 136731823784, 136731823798: the deb line twice (Ubuntu, Debian), the rpm line once (Fedora) |
+| 5 | A failure still stops the job | no | confirmed | `packages.yml:88`, no `continue-on-error`; `test-in-containers.sh:6,57` `set -euo pipefail`, `docker exec`; the real runner with only the image builds stubbed, newer = `provides` → `✗ rmk-server_0.9.0-1_arm64.deb provides [...]`, exit 1 after the first container |
+
+**Overall:** met: unreadable rpms and debs are named and stop the run; a deb has to be `Package: rmk-server` and provide nothing; the 16 probe packages behave as claimed; CI at a2ca9300 logged the check; a failure fails the job.
