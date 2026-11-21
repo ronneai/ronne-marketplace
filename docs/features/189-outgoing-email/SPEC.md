@@ -112,8 +112,8 @@ possible, and follow the standards (owner, 2026-11-20).
     194 rely on.
 - **A cap per address:** at most 10 messages to one `recipient_hmac` in an hour, all templates
   together. Messages over it are dropped and logged. Each feature's own limits (190's three a
-  purpose an hour) sit below it. 109's shared limiter is still planned and today's
-  `LoginRateLimiter` lives in memory, so the cap counts outbox rows, which every replica sees.
+  purpose an hour) sit below it, counted by 109's limiter in the database. The cap counts the
+  outbox's own rows instead, which every replica sees: it limits messages, whatever queued them.
 - **Templates** in `apps/web/messages/<locale>/mail.json`, in the three languages (129, the i18n
   tests checking keys and placeholders). Each message is:
   - plain text plus simple HTML: inline styles, no remote images, no tracking, no unsubscribe link;

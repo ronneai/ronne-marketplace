@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Decision.**
+- [x] **1. Decision.**
   - MVP.md §15's "Web sign-in" row no longer says "no email". A new "Email" row says what this spec
     decides: SMTP and four web APIs, the environment wins, a sealed outbox, TLS always, notices
     that can't be turned off.
@@ -110,6 +110,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     languages, with `privacy`, `security#encryption` and `account`.
   - `topics.ts` in both repositories; the helpers on the Email tab and the Account page.
   - `docs/runbooks/install.md`'s variables.
+  - MVP.md §15's "Web sign-in" and "Email" rows, and §8's Auth row, lose "planned".
   - *Done when:* the docs render tests and `pnpm docs:links` pass, and each helper opens its
     section.
 
