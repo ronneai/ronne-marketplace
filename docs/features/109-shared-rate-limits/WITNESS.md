@@ -411,3 +411,33 @@ Witnessed: 2026-11-21 01:59 EST, by a fresh agent (adversarial). Commit: 54a0fc6
 | 15 | The new comments are true | no | confirmed | `retention-purge.ts:378-383`, `:418-423`; no "can't deadlock" claim left |
 
 **Overall:** met. Rows 7–10, 13, 14 not re-checked: nothing they cover changed.
+
+## Task 7 — Documentation
+
+Witnessed: 2026-11-21 02:02 EST, by a fresh agent (blind). Commit: 4c68d12a (the marketplace); ronne-web 6085c1b + working-tree diff (www/src/content/docs/{en,pt,fr}/privacy.tsx). Machine: macOS 27.2.1, Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The docs render tests and typecheck pass in ronne-web | no | confirmed | `pnpm test` in ronne-web/www → 198 passed (`DocsPage.test.tsx`, `docs.test.ts` among them); `pnpm typecheck` clean |
+| 2 | `RULES` gets a rate limit counters row in en, pt and fr, "deleted once their window ends" | no | confirmed | One new 4-cell row in each language ("The end of their window, an hour at most (not a setting)" / "Deleted"; pt and fr the same) |
+| 3 | The row matches what the purge does, with no setting | no | confirmed | `retention-purge.ts:424-438` (`expires_at < now`, batches), `:385-410` (lock and recheck); no policy number used; `database-store.ts:99-103` sets `expires_at = now + windowMs` |
+| 4 | "A keyed hash … keyed with the instance's secret" | no | confirmed | `key-hash.ts` (HMAC-SHA256 of `name\0key`, HKDF from AUTH_SECRET); `database-store.ts:53-57` stores only the hash, hits and two times |
+| 5 | "What was counted, how many times, and when" matches the columns | no | confirmed | `key_hash`, `hits`, `window_started_at`, `expires_at` |
+| 6 | "An hour at most" is true for every database limiter | no | confirmed | Windows: login 60 s, backup codes 30 s, SSO, device and SCIM 60 s, device-page person 60 min, uploads, submits, usage 10 min, feedback 60 min; the setup code's (10 min) is in memory |
+| 7 | "(an email, an address or an account)" names what is counted | no | partly | SCIM counts by access token (`scim-token:<tokenId>`, `scim.ts:70`), and the `…:unknown` / `*-shared` limits count the whole instance: fine as examples, not the whole list |
+| 8 | The retention section names the counters, and its facts are right | no | confirmed | A new paragraph in each language, matching `database-store.ts`'s header and rows 3, 4, 6 |
+| 9 | The three languages say the same thing | no | confirmed | Same claims in the same order |
+| 10 | No new topic or section; no helpers change | no | confirmed | Only the three `privacy.tsx` files changed in ronne-web; no `apps/web/src/components/help/` file in the marketplace range |
+
+**Overall:** not met (row 7, wording).
+
+### Re-check 1
+
+Witnessed: 2026-11-21 02:03 EST, by a fresh agent (blind), wording only. Commit: 4c68d12a (the marketplace); ronne-web 6085c1b + working-tree diff (www/src/content/docs/{en,pt,fr}/privacy.tsx). Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | The new row and paragraph describe what the counters count, matching the code, and en, pt and fr agree | no | confirmed | Row: "such as an email, an address, an account or a token"; paragraph: "(an email, an address, an account, a token)". Keys: `email:`/`ip:` (`login-rate-limiter.ts:18`), `user:` (`:14`, `upload-rate-limit.ts:26`), `submit:` (`:41`), `usage:` (`usage-rate-limit.ts:28`), `feedback:` (`feedback-limiter.ts:25`), `${stage}:ip:` (`sso.ts:73-75`), `device-${stage}:ip:` (`device-grants.ts:52`), `scim-token:`/`scim-refused:ip:` (`scim.ts:70,77`); the `…:unknown` keys hold nothing about a person. All hashed with `rateLimitKeyHash` (`database-store.ts:35-37`). pt and fr say the same |
+| 7a | The website tests pass | no | confirmed | `pnpm test` in ronne-web/www → 198 passed |
+
+**Overall:** met.

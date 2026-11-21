@@ -79,7 +79,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* a db test shows expired rows deleted and live ones kept, a dry run counting
     without deleting, and the counts in the tab, the command and the log.
 
-- [ ] **7. Documentation.**
+- [x] **7. Documentation.**
   - ronne-web, in a branch that goes live with the release: the `privacy` topic's purge table and
     its retention section, in three languages.
   - *Done when:* the docs render tests pass in ronne-web, and the row matches what the purge does.
