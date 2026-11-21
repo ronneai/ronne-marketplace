@@ -152,3 +152,81 @@ Witnessed: 2026-11-21 00:46 EST, by a fresh agent (adversarial). Commit: 110cf45
 | 4d | `pnpm witness:check` and `pnpm docs:check` pass | no | confirmed | both exit 0 |
 
 **Overall:** met.
+
+## Task 3 — Sign-in
+
+Witnessed: 2026-11-21 00:53 EST, by a fresh agent (blind). Commit: 243193e3 + working-tree diff. Machine: macOS (Darwin 27.2), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Sign-in, changing a password, wrong two-factor codes and passwords on two-factor changes, and `POST /api/v1/auth/token` each await the login limiter | no | confirmed | `session.ts:112`, `:208`, `token-exchange.ts:123` `await deps.limiter.consume(…)`; `two-factor.ts:99` `await …check`, `:106` `await …record`, through `await blocked(…)` at `:148/:204/:254/:298`. The sign-in second step never used this limiter before either (Better Auth counts it) |
+| 2 | Same limits and keys as before | no | confirmed | `LOGIN_LIMIT = {name:"login", max:5, windowMs:60_000}` = the old class defaults (`git show 243193e3:…/login-rate-limiter.ts:19-21`); `loginRateLimitKeys` unchanged; password and two-factor changes pass `ip = null` |
+| 3 | The answers don't change | no | confirmed | The diff only adds `await` on these lines; "answers 429 once the sign-in limit is used up" runs on the database store and passes on all 4 databases |
+| 4 | The backup-code gap is a database limiter: consumed before the work, released when no set was made and on turn-off; the `Map` is gone | no | confirmed | `two-factor.ts:250-279` (`finally` releases when `!made`; `made = true` before the audit write), `:322` releases on turn-off; no `regenerated`/`REGENERATE_GAP` left. Mutations removing either release fail their tests. Probe loading the module twice: one `ok` on SQLite, PostgreSQL, MySQL; with check-then-record-after-success `["ok","ok"]` |
+| 5 | The repository's tests show that "two clicks on two replicas make one set" | no | partly | "a second set within 30 seconds is refused on another server too" (`two-factor.db.test.ts:551`) passes with the check-then-record mutation (36/36): both calls share one module's `oneAtATime` queue (`two-factor.ts:46-57`) |
+| 6 | `getAppAuth` builds both limiters from the instance's database and `AUTH_SECRET`; the `globalThis` copy and its half of `dropStale` are gone | no | confirmed | `auth-instance.ts:65-74`; no `__ronneLoginLimiter` left. Probe with `DATABASE_URL`/`AUTH_SECRET` (PostgreSQL, MariaDB): two `getAppAuth()` limiters share the count; another `AUTH_SECRET` reads `allowed:true` |
+| 7 | Tests that only need the limiter out of the way keep the memory store; one test per path runs the database store | no | confirmed | `test-auth.ts:64-65` defaults to memory; database store in `session.db.test.ts:83,371`, `two-factor.db.test.ts:120,415,432,593,654`, `api-v1.db.test.ts:235`, and the gap's tests (`:542-549`) |
+| 8 | The identity db tests pass on SQLite and on the servers | no | confirmed | SQLite → 58 files, 693 passed, 2 skipped; `pnpm test:db:{postgres,mysql,mariadb}` → 35 files, 475 passed each; typecheck clean |
+| 9 | A sign-in refused on one app instance is refused on a second on the same database | no | confirmed | `session.db.test.ts:83`; mutation (`testLoginLimiter` on memory) → it fails |
+| 10 | The threat model's "Guessing passwords" row names where the count lives | no | confirmed | `threat-model.md:138` names `LOGIN_LIMIT` (`login-rate-limiter.ts:87`), the `rate_limits` table and `rate-limit/database-store.ts` |
+
+**Overall:** not met (row 5). Also noted: `threat-model.md:228` still lists sign-in among the limits in memory (task 6 rewrites that row); `threat-model.md:138` cited `session.ts:80` for the same answer, which isn't that line (from before this task).
+
+### Adversarial pass
+
+Witnessed: 2026-11-21 00:53 EST, by a fresh agent (adversarial). Commit: 243193e3 + working-tree diff (20 files). Machine: macOS (Darwin 27.2.0), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Identity db tests and `api-v1.db.test.ts` pass on SQLite | no | confirmed | 58 files, 693 passed, 2 skipped |
+| 2 | The same on PostgreSQL, MySQL and MariaDB | no | confirmed | `src/server/domains/identity/actions` + `api-v1.db.test.ts` → 24 files, 354 passed each |
+| 3 | Every path awaits the limiter | no | confirmed | No unawaited `limiter.*`/`backupCodes.*` call in non-test code. Mutation: `.check` without `await` → tsc TS2339. A floating `record` passes tsc and the tests (no lint rule for floating promises); today's code awaits it |
+| 4 | Keys and the limit name are unchanged, so sign-in, password change, two-factor and the token exchange share one count | no | confirmed | All four use `app.limiter` = `LOGIN_LIMIT`. Probe (one wrong attempt on each path, each on a fresh app instance): the right password is then refused everywhere (`rate_limited` 60, 429 `Retry-After: 60`), on all 4 databases. Mutation (token's own key) → only the probe fails; that sharing had no test before 109 either |
+| 5 | Refusals keep their old answers and `retryAfterSeconds` | no | confirmed | `{"ok":false,"error":"rate_limited","retryAfterSeconds":60}`; token 429 `details.retryAfterSeconds: 60`; backup codes still `{ok:false,error:"just_made"}` |
+| 6 | `getAppAuth` builds both limiters on the database store; the globalThis limiter and its `dropStale` half are gone | no | confirmed | `auth-instance.ts:65-74`. Probe (temp SQLite file, migrated): two `getAppAuth()`s share the count; `login` and `backup-codes` count apart; keys hashed; another AUTH_SECRET resets |
+| 7 | A test fails if `getAppAuth` goes back to a memory limiter | no | not met | Mutation (both limiters `memoryRateLimiter`) → identity and api-v1 suites 730 passed; only the probe fails |
+| 8 | Sign-in refused on one app instance is refused on a second | no | confirmed | `session.db.test.ts:83`, and the probe through `getAppAuth` |
+| 9 | The backup-code gap is taken before the work; two replicas make one set; the `Map` is gone | no | confirmed | `two-factor.ts:250-251`. Probe with two module copies (`vi.resetModules`) → `["ok","just_made"]` on all 4 databases |
+| 10 | The repo's two-replica test would catch the old order | no | partly | Mutation (check before, record after success, no release) → 36/36 pass: both "servers" share `oneAtATime` (`two-factor.ts:45`). The probe fails with it (`["ok","ok"]`) |
+| 11 | The gap is released when no set was made and kept when one was | no | confirmed | Probe: a throwing regenerate and `signed_out` each release; an audit that throws after a set was made keeps the gap. Mutations: no `made = true` → 3 fail; no release → 2 fail |
+| 12 | Turning two-factor off releases only the caller's gap | no | confirmed | `two-factor.ts:322` releases the signed-in user's key; release never goes below 0. Mutation (no release) → its test fails |
+| 13 | Memory store where a limiter is only in the way; the database store once per path | no | confirmed | As blind row 7 |
+| 14 | The threat model's "Guessing passwords" row names where the count lives | no | confirmed | `threat-model.md:138` |
+
+**Overall:** not met (rows 7 and 10). Remark: nothing checks that a `record` is awaited.
+
+### Re-check 1
+
+Witnessed: 2026-11-21 01:03 EST, by a fresh agent (blind, re-check of row 5 plus the new `getAppAuth` test and the citation). Commit: 243193e3 + working-tree diff. Machine: macOS (Darwin 27.2), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | The repository's tests show that "two clicks on two replicas make one set" | no | confirmed | `two-factor.db.test.ts:551-580` loads the service twice with `vi.resetModules()` (`expect(one).not.toBe(two)`) and races both. Clean: SQLite 36/36, PostgreSQL 36/36, 5 more SQLite runs pass. Check-then-record mutation (`mut-check-then-record.py`) → this test fails on SQLite and PostgreSQL (1 failed, 35 passed) |
+| 6a | A test fails if `getAppAuth` goes back to a memory limiter | no | confirmed | New `repositories/auth-instance.db.test.ts` passes. Mutation (both limiters `memoryRateLimiter`, `mut-memory-getappauth.py`) → `expected { allowed: true } to deeply equal { allowed: false, …}`. It always runs on SQLite (its own `DATABASE_URL`); the store is the same code on every database |
+| 10 | The threat model's "Guessing passwords" row cites where the same answer is given | no | confirmed | `threat-model.md:138` cites `session.ts:149`, the `if (!result)` block returning `invalid_credentials` for a wrong password, an unknown email and a disabled user (`:149-154`) |
+
+**Overall:** met.
+
+### Adversarial re-check 1
+
+Witnessed: 2026-11-21 01:04 EST, by a fresh agent (adversarial). Commit: 243193e3 + working-tree diff (new `repositories/auth-instance.db.test.ts`, reworked "another server too" test, `threat-model.md:138`). Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | A test fails if `getAppAuth` goes back to a memory limiter | no | confirmed | M5 (both `memoryRateLimiter`) → 1 failed / 36 passed. Variants fail the same test: only `limiter` on memory, only `backupCodesLimiter` on memory, one memory store shared through `globalThis` (caught by the `rate_limits` row count) |
+| 10 | The repo's two-replica test would catch check-then-record | no | partly | M6 → "another server too" fails. "Consume but release even when a set was made" → 2 fail. But M6-consume-after (`check` first, `consume` only after the set is made, no release) → 36/36 pass: the test checks the answers and the one audit event, not how many sets were stored. Probe `two-factor-sets.probe.db.test.ts` counting stored sets → `expected 2 to be 1` with it, 3 of 3 runs |
+| 16 | The new tests pass on SQLite and on one server | no | confirmed | SQLite 37 passed; PostgreSQL 37, MySQL 37. `auth-instance.db.test.ts` always uses its own SQLite file |
+| 17 | `threat-model.md:138` cites the right lines | no | confirmed | `session.ts:149` is the same-answer branch; `login-rate-limiter.ts:87` is `LOGIN_LIMIT` |
+
+**Overall:** not met (row 10). Remark: `auth-instance.db.test.ts` checks `getAppAuth`'s store on SQLite only.
+
+### Adversarial re-check 2
+
+Witnessed: 2026-11-21 01:08 EST, by a fresh agent (adversarial, re-check of row 10 and the reworked "another server too" test). Commit: 243193e3 + working-tree diff (`two-factor.db.test.ts:551-599` counts stored sets and turns two-factor off with the shown set's first code). Machine: macOS (Darwin 27.2), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | The repo's two-replica test would catch check-then-record | no | confirmed | M6 → "another server too" fails (1/36). M6-consume-after → fails at `two-factor.db.test.ts:589`, `expected 2 to be 1` (`stored`), on SQLite and PostgreSQL. Release even when a set was made → "a double click makes one set…" and "a wrong password gives the 30 seconds back" fail. A gap key differing per replica → "another server too" and "turning two-factor off ends the gap" fail. Set first, `consume` after → "another server too" and "a double click" fail |
+| 16 | The reworked test passes clean on SQLite and on the servers | no | confirmed | SQLite 36/36 three times; PostgreSQL 36/36; MySQL 8.4 36/36 |
+
+**Overall:** met.

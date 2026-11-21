@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbBoolean, toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
+import { memoryRateLimiter } from "../../../rate-limit/memory-store";
 import { listAuditEvents } from "../../audit/actions/audit";
 import { setPasswordSignInPolicy } from "../../settings/actions/settings";
 import { ConfirmationNeededError, NoUsableProviderError } from "../../settings/exceptions/errors";
 import { InvalidEmailError } from "../exceptions/errors";
-import { LoginRateLimiter } from "../models/login-rate-limiter";
+import { LOGIN_LIMIT } from "../models/login-rate-limiter";
 import { normalizeEmail } from "../models/user";
 import type { AppAuth } from "../repositories/auth-instance";
 import { betterAuthSessionStore } from "../repositories/better-auth-session-store";
@@ -71,7 +72,7 @@ const rootOnly = async () => {
 
 beforeEach(async () => {
   t = await createTestDb();
-  app = testAppAuth(t, { limiter: new LoginRateLimiter({ max: 1000 }) });
+  app = testAppAuth(t, { limiter: memoryRateLimiter({ ...LOGIN_LIMIT, max: 1000 }) });
   await createTestUser(app, { email: "root@acme.com", password: PASSWORD, role: "root" });
   await createTestUser(app, { email: "ana@acme.com", password: PASSWORD });
   const result = await webSignIn("root@acme.com");
@@ -271,7 +272,7 @@ describe("Root only and the other ways in", () => {
         },
       },
       repo: kyselyIdentityRepository(t.db, t.dialect),
-      limiter: new LoginRateLimiter({ max: 1000 }),
+      limiter: memoryRateLimiter({ ...LOGIN_LIMIT, max: 1000 }),
       passwordPolicy: async () => "root_only",
     };
     const context = { headers: new Headers(), ip: null };

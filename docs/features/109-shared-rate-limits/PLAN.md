@@ -39,11 +39,12 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
     The memory store passes the same rules in a unit test.
 
-- [ ] **3. Sign-in.** [risky]
+- [x] **3. Sign-in.** [risky]
   - The login limiter on the database store: sign-in, changing a password, wrong two-factor codes
     and `POST /api/v1/auth/token`, each awaiting it.
-  - The 30-second gap between new backup codes becomes a limiter on the database store (checked
-    before, recorded after a success, released when two-factor is turned off); its `Map` goes.
+  - The 30-second gap between new backup codes becomes a limiter on the database store (consumed
+    before the work, released when no set was made and when two-factor is turned off); its `Map`
+    goes.
   - `getAppAuth` builds it from the instance's database and `AUTH_SECRET`. The limiter's
     `globalThis` copy and its half of `dropStale` go.
   - Tests that only need a limiter out of the way keep the memory store. One test per path runs the

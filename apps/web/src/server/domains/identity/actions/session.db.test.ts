@@ -2,12 +2,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
-import { LoginRateLimiter } from "../models/login-rate-limiter";
 import type { AppAuth } from "../repositories/auth-instance";
 import { betterAuthSessionStore } from "../repositories/better-auth-session-store";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import * as service from "../services/session";
-import { cookieHeaders, createTestUser, testAppAuth } from "../testing/test-auth";
+import { cookieHeaders, createTestUser, testAppAuth, testLoginLimiter } from "../testing/test-auth";
 import { authenticateToken, createMyToken } from "./access-tokens";
 import { decideMyDeviceCode, exchangeDeviceLogin, startDeviceLogin } from "./device-grants";
 import {
@@ -79,6 +78,29 @@ describe("signIn", () => {
     }
     const sixth = await signIn(new Headers(), { email, password, rememberMe: false }, app);
     expect(sixth).toMatchObject({ ok: false, error: "rate_limited" });
+  });
+
+  it("counts in the database, so a second server on it refuses too (109)", async () => {
+    // Two app instances on one database: two replicas, or the server before and after a restart.
+    const first = testAppAuth(t, { limiter: testLoginLimiter(t) });
+    const second = testAppAuth(t, { limiter: testLoginLimiter(t) });
+    for (let i = 0; i < 5; i++) {
+      const r = await signIn(
+        new Headers(),
+        { email, password: "wrong horse battery", rememberMe: false },
+        i % 2 === 0 ? first : second,
+      );
+      expect(r).toEqual({ ok: false, error: "invalid_credentials" });
+    }
+    expect(await signIn(new Headers(), { email, password, rememberMe: false }, second)).toEqual({
+      ok: false,
+      error: "rate_limited",
+      retryAfterSeconds: expect.any(Number),
+    });
+    // The table holds the counts, not the email.
+    const rows = await t.db.selectFrom("rate_limits").selectAll().execute();
+    expect(rows.length).toBeGreaterThan(0);
+    expect(JSON.stringify(rows)).not.toContain("someone");
   });
 
   it("limits per IP only with TRUST_PROXY, using the address the proxy added", async () => {
@@ -346,7 +368,7 @@ describe("changePassword", () => {
 
   it("limits wrong current passwords like sign-in", async () => {
     const headers = await signedIn();
-    const limited = testAppAuth(t, { limiter: new LoginRateLimiter({ max: 2 }) });
+    const limited = testAppAuth(t, { limiter: testLoginLimiter(t, { max: 2 }) });
     const wrong = () =>
       changePassword(
         headers,

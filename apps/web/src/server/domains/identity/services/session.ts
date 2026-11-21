@@ -1,7 +1,8 @@
 import { logger } from "../../../log";
+import type { RateLimiter } from "../../../rate-limit/rate-limiter";
 import type { AuditMetadata } from "../../audit/models/audit-event";
 import { InvalidEmailError, InvalidPasswordError } from "../exceptions/errors";
-import { type LoginRateLimiter, loginRateLimitKeys } from "../models/login-rate-limiter";
+import { loginRateLimitKeys } from "../models/login-rate-limiter";
 import { PASSWORD_MAX_LENGTH, validatePassword } from "../models/password";
 import { requirePermission } from "../models/permissions";
 import { type CurrentUser, normalizeEmail } from "../models/user";
@@ -11,7 +12,7 @@ import type { SessionStore } from "../repositories/session-store";
 export type SessionDeps = {
   sessions: SessionStore;
   repo: IdentityRepository;
-  limiter: LoginRateLimiter;
+  limiter: RateLimiter;
   /** Who may sign in with a password now (106); everyone when left out. */
   passwordPolicy?: () => Promise<"everyone" | "root_only">;
   now?: () => Date;
@@ -108,7 +109,7 @@ export const signIn = async (
     return { ok: false, error: "invalid_credentials" };
   }
 
-  const decision = deps.limiter.consume(loginRateLimitKeys(email, context.ip));
+  const decision = await deps.limiter.consume(loginRateLimitKeys(email, context.ip));
   if (!decision.allowed) {
     await failed("rate_limited");
     return { ok: false, error: "rate_limited", retryAfterSeconds: decision.retryAfterSeconds };
@@ -204,7 +205,7 @@ export const changePassword = async (
   const required = await deps.repo.passwordChangeRequired(user.id);
   if (required && input.next === input.current) return { ok: false, error: "same_password" };
 
-  const decision = deps.limiter.consume(loginRateLimitKeys(user.email, null));
+  const decision = await deps.limiter.consume(loginRateLimitKeys(user.email, null));
   if (!decision.allowed)
     return { ok: false, error: "rate_limited", retryAfterSeconds: decision.retryAfterSeconds };
 

@@ -23,7 +23,7 @@ Only where the count lives changes.
 |---|---|---|---|
 | Sign-in (006) and `POST /api/v1/auth/token` (`rmk login`) | 5 a minute | `email:…`, and `ip:…` with `TRUST_PROXY` | `identity/services/session.ts`, `token-exchange.ts` |
 | Changing a password (006), and wrong passwords and codes on two-factor changes (105): the same limiter and counts as sign-in | 5 a minute | `email:…` only | `identity/services/session.ts`, `two-factor.ts` |
-| New backup codes (105): one set per person every 30 seconds, then `just_made`; taken back when two-factor is turned off | 1 in 30 seconds | the user | `identity/services/two-factor.ts` (a module `Map` today) |
+| New backup codes (105): one set per person every 30 seconds, then `just_made`. Taken before the work, so two clicks on two replicas make one set; given back when no set was made, and when two-factor is turned off | 1 in 30 seconds | `user:…` | `identity/services/two-factor.ts` (a module `Map` before 109, set after a success) |
 | Provider sign-in (106): starts and callbacks | 30 a minute per client IP, or 300 a minute for the instance when the address isn't known | `sso-start:ip:…`, `sso-callback:ip:…`, `…:unknown` | `identity/actions/sso.ts` |
 | `rmk login --web` codes (107): asking for one, and polling | 10 and 60 a minute per IP; 60 and 600 for the instance without one | `device-start:…`, `device-poll:…` | `identity/actions/device-grants.ts` |
 | Codes typed on `/device` (107) | 5 a minute per IP and 10 an hour per person, both counted together | `device-page:ip:…`, `device-page:user:…` | the same |

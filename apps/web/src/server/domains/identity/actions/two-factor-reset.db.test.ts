@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
+import { memoryRateLimiter } from "../../../rate-limit/memory-store";
 import { listAuditEvents } from "../../audit/actions/audit";
 import { CannotModifySelfError, ForbiddenError, UserNotFoundError } from "../exceptions/errors";
-import { LoginRateLimiter } from "../models/login-rate-limiter";
+import { LOGIN_LIMIT } from "../models/login-rate-limiter";
 import type { AppAuth } from "../repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../testing/test-auth";
 import { totpCode } from "../testing/totp";
@@ -22,7 +23,7 @@ const secret = "test-secret-test-secret-test-secret-00";
 
 beforeEach(async () => {
   t = await createTestDb();
-  app = testAppAuth(t, { secret, limiter: new LoginRateLimiter({ max: 1000 }) });
+  app = testAppAuth(t, { secret, limiter: memoryRateLimiter({ ...LOGIN_LIMIT, max: 1000 }) });
 });
 afterEach(() => t.cleanup());
 

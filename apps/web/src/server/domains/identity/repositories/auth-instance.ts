@@ -2,8 +2,10 @@ import { isConfigured, loadConfig, secretsConflict } from "../../../config";
 import type { Db } from "../../../db/create-db";
 import { getAppDb } from "../../../db/instance";
 import type { DatabaseDialect } from "../../../db/url";
+import { createDatabaseRateLimitStore } from "../../../rate-limit/database-store";
+import { createRateLimiter, type RateLimiter } from "../../../rate-limit/rate-limiter";
 import { NotConfiguredError } from "../exceptions/errors";
-import { LoginRateLimiter } from "../models/login-rate-limiter";
+import { BACKUP_CODES_LIMIT, LOGIN_LIMIT } from "../models/login-rate-limiter";
 import { type Auth, createAuth } from "./better-auth";
 
 export type AppAuth = {
@@ -11,33 +13,32 @@ export type AppAuth = {
   db: Db;
   dialect: DatabaseDialect;
   trustProxy: boolean;
-  limiter: LoginRateLimiter;
+  /** Sign-in's limit (006), counted in the database (109). */
+  limiter: RateLimiter;
+  /** The gap between new backup codes (105), counted in the database (109). */
+  backupCodesLimiter: RateLimiter;
 };
 
-// Kept on globalThis, like the database pools, so development hot reloads reuse them. The limiter
-// is shared across settings: its counts must survive a reload too.
+// Kept on globalThis, like the database pools, so development hot reloads reuse them. The limits
+// need nothing kept: their counts are in the database (109).
 const shared = globalThis as typeof globalThis & {
   __ronneAuth?: Map<string, Auth>;
   __ronneAuthFactory?: typeof createAuth;
-  __ronneLoginLimiter?: LoginRateLimiter;
 };
 
 /**
- * Drops what a hot reload left behind from older code (105): a limiter made by an earlier version
- * of its class (it lacked `check`, and `pnpm dev` crashed on /account/security), or Better Auth
- * instances made by an earlier `createAuth` (they'd lack a plugin added since). Unchanged code
- * keeps them, and production loads each module once.
+ * Drops what a hot reload left behind from older code (105): Better Auth instances made by an
+ * earlier `createAuth` (they'd lack a plugin added since). Unchanged code keeps them, and
+ * production loads each module once.
  */
 export const dropStale = (): void => {
   if (shared.__ronneAuthFactory !== createAuth) {
     shared.__ronneAuth = new Map();
     shared.__ronneAuthFactory = createAuth;
   }
-  if (!(shared.__ronneLoginLimiter instanceof LoginRateLimiter))
-    shared.__ronneLoginLimiter = new LoginRateLimiter();
 };
 
-/** The running server's Better Auth instance and login limiter, for the current settings. */
+/** The running server's Better Auth instance and its limits, for the current settings. */
 export const getAppAuth = (): AppAuth => {
   const config = loadConfig();
   if (!isConfigured(config)) throw new NotConfiguredError();
@@ -61,9 +62,16 @@ export const getAppAuth = (): AppAuth => {
     });
     shared.__ronneAuth.set(key, auth);
   }
-  const limiter = shared.__ronneLoginLimiter ?? new LoginRateLimiter();
-  shared.__ronneLoginLimiter = limiter;
-  return { auth, db, dialect, trustProxy: config.trustProxy, limiter };
+  const authSecret = config.authSecret;
+  const store = createDatabaseRateLimitStore(() => ({ db, dialect, authSecret }));
+  return {
+    auth,
+    db,
+    dialect,
+    trustProxy: config.trustProxy,
+    limiter: createRateLimiter({ store, ...LOGIN_LIMIT }),
+    backupCodesLimiter: createRateLimiter({ store, ...BACKUP_CODES_LIMIT }),
+  };
 };
 
 /** The same, or null before setup: then there's no one to sign in, and no database to ask. */

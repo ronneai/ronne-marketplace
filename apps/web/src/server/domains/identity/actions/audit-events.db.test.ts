@@ -2,9 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
-import { LoginRateLimiter } from "../models/login-rate-limiter";
 import type { AppAuth } from "../repositories/auth-instance";
-import { cookieHeaders, createTestUser, testAppAuth } from "../testing/test-auth";
+import { cookieHeaders, createTestUser, testAppAuth, testLoginLimiter } from "../testing/test-auth";
 import { changePassword, signIn, signOut } from "./session";
 
 // 006's events (spec 007's catalogue), recorded by the identity actions.
@@ -73,7 +72,7 @@ describe("006's audit events", () => {
   });
 
   it("auth.sign_in_failed: rate-limited attempts say so", async () => {
-    const limited = testAppAuth(t, { trustProxy: true, limiter: new LoginRateLimiter({ max: 1 }) });
+    const limited = testAppAuth(t, { trustProxy: true, limiter: testLoginLimiter(t, { max: 1 }) });
     await signIn(proxied(), { email, password: "wrong horse battery", rememberMe: false }, limited);
     await signIn(proxied(), { email, password, rememberMe: false }, limited);
     expect((await events()).map((e) => e.metadata.reason)).toEqual(["rate_limited", "invalid"]);
