@@ -856,3 +856,7 @@ Witnessed: 2026-11-22 09:34 EST, by a fresh agent (blind). Commit: bc0325ed + wo
 | — | After the move | no | confirmed | `pnpm docs:links` (no variable) 38 topics; the test 9 passed; the site's 218 tests passed |
 
 **Overall:** met.
+
+## After the pull request
+
+Fix from CI, test only (owner's choice, 2026-11-22): on PR 324, MySQL in CI failed "takes as long for an existing address as for a new one" by a hair (0.359 apart against 0.35), with medians of three timings. The test now takes nine rounds an hour apart on the test clock, so the existing address's 3 codes an hour never refuse a round, with the same 0.35 bound. `node scripts/test-db.mjs <dialect> src/server/domains/identity/services/sign-up.db.test.ts` → 22 passed twice each on MySQL, PostgreSQL and MariaDB, and three times on SQLite (rerun by the implementer). No code the witnesses checked changed.

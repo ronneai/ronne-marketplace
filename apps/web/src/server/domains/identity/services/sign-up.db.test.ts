@@ -604,7 +604,8 @@ describe("signing up (190)", () => {
       const start = performance.now();
       const r = await request({ email, ...fields });
       expect(r).toMatchObject({ ok: true });
-      later(61_000);
+      // An hour on, so the existing address's limit of 3 codes an hour never refuses a round.
+      later(3_601_000);
       return performance.now() - start;
     };
     const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? 0;
@@ -612,8 +613,8 @@ describe("signing up (190)", () => {
     const existing: number[] = [];
     const bots: number[] = [];
     // Alternated, so a slow moment of the machine falls on all three.
-    // Three rounds: the existing address may get three codes an hour.
-    for (let i = 0; i < 3; i++) {
+    // Nine rounds, for a median a busy CI machine can't sway (three swayed it on MySQL).
+    for (let i = 0; i < 9; i++) {
       fresh.push(await time(`new${i}@acme.com`));
       existing.push(await time(`old@acme.com`));
       bots.push(await time(`bot${i}@acme.com`, { honeypot: "x" }));
