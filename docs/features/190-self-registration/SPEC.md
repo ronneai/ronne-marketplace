@@ -346,4 +346,13 @@ browser couldn't finish the check. Try again." Past the limits: "Too many tries.
 
 ## Open questions
 
-None.
+None. Decided by the owner on 2026-11-22, after the build:
+
+- **The hourly code cap stays as built:** 3 for sends one after another, at most 5 for sends
+  racing as a window opens. An exact 3 needs a lock per address, which risks deadlocks on MySQL.
+- **The Public Suffix List may be used by the throwaway list's refresh only** (MPL-2.0, as data
+  read by `pnpm data:disposable-domains`, never bundled in the app). A follow-up change records
+  the exception in `docs/policies/dependencies.md` and makes the refresh refuse any line that is
+  a public suffix; until then, a person reads each refresh's printed lines.
+- **The website's `purge` example is captured again from a real run at each release**
+  ([`release.md`](../../runbooks/release.md)).

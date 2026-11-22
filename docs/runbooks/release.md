@@ -33,6 +33,9 @@ until you approve its "npm" environment.
       branch that goes with this release, `pnpm docs:links` finds no difference between the app's
       topics and sections and the website's (a topic or section added or renamed on one side is
       changed on the other, [`docs/knowledge/i18n.md`](../knowledge/i18n.md)).
+- [ ] The website's `purge` example is real output: on the test instance, run
+      `pnpm run purge --dry-run` and `pnpm run purge`, and put both in `purgeSession` in
+      `../ronne-web`'s `www/src/content/screenshots.ts`, in that release's branch.
 
 **The version:**
 
