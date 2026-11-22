@@ -42,12 +42,11 @@ const type = async (selector: string, value: string) => {
 };
 
 describe("the Self-registration panel (190)", () => {
-  it("starts as every instance does: off, any domain, throwaway blocked, 15 minutes, challenge on", async () => {
+  it("starts as every instance does: off, any domain, 15 minutes, challenge on", async () => {
     await mount(<SignUpForm policy={DEFAULT_SIGN_UP_POLICY} readiness={READY} />);
     expect($("#sign-up-enabled")?.checked).toBe(false);
     expect($("#sign-up-enabled")?.disabled).toBe(false);
     expect($('input[name="domainsMode"][value="any"]')?.checked).toBe(true);
-    expect($("#sign-up-throwaway")?.checked).toBe(true);
     expect($("#sign-up-approval")?.checked).toBe(false);
     expect($("#sign-up-minutes")?.value).toBe("15");
     expect($("#sign-up-challenge")?.checked).toBe(true);
@@ -55,16 +54,20 @@ describe("the Self-registration panel (190)", () => {
     expect(host.querySelector("#sign-up-domains")).toBeNull();
   });
 
-  it("shows the domain list for Only these domains, and the throwaway box for Any domain", async () => {
+  it("shows the domain list for Only these domains, and where the throwaway setting went for Any domain", async () => {
     const policy: SignUpPolicy = { ...DEFAULT_SIGN_UP_POLICY, domains: ["acme.com", "acme.co.uk"] };
     await mount(<SignUpForm policy={policy} readiness={READY} />);
     expect((host.querySelector("#sign-up-domains") as HTMLTextAreaElement).value).toBe(
       "acme.com\nacme.co.uk",
     );
-    expect($("#sign-up-throwaway")).toBeNull();
+    expect(host.querySelector('a[href="#who-may-create-accounts"]')).toBeNull();
     await click($('input[name="domainsMode"][value="any"]'));
     expect(host.querySelector("#sign-up-domains")).toBeNull();
-    expect($("#sign-up-throwaway")).not.toBeNull();
+    // Moved to Who may create accounts (191), which every way in with Any domain obeys.
+    expect($("#sign-up-throwaway")).toBeNull();
+    expect(host.querySelector('a[href="#who-may-create-accounts"]')?.textContent).toBe(
+      "Who may create accounts",
+    );
   });
 
   it("can't be turned on until email, the contact and password sign-in are ready, and says where to fix each", async () => {
@@ -79,7 +82,9 @@ describe("the Self-registration panel (190)", () => {
     expect(notice).toContain("Email is set up");
     expect(notice).toContain("The instance contact is set");
     expect(notice).toContain("Everyone may sign in with a password");
-    const links = [...host.querySelectorAll("a")].map((a) => a.getAttribute("href"));
+    const links = [...(host.querySelector('[role="status"]')?.querySelectorAll("a") ?? [])].map(
+      (a) => a.getAttribute("href"),
+    );
     expect(links).toEqual([
       "/admin/settings?tab=email",
       "/admin/settings?tab=email",
@@ -168,7 +173,6 @@ describe("the Self-registration panel (190)", () => {
       domainsMode: "list",
       domains: "acme.com",
       approval: true,
-      blockThrowaway: true,
       codeMinutes: "30",
       challenge: false,
       termsUrl: "https://acme.com/terms",
@@ -191,19 +195,9 @@ describe("the Self-registration panel (190)", () => {
       enabled: true,
       domainsMode: "any",
       approval: true,
-      blockThrowaway: true,
       challenge: true,
     });
-    // The throwaway box itself posts it: unticked, it's off.
-    await click($("#sign-up-throwaway"));
-    expect(signUpInputFrom(new FormData(form)).blockThrowaway).toBe(false);
-  });
-
-  it("keeps an unticked throwaway box when the list is chosen", async () => {
-    await mount(<SignUpForm policy={DEFAULT_SIGN_UP_POLICY} readiness={READY} />);
-    await click($("#sign-up-throwaway"));
-    await click($('input[name="domainsMode"][value="list"]'));
-    const form = host.querySelector("form") as HTMLFormElement;
-    expect(signUpInputFrom(new FormData(form)).blockThrowaway).toBe(false);
+    // The throwaway setting isn't this form's any more (191): the save keeps it as stored.
+    expect(signUpInputFrom(new FormData(form))).not.toHaveProperty("blockThrowaway");
   });
 });

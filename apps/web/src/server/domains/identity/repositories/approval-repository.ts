@@ -2,7 +2,17 @@ import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { QueuedMail, QueueResult } from "../../mail/services/outbox";
 
 /** An account that signed up and waits for a root's approval (190), as read under its lock. */
-export type WaitingAccount = { id: string; email: string; locale: string | null; since: Date };
+export type WaitingAccount = {
+  id: string;
+  email: string;
+  locale: string | null;
+  since: Date;
+  /**
+   * The identity provider that made it (191), by the name root gave it, for the emails; null for
+   * an account made by signing up.
+   */
+  provider: string | null;
+};
 
 /** Approving and declining self-registered accounts (190), as the approval service sees them. */
 export interface ApprovalRepository {

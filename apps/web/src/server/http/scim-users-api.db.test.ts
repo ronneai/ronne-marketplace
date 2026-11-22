@@ -166,6 +166,30 @@ const expectScimError = (
 };
 
 describe("create", () => {
+  it("creates an account in a blocked domain: SCIM is outside the rules (191, case 13)", async () => {
+    await t.db
+      .insertInto("instance_settings")
+      .values({
+        key: "blocked_domains",
+        value: JSON.stringify(["example.com"]),
+        updated_by: null,
+        updated_at: toDbDate(new Date(), t.dialect),
+      })
+      .execute();
+    expect((await call("POST", "/Users", entraCreate())).status).toBe(201);
+    expect(await account("ann@example.com")).toMatchObject({ role: "user" });
+  });
+
+  it("records that SCIM made the account (191)", async () => {
+    expect((await call("POST", "/Users", entraCreate())).status).toBe(201);
+    const row = await t.db
+      .selectFrom("user")
+      .select("created_via")
+      .where("email", "=", "ann@example.com")
+      .executeTakeFirstOrThrow();
+    expect(row.created_via).toBe("scim");
+  });
+
   it("makes an account from Entra's body: a user in global, a personal workspace, no password", async () => {
     const r = await call("POST", "/Users", entraCreate());
     expect(r.status).toBe(201);
@@ -268,7 +292,7 @@ describe("create", () => {
   it("refuses an email that belongs to another account, and a root's with 403", async () => {
     const identity = kyselyIdentityRepository(t.db, t.dialect);
     await identity.createUserWithPassword(
-      { email: "cy@example.com", name: "Cy", role: "user", passwordHash: "x" },
+      { email: "cy@example.com", name: "Cy", role: "user", createdVia: "root", passwordHash: "x" },
       clock,
     );
     expectScimError(
@@ -295,7 +319,7 @@ describe("adoption", () => {
   const signedInAccount = async (email: string, signedInAt: Date, provider = "acme") => {
     const identity = kyselyIdentityRepository(t.db, t.dialect);
     const id = await identity.createUserWithoutPassword(
-      { email, name: "Dana Before", role: "user" },
+      { email, name: "Dana Before", role: "user", createdVia: "root" },
       new Date(signedInAt.getTime() - DAY),
     );
     await kyselySsoRepository(t.db, t.dialect).linkAccount(
@@ -355,7 +379,7 @@ describe("adoption", () => {
     await signedInAccount("elsewhere@example.com", new Date(clock.getTime() - DAY), "other");
     const identity = kyselyIdentityRepository(t.db, t.dialect);
     await identity.createUserWithoutPassword(
-      { email: "never@example.com", name: "N", role: "user" },
+      { email: "never@example.com", name: "N", role: "user", createdVia: "root" },
       clock,
     );
     for (const email of ["old@example.com", "elsewhere@example.com", "never@example.com"])
@@ -658,7 +682,7 @@ describe("patch and replace", () => {
   it("refuses to take a manual account's email through PATCH or PUT", async () => {
     const ann = await call("POST", "/Users", entraCreate());
     await kyselyIdentityRepository(t.db, t.dialect).createUserWithPassword(
-      { email: "cy@example.com", name: "Cy", role: "user", passwordHash: "x" },
+      { email: "cy@example.com", name: "Cy", role: "user", createdVia: "root", passwordHash: "x" },
       clock,
     );
     expectScimError(
@@ -921,7 +945,7 @@ describe("the account's lock", () => {
   it.skipIf(!servers)("makes a create wait, and see the account become root", async () => {
     const identity = kyselyIdentityRepository(t.db, t.dialect);
     const id = await identity.createUserWithoutPassword(
-      { email: "held@example.com", name: "Held", role: "user" },
+      { email: "held@example.com", name: "Held", role: "user", createdVia: "root" },
       new Date(clock.getTime() - DAY),
     );
     await kyselySsoRepository(t.db, t.dialect).linkAccount(id, "acme", "sub-held", clock);
@@ -971,7 +995,7 @@ describe("the account's lock", () => {
   it.skipIf(!servers)("makes a create wait, and see the account's email change", async () => {
     const identity = kyselyIdentityRepository(t.db, t.dialect);
     const id = await identity.createUserWithoutPassword(
-      { email: "moving@example.com", name: "Moving", role: "user" },
+      { email: "moving@example.com", name: "Moving", role: "user", createdVia: "root" },
       new Date(clock.getTime() - DAY),
     );
     await kyselySsoRepository(t.db, t.dialect).linkAccount(id, "acme", "sub-moving", clock);

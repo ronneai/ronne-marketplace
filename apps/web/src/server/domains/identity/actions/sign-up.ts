@@ -3,6 +3,7 @@ import { instanceHost } from "../../mail/services/mail-admin";
 import { storedMailSetup } from "../../mail/services/mail-setup";
 import { signUpReadiness } from "../../settings/actions/sign-up";
 import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
+import { readAccountRules } from "../../settings/services/account-rules";
 import { signUpBlockers, signUpPolicy } from "../../settings/services/sign-up";
 import { clientIp } from "../models/client-ip";
 import { argon2PasswordHasher } from "../repositories/argon2-password-hasher";
@@ -31,8 +32,16 @@ export const signUpDeps = (
     limits: app.rateLimits,
     authSecret: context.authSecret,
     openness: async () => {
-      const [policy, readiness] = await Promise.all([signUpPolicy(settings), signUpReadiness(app)]);
-      return { ...policy, open: policy.enabled && signUpBlockers(readiness).length === 0 };
+      const [policy, readiness, rules] = await Promise.all([
+        signUpPolicy(settings),
+        signUpReadiness(app),
+        readAccountRules(settings),
+      ]);
+      return {
+        ...policy,
+        open: policy.enabled && signUpBlockers(readiness).length === 0,
+        blocked: rules,
+      };
     },
     mail: async () => ({
       host: instanceHost(context.publicUrl),

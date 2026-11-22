@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Panel } from "@/components/ui/Panel";
 import {
   type ProviderRow,
+  providerMailReady,
   providerRows,
 } from "@/server/domains/identity/actions/identity-providers";
 import {
@@ -13,14 +14,18 @@ import { countTokensPastPolicy } from "@/server/domains/identity/actions/token-p
 import { twoFactorCoverage } from "@/server/domains/identity/actions/two-factor";
 import type { TwoFactorCoverage } from "@/server/domains/identity/models/two-factor-coverage";
 import { getAppAuth } from "@/server/domains/identity/repositories/auth-instance";
+import { adminAccountRules } from "@/server/domains/settings/actions/account-rules";
 import { instanceSettings } from "@/server/domains/settings/actions/settings";
 import { adminSignUpSettings } from "@/server/domains/settings/actions/sign-up";
+import type { AccountRules } from "@/server/domains/settings/models/account-rules";
 import type { PasswordSignInPolicy } from "@/server/domains/settings/models/password-sign-in-policy";
 import type { SignUpPolicy } from "@/server/domains/settings/models/sign-up-policy";
 import type { TokenPolicy } from "@/server/domains/settings/models/token-policy";
 import type { TwoFactorPolicy } from "@/server/domains/settings/models/two-factor-policy";
 import type { SignUpReadiness } from "@/server/domains/settings/services/sign-up";
 import { requestHeaders } from "@/server/http/request-headers";
+import { AccountRulesPanel } from "./account-rules/AccountRulesPanel";
+import { waysIn } from "./account-rules/overview";
 import { PasswordPolicyForm } from "./PasswordPolicyForm";
 import { IdentityProvidersPanel } from "./providers/IdentityProvidersPanel";
 import { type SignInMethod, SignInMethodsPanel } from "./SignInMethodsPanel";
@@ -43,6 +48,9 @@ type AuthenticationData = {
   tokensPast: number;
   /** Self-registration (190) and what it needs first. */
   signUp: { policy: SignUpPolicy; readiness: SignUpReadiness };
+  /** Who may create accounts (191): the block list, and whether email is set up. */
+  accountRules: AccountRules;
+  mailReady: boolean;
 };
 
 /**
@@ -99,6 +107,20 @@ const PANELS: readonly {
     ),
   },
   {
+    id: "who-may-create-accounts",
+    render: ({ accountRules, signUp, providers, mailReady }) => (
+      <AccountRulesPanel
+        rules={accountRules}
+        ways={waysIn({
+          signUp: signUp.policy,
+          providers,
+          blockedDomains: accountRules.blockedDomains,
+          mailReady,
+        })}
+      />
+    ),
+  },
+  {
     id: "identity-providers",
     render: ({ providers }) => <IdentityProvidersPanel rows={providers} />,
   },
@@ -138,16 +160,27 @@ export const AuthenticationTab = async () => {
   const request = await requestHeaders();
   const t = await getTranslations("admin.settings.methods");
   const app = getAppAuth();
-  const [settings, coverage, providers, usableProvider, affected, tokensPast, signUp] =
-    await Promise.all([
-      instanceSettings(request),
-      twoFactorCoverage(request),
-      providerRows(request),
-      hasUsableProvider(app),
-      passwordUsersAffected(app),
-      countTokensPastPolicy(request),
-      adminSignUpSettings(request),
-    ]);
+  const [
+    settings,
+    coverage,
+    providers,
+    usableProvider,
+    affected,
+    tokensPast,
+    signUp,
+    accountRules,
+    mailReady,
+  ] = await Promise.all([
+    instanceSettings(request),
+    twoFactorCoverage(request),
+    providerRows(request),
+    hasUsableProvider(app),
+    passwordUsersAffected(app),
+    countTokensPastPolicy(request),
+    adminSignUpSettings(request),
+    adminAccountRules(request),
+    providerMailReady(app),
+  ]);
   const data = {
     twoFactorPolicy: settings.twoFactorPolicy,
     coverage,
@@ -158,9 +191,12 @@ export const AuthenticationTab = async () => {
     tokenPolicy: settings.tokenPolicy,
     tokensPast,
     signUp,
+    accountRules,
+    mailReady,
   };
   return PANELS.map((panel) => (
-    <Panel key={panel.id} padding="lg">
+    // The id is the panel's anchor: the overview links to #self-registration (191).
+    <Panel key={panel.id} id={panel.id} padding="lg">
       {panel.render(data, t)}
     </Panel>
   ));

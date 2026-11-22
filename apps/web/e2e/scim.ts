@@ -73,6 +73,8 @@ export const scimFlow = async ({
   await page.getByLabel("Realm").fill("acme");
   await page.getByLabel("Client ID").fill("ronne");
   await page.getByLabel("Client secret").fill("scim-e2e-client-secret");
+  // No domains: SCIM makes the accounts, so sign-in makes none (191).
+  await page.getByRole("checkbox", { name: /^Creates accounts on first sign-in/ }).uncheck();
   await page.getByRole("button", { name: "Add a group" }).click();
   await page.getByLabel("Group", { exact: true }).fill(GROUP_NAME);
   await page.getByLabel("Workspace", { exact: true }).selectOption({ label: E2E_WORKSPACE });

@@ -1,7 +1,9 @@
 import { isUniqueViolation } from "../../../db/locks";
+import { emailDomain, isDomainBlocked } from "../../settings/models/account-rules";
 import { InvalidEmailError, InvalidNameError } from "../exceptions/errors";
 import type { VerifiedIdentity } from "../models/auth-provider-type";
 import { emailInDomains, type IdentityProvider } from "../models/identity-provider";
+import { isThrowawayDomain } from "../models/sign-up-guard";
 import { normalizeEmail, normalizeName, type UserSummary } from "../models/user";
 import type { SsoRepository } from "../repositories/sso-repository";
 import { applyGroups } from "./group-sync";
@@ -16,9 +18,18 @@ import { applyGroups } from "./group-sync";
  *    is on the provider's list (a provider for `acme.com` can't claim a `gmail.com` account; root's
  *    account is linked like any other), and that account has no other subject of this provider (a
  *    new subject with a linked email is someone else);
- * 5. else, for a listed domain, a new `user` is created (in `global`, a personal workspace, no
- *    password, never root) and linked;
+ * 5. else a new account, by the rule every way in obeys (191), in this order:
+ *    a. the email's domain is on the instance's block list → refused (`domain_blocked`); and so is
+ *       a throwaway domain, when the provider takes any domain and root blocks those
+ *       (`domain_throwaway`);
+ *    b. the provider doesn't create accounts → refused (`creating_off`);
+ *    c. the provider takes only listed domains, and this one isn't listed → refused
+ *       (`domain_not_allowed`);
+ *    d. else a new `user` is created (in `global`, a personal workspace, no password, never root)
+ *       and linked, waiting for a root's approval when the provider asks for it;
  * 6. else nobody.
+ * The rule governs new accounts only: a linked account signs in, and linking by email keeps 106's
+ * own check (the provider's listed domains), whatever the block list says since (191, case 8).
  */
 export type SsoRefusal = "unverified_email" | "disabled" | "not_allowed";
 
@@ -29,6 +40,9 @@ export type SsoRefusal = "unverified_email" | "disabled" | "not_allowed";
  * existing account this provider can't link.
  */
 export type SsoNotAllowed =
+  | "domain_blocked"
+  | "domain_throwaway"
+  | "creating_off"
   | "domain_not_allowed"
   | "non_ascii_email"
   | "invalid_email"
@@ -41,6 +55,8 @@ export type SsoPlan =
   | { action: "sign_in"; user: UserSummary }
   | { action: "link"; user: UserSummary }
   | { action: "create"; email: string; name: string }
+  /** Created waiting for a root's approval (191): linked, with no groups, and no session yet. */
+  | { action: "create_pending"; email: string; name: string }
   | { action: "refuse"; reason: SsoRefusal; user?: UserSummary; why?: SsoNotAllowed };
 
 /** The name a new account gets: the provider's, by Create user's rule, else the email's local part. */
@@ -96,6 +112,11 @@ export const planSsoSignIn = async (
     if (error instanceof InvalidEmailError) return notAllowed("invalid_email");
     throw error;
   }
+  // The domain part exactly as mail delivery reads it (191): one with a final dot, or one IDNA
+  // changes or can't read (a port, a bad `xn--` label) would be compared one way by the block list
+  // and another by the accounts, and could make a second account beside an existing one.
+  if (emailDomain(email) !== email.slice(email.lastIndexOf("@") + 1))
+    return notAllowed("invalid_email");
   const existing = await repo.findUserByEmail(email);
   // MySQL and MariaDB compare emails without accents (`kåte@` = `kate@`): only the exact address
   // is this person's. Another one that the database calls equal can't be linked, or created beside.
@@ -104,21 +125,33 @@ export const planSsoSignIn = async (
     // Waiting for a root's approval (190): no way in through a provider either.
     if (existing.disabledAt || existing.erasedAt || existing.approvalPendingAt)
       return { action: "refuse", reason: "disabled", user: existing };
-    if (!provider.linkByEmail) return notAllowed("link_off", existing);
+    // Linking by email trusts the provider for its listed domains only, never for any domain (191).
+    if (!provider.linkByEmail || provider.anyDomain) return notAllowed("link_off", existing);
     if (!emailInDomains(email, provider.domains)) return notAllowed("domain_not_listed", existing);
     // Linked already to another subject of this provider: this is someone else with that address.
     if ((await repo.linkedSubjects(existing.id, provider.id)).length > 0)
       return notAllowed("linked_to_another", existing);
     return { action: "link", user: existing };
   }
-  if (emailInDomains(email, provider.domains))
-    return { action: "create", email, name: nameFor(identity, email) };
-  return notAllowed("domain_not_allowed");
+  const rules = await repo.accountRules();
+  if (isDomainBlocked(rules, email)) return notAllowed("domain_blocked");
+  if (provider.anyDomain && rules.blockThrowaway && isThrowawayDomain(emailDomain(email)))
+    return notAllowed("domain_throwaway");
+  if (!provider.createsAccounts) return notAllowed("creating_off");
+  if (!provider.anyDomain && !emailInDomains(email, provider.domains))
+    return notAllowed("domain_not_allowed");
+  return {
+    action: provider.needsApproval ? "create_pending" : "create",
+    email,
+    name: nameFor(identity, email),
+  };
 };
 
 export type SsoOutcome =
   | { ok: true; userId: string; email: string; root: boolean; created: boolean; linked: boolean }
-  | { ok: false; reason: SsoRefusal; userId: string | null; why?: SsoNotAllowed };
+  | { ok: false; reason: SsoRefusal; userId: string | null; why?: SsoNotAllowed }
+  /** The account was created and waits for a root's approval (191): no session, no groups. */
+  | { ok: false; reason: "awaiting_approval"; userId: string };
 
 /**
  * Decides and writes it, one sign-in through a provider at a time (the provider's row is locked):
@@ -187,18 +220,34 @@ export const signInWithProvider = async (
         linked: true,
       };
     }
-    const id = await trx.createUser({ email: plan.email, name: plan.name }, context.now);
+    const pending = plan.action === "create_pending";
+    const id = await trx.createUser(
+      { email: plan.email, name: plan.name, providerId: provider.id, approval: pending },
+      context.now,
+    );
     await trx.linkAccount(id, provider.id, identity.subject, context.now);
     await trx.recordAudit(
       {
         actorId: null,
         action: "user.created",
         target: { type: "user", id },
-        metadata: { email: plan.email, role: "user", via: "sso", provider: provider.id },
+        metadata: {
+          email: plan.email,
+          role: "user",
+          via: "sso",
+          provider: provider.id,
+          ...(pending ? { approval: true } : {}),
+        },
         ipAddress: context.ip,
       },
       context.now,
     );
+    // Waiting (191): the roots are told, and nothing more until one approves; the groups come at
+    // the first sign-in after that, as every sign-in applies them.
+    if (pending) {
+      await trx.notifyAwaitingApproval(id, plan.email, context.now);
+      return { ok: false, reason: "awaiting_approval", userId: id };
+    }
     return { ok: true, userId: id, email: plan.email, root: false, created: true, linked: true };
   };
   try {

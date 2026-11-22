@@ -361,3 +361,29 @@ export class ApprovalAnsweredError extends IdentityError {
     );
   }
 }
+
+/** A provider's new accounts can wait for approval only while email is set up (191, Decision 8). */
+export class ProviderApprovalNeedsMailError extends IdentityError {
+  override readonly name: string = "ProviderApprovalNeedsMailError";
+  constructor() {
+    super(
+      "Set up email with the instance contact first: a waiting account's owner hears a root's answer by email.",
+    );
+  }
+}
+
+/** A provider that creates accounts for listed domains only, with none listed (191). */
+export class ProviderDomainsRequiredError extends IdentityError {
+  override readonly name: string = "ProviderDomainsRequiredError";
+  constructor() {
+    super("List at least one domain this provider creates accounts for, or choose Any domain.");
+  }
+}
+
+/** Create user for an address in a blocked domain, not confirmed (191): root may, once asked. */
+export class BlockedDomainNotConfirmedError extends IdentityError {
+  override readonly name: string = "BlockedDomainNotConfirmedError";
+  constructor(readonly domain: string) {
+    super(`${domain} is on the block list. Tick Create anyway to create the account.`);
+  }
+}

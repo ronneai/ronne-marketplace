@@ -2,6 +2,8 @@ import { isUniqueViolation } from "../../../db/locks";
 import {
   InvalidGroupMappingError,
   InvalidProviderNameError,
+  ProviderApprovalNeedsMailError,
+  ProviderDomainsRequiredError,
   ProviderIdTakenError,
   ProviderNotFoundError,
   ProviderNotTestedError,
@@ -34,6 +36,11 @@ export type IdentityProviderDeps = {
   types: ProviderTypeRegistry;
   /** AUTH_SECRET: the key the client secrets are encrypted under derives from it. */
   authSecret: string;
+  /**
+   * Whether email is set up with an instance contact (189): a provider's new accounts can wait for
+   * approval only then (191, Decision 8). Left out, it isn't.
+   */
+  mailReady?: () => Promise<boolean>;
   now?: () => Date;
 };
 
@@ -47,6 +54,14 @@ export type ProviderInput = {
   config: Record<string, unknown>;
   domains: unknown;
   linkByEmail: unknown;
+  /**
+   * Who it creates accounts for (191): whether it creates any, for `any` domain or the `list`, and
+   * whether they wait for approval. Left out (106's form, an old client), as 106 had it: creating
+   * for the listed domains, none when the list is empty, with no approval.
+   */
+  createsAccounts?: unknown;
+  domainsMode?: unknown;
+  needsApproval?: unknown;
   groupsClaim: unknown;
   /** The group mappings, all of them; left out, they stay as they are. */
   mappings?: unknown;
@@ -168,13 +183,13 @@ export const createProvider = async (
     name,
     config,
     secretEnc: secret ? encryptSecret(deps.authSecret, providerId, secret) : null,
-    domains: parseDomains(input.domains),
-    linkByEmail: input.linkByEmail !== false,
+    ...accountSettings(input),
     groupsClaim: checkGroupsClaim(input.groupsClaim),
     testedAt: null,
     testedBy: null,
     enabled: false,
   };
+  await checkApproval(deps, false, row.needsApproval);
   const at = now(deps);
   try {
     return await deps.repo.transaction(async (repo) => {
@@ -194,6 +209,47 @@ export const createProvider = async (
   }
 };
 
+const on = (value: unknown) => value === true || value === "on";
+
+/**
+ * Who a provider creates accounts for (191), and whether it links by email. Without 191's fields,
+ * 106's rule: accounts for the listed domains, none when the list is empty, with no approval.
+ * *Any domain* never links by email (Decision 4): a provider trusted for every domain could claim
+ * any account, root's included. Creating for listed domains needs one listed.
+ */
+const accountSettings = (input: ProviderInput | Omit<ProviderInput, "type">) => {
+  const domains = parseDomains(input.domains);
+  if (input.createsAccounts === undefined)
+    return {
+      domains,
+      createsAccounts: domains.length > 0,
+      anyDomain: false,
+      needsApproval: false,
+      linkByEmail: input.linkByEmail !== false,
+    };
+  const createsAccounts = on(input.createsAccounts);
+  const anyDomain = input.domainsMode === "any";
+  if (createsAccounts && !anyDomain && domains.length === 0)
+    throw new ProviderDomainsRequiredError();
+  return {
+    domains,
+    createsAccounts,
+    anyDomain,
+    needsApproval: createsAccounts && on(input.needsApproval),
+    linkByEmail: !anyDomain && input.linkByEmail !== false,
+  };
+};
+
+/** Approval turned on needs email set up (191, Decision 8); once on, it stays on as saved. */
+const checkApproval = async (
+  deps: IdentityProviderDeps,
+  before: boolean,
+  after: boolean,
+): Promise<void> => {
+  if (after && !before && !(await (deps.mailReady?.() ?? Promise.resolve(false))))
+    throw new ProviderApprovalNeedsMailError();
+};
+
 /** The fields whose change the audit names (never their values). */
 const changedFields = (
   before: StoredProvider,
@@ -209,6 +265,9 @@ const changedFields = (
   if (secretTyped) changed.push("client secret");
   if (JSON.stringify(p.domains) !== JSON.stringify(after.domains)) changed.push("domains");
   if (p.linkByEmail !== after.linkByEmail) changed.push("link by email");
+  if (p.createsAccounts !== after.createsAccounts) changed.push("creates accounts");
+  if (p.anyDomain !== after.anyDomain) changed.push("any domain");
+  if (p.needsApproval !== after.needsApproval) changed.push("approval");
   if (p.groupsClaim !== after.groupsClaim) changed.push("groups claim");
   return changed;
 };
@@ -241,13 +300,13 @@ export const updateProvider = async (
       name: checkName(input.name),
       config,
       secretEnc: secret ? encryptSecret(deps.authSecret, id, secret) : stored.secretEnc,
-      domains: parseDomains(input.domains),
-      linkByEmail: input.linkByEmail !== false,
+      ...accountSettings(input),
       groupsClaim: checkGroupsClaim(input.groupsClaim),
       testedAt: retest ? null : p.testedAt,
       testedBy: retest ? null : p.testedBy,
       enabled: retest ? false : p.enabled,
     };
+    await checkApproval(deps, p.needsApproval, row.needsApproval);
     const mappings =
       input.mappings === undefined ? null : await checkMappings(repo, input.mappings);
     const changed = changedFields(stored, row, secret !== undefined);

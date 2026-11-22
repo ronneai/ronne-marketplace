@@ -1,5 +1,8 @@
 import { fromDbDate } from "../../../db/dates";
 import { decodeJson } from "../../../db/json";
+import { mailReadiness } from "../../mail/actions/mail";
+import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
+import { readAccountRules } from "../../settings/services/account-rules";
 import { IdentityError } from "../exceptions/errors";
 import type { InstructionStep, ProviderField } from "../models/auth-provider-type";
 import { clientIp } from "../models/client-ip";
@@ -27,10 +30,23 @@ export type { TestSignInResult } from "./test-sign-in";
  * provider service for the panel and the Add/Edit form, plus the two tests. Root only, checked by
  * the service (and here for the reads that skip it).
  */
+/** Email set up with an instance contact (189): what a provider's approval needs (191). */
+export const providerMailReady = async (app: AppAuth = getAppAuth()): Promise<boolean> => {
+  const mail = await mailReadiness(app);
+  return mail.sending && mail.contact !== "";
+};
+
+/** The block list, as stored; a damaged one names nothing here (the rules panel says it). */
+const blockedDomains = async (app: AppAuth): Promise<string[]> => {
+  const rules = await readAccountRules(kyselySettingsRepository(app.db, app.dialect));
+  return rules.damaged ? [] : rules.blockedDomains;
+};
+
 const deps = async (app: AppAuth): Promise<service.IdentityProviderDeps> => ({
   repo: kyselyIdentityProviderRepository(app.db, app.dialect),
   types: PROVIDER_TYPES,
   authSecret: (await app.auth.$context).secret,
+  mailReady: () => providerMailReady(app),
 });
 
 const actor = async (headers: Headers, app: AppAuth) => ({
@@ -50,6 +66,11 @@ export type ProviderRow = {
   presetLabel: string;
   issuer: string;
   domains: string[];
+  /** Who it creates accounts for (191), for the overview. */
+  createsAccounts: boolean;
+  anyDomain: boolean;
+  needsApproval: boolean;
+  linkByEmail: boolean;
   status: ProviderStatus;
   enabled: boolean;
   lastSignedInAt: Date | null;
@@ -66,6 +87,10 @@ const row = (p: IdentityProvider): ProviderRow => ({
   presetLabel: presetLabel(p.preset),
   issuer: String(p.config.issuer ?? ""),
   domains: p.domains,
+  createsAccounts: p.createsAccounts,
+  anyDomain: p.anyDomain,
+  needsApproval: p.needsApproval,
+  linkByEmail: p.linkByEmail,
   status: providerStatus(p),
   enabled: p.enabled,
   lastSignedInAt: p.lastSignedInAt,
@@ -91,6 +116,10 @@ export type ProviderPage = {
   /** Whether the root viewing it may turn it on (a passing test of this version, by them). */
   canEnable: boolean;
   lastTest: TestSignInResult | null;
+  /** Whether new accounts may be made to wait for approval: email is set up (191, Decision 8). */
+  mailReady: boolean;
+  /** The block list (191): the form warns about a listed domain on it. */
+  blockedDomains: string[];
 };
 
 export const providerPage = async (
@@ -146,6 +175,8 @@ export const providerPage = async (
       provider && !provider.enabled && provider.testedAt && provider.testedBy === who.user?.id,
     ),
     lastTest,
+    mailReady: await providerMailReady(app),
+    blockedDomains: await blockedDomains(app),
   };
 };
 

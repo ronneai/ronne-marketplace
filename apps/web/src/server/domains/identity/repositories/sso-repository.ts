@@ -1,6 +1,7 @@
 import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { MailNotice } from "../../mail/services/templates";
 import type { NewNotification } from "../../notifications/models/notification";
+import type { AccountRules } from "../../settings/models/account-rules";
 import type { MappedRole } from "../models/identity-provider";
 import type { UserSummary } from "../models/user";
 
@@ -37,8 +38,19 @@ export interface SsoRepository {
   linkAccount(userId: string, providerId: string, subject: string, now: Date): Promise<void>;
   findUser(userId: string): Promise<UserSummary | null>;
   findUserByEmail(email: string): Promise<UserSummary | null>;
-  /** A new `user`: in `global`, with a personal workspace, no password. Returns its id. */
-  createUser(user: { email: string; name: string }, now: Date): Promise<string>;
+  /**
+   * A new `user`: in `global`, with a personal workspace, no password, made by this provider
+   * (`created_via`, 191), waiting for a root's approval when the provider asks for it (191).
+   * Returns its id.
+   */
+  createUser(
+    user: { email: string; name: string; providerId: string; approval: boolean },
+    now: Date,
+  ): Promise<string>;
+  /** Who may create accounts (191): the block list and the throwaway setting, as stored. */
+  accountRules(): Promise<AccountRules>;
+  /** Tells every active root that an account waits for approval (190's notification, 139). */
+  notifyAwaitingApproval(userId: string, email: string, at: Date): Promise<void>;
   /** The provider's group mappings (a deleted workspace's mapping has a null workspace). */
   mappingsFor(
     providerId: string,

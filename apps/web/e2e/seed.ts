@@ -66,6 +66,7 @@ for (const [key, email] of Object.entries(E2E_USERS) as [keyof typeof E2E_USERS,
       email,
       name: E2E_NAMES[key],
       role: E2E_ROOTS.includes(key) ? "root" : "user",
+      createdVia: "root",
       // Moderators of global, as every moderator was before workspaces (091).
       globalRole: E2E_MODERATORS.includes(key) ? "moderator" : "user",
       passwordHash,

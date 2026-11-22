@@ -4,6 +4,7 @@ import {
   CHALLENGE_MS,
   checkChallengeAnswer,
   checkForm,
+  deliveryDomain,
   formStamp,
   issueChallenge,
   isThrowawayDomain,
@@ -231,6 +232,14 @@ describe("hardening (190)", () => {
     expect(
       signUpDomainAllowed({ domains: ["acme.com"], blockThrowaway: true }, "a@acme。com"),
     ).toBe(true);
+  });
+
+  it("refuses an xn-- label that isn't punycode for the name it spells, on every Node.js (191)", () => {
+    for (const bad of ["xn--acme-.com", "xn--a.com", "xn--.com", "xn---.com", "eu.xn--abc-.com"])
+      expect(deliveryDomain(bad), bad).toBe("");
+    expect(deliveryDomain("XN--BCHER-KVA.example")).toBe("xn--bcher-kva.example");
+    expect(deliveryDomain("bücher.example")).toBe("xn--bcher-kva.example");
+    expect(deliveryDomain("xn--ls8h.la")).toBe("xn--ls8h.la");
   });
 
   it("refuses a name longer than a domain can be, at once", () => {

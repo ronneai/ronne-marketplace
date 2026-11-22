@@ -61,6 +61,9 @@ const provider: IdentityProvider = {
   hasSecret: true,
   domains: ["acme.com"],
   linkByEmail: true,
+  createsAccounts: true,
+  anyDomain: false,
+  needsApproval: false,
   groupsClaim: "groups",
   testedAt: null,
   testedBy: null,
@@ -100,6 +103,10 @@ describe("the panel", () => {
             presetLabel: "Okta",
             issuer: "https://acme.okta.com",
             domains: ["acme.com"],
+            createsAccounts: true,
+            anyDomain: false,
+            needsApproval: false,
+            linkByEmail: true,
             status: "failing",
             enabled: true,
             lastSignedInAt: null,
@@ -283,6 +290,100 @@ describe("saving", () => {
     await expect(
       actions.saveProviderFromForm({}, form({ mode: "new", id: "acme" })),
     ).rejects.toThrow("NEXT_REDIRECT /admin/settings?tab=authentication&provider=acme");
+  });
+});
+
+describe("who may sign in, step 3 (191)", () => {
+  const edit = (p: IdentityProvider, mailReady = false) =>
+    renderToStaticMarkup(
+      <ProviderForm
+        provider={p}
+        presets={OIDC_PRESETS}
+        workspaces={[]}
+        mappings={[]}
+        callbackBase={CALLBACK}
+        steps={{}}
+        mailReady={mailReady}
+      />,
+    );
+  const input = (html: string, name: string, value?: string) =>
+    html.match(
+      new RegExp(`<input[^>]*name="${name}"${value ? `[^>]*value="${value}"` : ""}[^>]*>`),
+    )?.[0] ?? "";
+
+  it("has creates accounts, allowed domains, approval and link by email, as the provider has them", () => {
+    const html = edit(provider);
+    expect(input(html, "createsAccounts")).toContain("checked");
+    expect(input(html, "domainsMode", "list")).toContain("checked");
+    expect(input(html, "domains")).not.toContain("readOnly");
+    expect(input(html, "linkByEmail")).toContain("checked");
+    expect(html).toContain("Allowed domains");
+    expect(html).toContain("Creates accounts on first sign-in");
+  });
+
+  it("with any domain: link by email off, disabled and why; the list kept but read-only", () => {
+    const html = edit({ ...provider, anyDomain: true, linkByEmail: true });
+    expect(input(html, "domainsMode", "any")).toContain("checked");
+    const link = input(html, "linkByEmail");
+    expect(link).toContain(' disabled=""');
+    expect(link).not.toContain("checked");
+    expect(html).toContain("a provider trusted for every domain could claim any account");
+    // Read-only, so the list is still posted.
+    expect(input(html, "domains")).toMatch(/readOnly|readonly/);
+    expect(input(html, "domains")).not.toContain(' disabled=""');
+  });
+
+  it("approval only while email is set up, saying why (Decision 8)", () => {
+    const off = input(edit(provider), "needsApproval");
+    expect(off).toContain(' disabled=""');
+    expect(edit(provider)).toContain("Set up email with the instance contact first");
+    expect(input(edit(provider, true), "needsApproval")).not.toContain(' disabled=""');
+    // Already on: it stays on and editable, so a save doesn't drop it.
+    const on = input(edit({ ...provider, needsApproval: true }), "needsApproval");
+    expect(on).toContain("checked");
+    expect(on).not.toContain(' disabled=""');
+  });
+
+  it("warns about a listed domain on the block list (edge case 10), only while it creates for its list", () => {
+    const html = (p: IdentityProvider) =>
+      renderToStaticMarkup(
+        <ProviderForm
+          provider={p}
+          presets={OIDC_PRESETS}
+          workspaces={[]}
+          mappings={[]}
+          callbackBase={CALLBACK}
+          steps={{}}
+          blockedDomains={["acme.org"]}
+        />,
+      );
+    const listed = { ...provider, domains: ["acme.com", "acme.org"] };
+    // Static markup escapes the apostrophe.
+    expect(html(listed)).toContain("acme.org is on the block list, so this provider can");
+    expect(html(listed)).not.toContain("acme.com is on the block list");
+    expect(html({ ...listed, createsAccounts: false })).not.toContain("is on the block list");
+    expect(html({ ...listed, anyDomain: true })).not.toContain("is on the block list");
+  });
+
+  it("posts the three settings under the names the save reads", async () => {
+    providers.updateProvider.mockResolvedValue(provider);
+    const data = new FormData();
+    for (const [key, value] of Object.entries({
+      mode: "edit",
+      id: "acme",
+      version: provider.updatedAt.toISOString(),
+      createsAccounts: "on",
+      domainsMode: "any",
+      needsApproval: "on",
+    }))
+      data.set(key, value);
+    await expect(actions.saveProviderFromForm({}, data)).rejects.toThrow("NEXT_REDIRECT");
+    expect(providers.updateProvider.mock.calls.at(-1)?.[2]).toMatchObject({
+      createsAccounts: true,
+      domainsMode: "any",
+      needsApproval: true,
+      linkByEmail: false,
+    });
   });
 });
 

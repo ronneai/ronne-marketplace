@@ -13,7 +13,13 @@ import { recordAudit } from "../../audit/actions/audit";
 import { kyselyOutboxRepository } from "../../mail/repositories/kysely-outbox-repository";
 import { mailQueued, queueSecurityNotice } from "../../mail/services/notices";
 import { isLocale, type Locale } from "../models/locale";
-import { isRole, isWorkspaceRole, type RootAccount, type UserSummary } from "../models/user";
+import {
+  createdVia,
+  isRole,
+  isWorkspaceRole,
+  type RootAccount,
+  type UserSummary,
+} from "../models/user";
 import type {
   IdentityRepository,
   NewUserWithPassword,
@@ -37,6 +43,7 @@ type UserRow = {
   locale: string | null;
   password_change_required_at: Date | string | null;
   approval_pending_at: Date | string | null;
+  created_via: string | null;
 };
 
 const summary = (row: UserRow): UserSummary => {
@@ -53,6 +60,7 @@ const summary = (row: UserRow): UserSummary => {
     locale: isLocale(row.locale) ? row.locale : null,
     passwordChangeRequiredAt: fromDbDate(row.password_change_required_at),
     approvalPendingAt: fromDbDate(row.approval_pending_at),
+    createdVia: createdVia(row.created_via),
   };
 };
 
@@ -67,6 +75,7 @@ const USER_COLUMNS = [
   "locale",
   "password_change_required_at",
   "approval_pending_at",
+  "created_via",
 ] as const;
 
 /** Better Auth's provider id for email and password accounts. */
@@ -196,6 +205,7 @@ export const kyselyIdentityRepository = (
         updated_at: at(now),
         role: user.role,
         disabled_at: null,
+        created_via: user.createdVia,
       })
       .execute();
     // Same shape Better Auth writes for email and password accounts: account_id is the user id.

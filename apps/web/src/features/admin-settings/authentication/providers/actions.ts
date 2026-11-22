@@ -58,6 +58,10 @@ export const saveProviderFromForm = serverAction(
       },
       domains: text(form, "domains"),
       linkByEmail: form.get("linkByEmail") === "on",
+      // Who it creates accounts for (191).
+      createsAccounts: form.get("createsAccounts") === "on",
+      domainsMode: text(form, "domainsMode") === "any" ? "any" : "list",
+      needsApproval: form.get("needsApproval") === "on",
       groupsClaim: form.get("groupsClaim"),
       mappings: mappings(form),
     };

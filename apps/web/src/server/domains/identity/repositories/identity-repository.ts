@@ -3,13 +3,22 @@ import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { MailNotice } from "../../mail/services/templates";
 import type { Locale } from "../models/locale";
 import type { CoverageRow } from "../models/two-factor-coverage";
-import type { CurrentUser, Role, RootAccount, UserSummary, WorkspaceRole } from "../models/user";
+import type {
+  CreatedVia,
+  CurrentUser,
+  Role,
+  RootAccount,
+  UserSummary,
+  WorkspaceRole,
+} from "../models/user";
 
 export type NewUserWithPassword = {
   email: string;
   name: string;
   role: Role;
   passwordHash: string;
+  /** The way the account is made (191), kept in `user.created_via`. */
+  createdVia: CreatedVia;
   /** The role in `global` for someone who isn't root (091); `user` when left out. */
   globalRole?: WorkspaceRole;
 };

@@ -653,7 +653,7 @@ describe("what SCIM never does", () => {
     await map("acme", "Engineers", eng, "user");
     const identity = kyselyIdentityRepository(t.db, t.dialect);
     const sam = await identity.createUserWithoutPassword(
-      { email: "sam@example.com", name: "Sam", role: "user" },
+      { email: "sam@example.com", name: "Sam", role: "user", createdVia: "root" },
       clock,
     );
     await kyselySsoRepository(t.db, t.dialect).linkAccount(sam, "acme", "sub-sam", clock);

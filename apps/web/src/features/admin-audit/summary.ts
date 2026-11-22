@@ -663,6 +663,27 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     ].filter((c) => c !== null);
     return { changes: changes.join(", ") || h.part("signUp.nothing") };
   },
+  "settings.account_rules_changed": (m, _e, h) => {
+    // `{ from: { blockedDomains, blockThrowaway }, to: {…} }` (191): what was added and removed.
+    const from = record(m.from);
+    const to = record(m.to);
+    const domains = (value: AuditMetadataValue | undefined) =>
+      Array.isArray(value) ? value.map(text) : [];
+    const before = domains(from.blockedDomains);
+    const after = domains(to.blockedDomains);
+    const added = after.filter((d) => !before.includes(d));
+    const removed = before.filter((d) => !after.includes(d));
+    const changes = [
+      added.length > 0 ? h.part("accountRules.blocked", { list: added.join(", ") }) : null,
+      removed.length > 0 ? h.part("accountRules.unblocked", { list: removed.join(", ") }) : null,
+      text(from.blockThrowaway) !== text(to.blockThrowaway)
+        ? h.part(
+            to.blockThrowaway === true ? "accountRules.throwawayOn" : "accountRules.throwawayOff",
+          )
+        : null,
+    ].filter((c) => c !== null);
+    return { changes: changes.join(", ") || h.part("accountRules.nothing") };
+  },
   "settings.notice": (m, _e, h) => {
     // `{ from: { tone, shown }, to: { tone, shown }, revision }`: never the text (124).
     const from = record(m.from);

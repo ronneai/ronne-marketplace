@@ -76,6 +76,14 @@ describe("an account waiting for approval, on its page (190)", () => {
     expect(withButtons).toContain("SLOT-APPROVAL");
   });
 
+  it("says a provider made a waiting account, naming it (191)", () => {
+    const html = page(
+      detail({ approvalPendingAt: new Date("2026-11-22T10:00:00Z"), createdVia: "provider:entra" }),
+    );
+    expect(html).toContain("It was made by a first sign-in with entra");
+    expect(html).not.toContain("by signing up");
+  });
+
   it("says nothing of approval for an account that doesn't wait", () => {
     const html = renderToStaticMarkup(
       <UserPage
@@ -129,6 +137,18 @@ describe("a user's page (123)", () => {
     const html = page(detail());
     expect(html).toContain("2026-10-19 14:30 UTC");
     expect(html).toContain("Not rmk");
+  });
+
+  it("says which way the account was made (191)", () => {
+    const by = (createdVia: UserSummary["createdVia"]) =>
+      page(detail({ createdVia })).match(/Created by<\/dt><dd[^>]*>([^<]*)</)?.[1];
+    expect(by("setup")).toBe("Setup (the first root)");
+    expect(by("root")).toBe("A root, with Create user");
+    expect(by("sign_up")).toBe("Signing up");
+    expect(by("scim")).toBe("SCIM provisioning");
+    expect(by("provider:entra")).toBe("First sign-in with entra");
+    expect(by("unknown")).toBe("Not recorded (before this was kept)");
+    expect(page(detail())).not.toContain("Created by");
   });
 
   it("shows two-factor, and a disabled account's date", () => {

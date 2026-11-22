@@ -5,6 +5,7 @@ import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
 import { mailQueued } from "../../mail/services/notices";
 import { queueMail } from "../../mail/services/outbox";
+import { createdVia } from "../models/user";
 import type { ApprovalRepository } from "./approval-repository";
 
 /** Approving and declining self-registered accounts (190). */
@@ -27,12 +28,24 @@ export const kyselyApprovalRepository = (
     const row = await forUpdate(
       db
         .selectFrom("user")
-        .select(["id", "email", "locale", "approval_pending_at", "erased_at"])
+        .select(["id", "email", "locale", "approval_pending_at", "erased_at", "created_via"])
         .where("id", "=", userId),
       dialect,
     ).executeTakeFirst();
     if (!row || row.erased_at) return { state: "gone" };
     if (!row.approval_pending_at) return { state: "approved" };
+    // Made by a provider's first sign-in (191): its name, or its id once it's deleted.
+    const via = createdVia(row.created_via);
+    const providerId = via.startsWith("provider:") ? via.slice(9) : null;
+    const provider = providerId
+      ? ((
+          await db
+            .selectFrom("identity_providers")
+            .select("name")
+            .where("id", "=", providerId)
+            .executeTakeFirst()
+        )?.name ?? providerId)
+      : null;
     return {
       state: "waiting",
       account: {
@@ -40,6 +53,7 @@ export const kyselyApprovalRepository = (
         email: row.email,
         locale: row.locale,
         since: fromDbDate(row.approval_pending_at),
+        provider,
       },
     };
   },

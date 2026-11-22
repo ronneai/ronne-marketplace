@@ -1,4 +1,10 @@
 import {
+  type AccountRules,
+  emailDomain,
+  isDomainBlocked,
+} from "../../settings/models/account-rules";
+import {
+  BlockedDomainNotConfirmedError,
   CannotModifySelfError,
   EmailTakenError,
   ForbiddenError,
@@ -30,6 +36,8 @@ import type { IdentityRepository, UserPageQuery } from "../repositories/identity
 export type UserAdminDeps = {
   repo: IdentityRepository;
   hasher: PasswordHasher;
+  /** The block list (191): Create user warns for a blocked domain. Left out, nothing is blocked. */
+  accountRules?: () => Promise<Pick<AccountRules, "blockedDomains" | "damaged">>;
   now?: () => Date;
 };
 
@@ -183,6 +191,11 @@ export type NewUserInput = {
   password?: string;
   /** Ask the person to choose their own password at first sign-in (128); on unless false. */
   requireChange?: boolean;
+  /**
+   * Root confirmed an address in a blocked domain (191): Create user isn't governed by the rules,
+   * but asks first.
+   */
+  confirmBlocked?: boolean;
 };
 
 export const createUser = async (
@@ -197,19 +210,35 @@ export const createUser = async (
   const password = choosePassword(input.password);
   const passwordHash = await deps.hasher.hash(password);
   const requireChange = input.requireChange !== false;
+  // Root's own way to make accounts isn't governed by the rules (191, Decision 5): it warns once.
+  const rules = deps.accountRules ? await deps.accountRules() : null;
+  // Only a listed domain asks: an address whose domain delivery can't read (`[1.2.3.4]`) is
+  // root's to make, as before 191, though sign-ins refuse it.
+  const domain = emailDomain(email);
+  const blocked =
+    rules !== null && !rules.damaged && domain !== "" && rules.blockedDomains.includes(domain);
+  if (blocked && input.confirmBlocked !== true) throw new BlockedDomainNotConfirmedError(domain);
   const at = now(deps);
 
   const id = await deps.repo.transaction(async (repo) => {
     await lockAndRecheckActor(repo, actor);
     if (await repo.emailTaken(email)) throw new EmailTakenError(email);
-    const created = await repo.createUserWithPassword({ email, name, role, passwordHash }, at);
+    const created = await repo.createUserWithPassword(
+      { email, name, role, passwordHash, createdVia: "root" },
+      at,
+    );
     if (requireChange) await repo.setPasswordChangeRequired(created, true, at);
     await repo.recordAudit(
       {
         actorId: actor.user?.id ?? null,
         action: "user.created",
         target: { type: "user", id: created },
-        metadata: { email, role, changeRequired: requireChange },
+        metadata: {
+          email,
+          role,
+          changeRequired: requireChange,
+          ...(blocked ? { blockedDomain: true } : {}),
+        },
         ipAddress: actor.ip,
       },
       at,

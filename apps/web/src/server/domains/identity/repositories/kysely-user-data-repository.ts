@@ -9,6 +9,7 @@ import { recordAudit } from "../../audit/actions/audit";
 import type { AuditMetadata } from "../../audit/models/audit-event";
 import { decodeParams } from "../../notifications/models/notification";
 import { isLocale } from "../models/locale";
+import { createdVia } from "../models/user";
 import type { UserDataItem, UserDataSignInMethod, UserDataVersion } from "../models/user-data";
 import { kyselyIdentityRepository } from "./kysely-identity-repository";
 import type { UserDataRepository } from "./user-data-repository";
@@ -90,6 +91,7 @@ export const kyselyUserDataRepository = (
           "locale",
           "signed_up_at",
           "approval_pending_at",
+          "created_via",
         ])
         .where("id", "=", userId)
         .executeTakeFirst();
@@ -136,6 +138,7 @@ export const kyselyUserDataRepository = (
         disabledAt: user.disabled_at ? fromDbDate(user.disabled_at) : null,
         twoFactorEnabled: Boolean(user.two_factor_enabled),
         locale: isLocale(user.locale) ? user.locale : null,
+        createdVia: createdVia(user.created_via),
         signedUpAt: user.signed_up_at ? fromDbDate(user.signed_up_at) : null,
         approvalPendingAt: user.approval_pending_at ? fromDbDate(user.approval_pending_at) : null,
         termsAcceptances: terms.map((row) => ({

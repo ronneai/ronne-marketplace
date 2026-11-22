@@ -10,26 +10,34 @@ import { GLOBAL_WORKSPACE_ID } from "../../workspaces/models/workspace";
 import type { IdentityProvider } from "../models/identity-provider";
 import type { IdentityProviderRepository, ProviderRow } from "./identity-provider-repository";
 
-const toProvider = (row: Selectable<IdentityProviderTable>): IdentityProvider => ({
-  id: row.id,
-  type: row.type,
-  preset: row.preset,
-  name: row.name,
-  enabled: Boolean(row.enabled),
-  config: decodeJson<Record<string, unknown>>(row.config),
-  hasSecret: row.secret_enc !== null,
-  domains: decodeJson<string[]>(row.domains),
-  linkByEmail: Boolean(row.link_by_email),
-  groupsClaim: row.groups_claim,
-  testedAt: fromDbDate(row.tested_at),
-  testedBy: row.tested_by,
-  lastSignedInAt: fromDbDate(row.last_signed_in_at),
-  failures: Number(row.failures),
-  lastFailureAt: fromDbDate(row.last_failure_at),
-  lastFailureReason: row.last_failure_reason,
-  createdAt: fromDbDate(row.created_at),
-  updatedAt: fromDbDate(row.updated_at),
-});
+const toProvider = (row: Selectable<IdentityProviderTable>): IdentityProvider => {
+  const domains = decodeJson<string[]>(row.domains);
+  return {
+    id: row.id,
+    type: row.type,
+    preset: row.preset,
+    name: row.name,
+    enabled: Boolean(row.enabled),
+    config: decodeJson<Record<string, unknown>>(row.config),
+    hasSecret: row.secret_enc !== null,
+    domains,
+    linkByEmail: Boolean(row.link_by_email),
+    // Never written (a row from before 191 the migration hasn't reached): 106's own rule.
+    createsAccounts:
+      row.creates_accounts === null ? domains.length > 0 : Boolean(row.creates_accounts),
+    anyDomain: Boolean(row.any_domain),
+    needsApproval: Boolean(row.needs_approval),
+    groupsClaim: row.groups_claim,
+    testedAt: fromDbDate(row.tested_at),
+    testedBy: row.tested_by,
+    lastSignedInAt: fromDbDate(row.last_signed_in_at),
+    failures: Number(row.failures),
+    lastFailureAt: fromDbDate(row.last_failure_at),
+    lastFailureReason: row.last_failure_reason,
+    createdAt: fromDbDate(row.created_at),
+    updatedAt: fromDbDate(row.updated_at),
+  };
+};
 
 export const kyselyIdentityProviderRepository = (
   db: Kysely<Database>,
@@ -45,6 +53,9 @@ export const kyselyIdentityProviderRepository = (
     secret_enc: row.secretEnc,
     domains: encodeJson(row.domains),
     link_by_email: bool(row.linkByEmail),
+    creates_accounts: bool(row.createsAccounts),
+    any_domain: bool(row.anyDomain),
+    needs_approval: bool(row.needsApproval),
     groups_claim: row.groupsClaim,
     tested_at: row.testedAt ? at(row.testedAt) : null,
     tested_by: row.testedBy,

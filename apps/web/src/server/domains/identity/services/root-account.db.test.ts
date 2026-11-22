@@ -57,6 +57,16 @@ describe("createRoot", () => {
     expect((await signIn(root.password)).user.id).toBe(created.id);
   });
 
+  it("records that setup made the account (191)", async () => {
+    const created = await createRoot(t.db, t.dialect, root);
+    const user = await t.db
+      .selectFrom("user")
+      .select("created_via")
+      .where("id", "=", created.id)
+      .executeTakeFirstOrThrow();
+    expect(user.created_via).toBe("setup");
+  });
+
   it("records instance.root_created, from the command line, without the password", async () => {
     const created = await createRoot(t.db, t.dialect, root);
     const events = await auditEvents();
@@ -166,7 +176,13 @@ describe("resetRootPassword", () => {
     const repo = kyselyIdentityRepository(t.db, t.dialect);
     const at = new Date();
     await repo.createUserWithPassword(
-      { email: "second@example.com", name: "Second", role: "root", passwordHash: "x" },
+      {
+        email: "second@example.com",
+        name: "Second",
+        role: "root",
+        createdVia: "root",
+        passwordHash: "x",
+      },
       at,
     );
     await repo.createUserWithPassword(
@@ -174,6 +190,7 @@ describe("resetRootPassword", () => {
         email: "mod@example.com",
         name: "Mod",
         role: "user",
+        createdVia: "root",
         globalRole: "moderator",
         passwordHash: "x",
       },

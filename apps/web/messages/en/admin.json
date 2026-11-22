@@ -104,7 +104,10 @@
       "rootTitle": "Root can do everything.",
       "rootBody": "Manage users (other roots included), scopes, settings and the audit log, and approve their own submissions.",
       "cancel": "Cancel",
-      "done": "Done"
+      "done": "Done",
+      "blockedTitle": "{domain} is on the block list. Create anyway?",
+      "blockedBody": "Nobody in this domain can sign up or get an account through a provider. Accounts you create aren't governed by those rules.",
+      "blockedConfirm": "Create anyway"
     },
     "password": {
       "legend": "Password",
@@ -139,6 +142,7 @@
       "role": "Role",
       "status": "Status",
       "created": "Created",
+      "createdVia": "Created by",
       "language": "Language",
       "lastSignIn": "Last sign-in",
       "provider": "Provider",
@@ -201,9 +205,17 @@
     },
     "waiting": {
       "title": "This account waits for a root's approval",
-      "body": "It was made by signing up, <date></date>. It can't sign in until a root approves it; left waiting for 30 days, it's declined.",
+      "body": "{how, select, provider {It was made by a first sign-in with {provider}, <date></date>.} other {It was made by signing up, <date></date>.}} It can't sign in until a root approves it; left waiting for 30 days, it's declined.",
       "approve": "Approve",
       "decline": "Decline"
+    },
+    "createdVia": {
+      "setup": "Setup (the first root)",
+      "root": "A root, with Create user",
+      "sign_up": "Signing up",
+      "scim": "SCIM provisioning",
+      "provider": "First sign-in with {provider}",
+      "unknown": "Not recorded (before this was kept)"
     }
   },
   "actions": {
@@ -671,6 +683,9 @@
           "rate_limited": "too many attempts"
         },
         "ssoNotAllowed": {
+          "domain_blocked": "no account, and the email’s domain is on the block list",
+          "domain_throwaway": "no account, and the email’s domain is a throwaway one",
+          "creating_off": "no account, and the provider doesn’t create accounts",
           "domain_not_allowed": "no account, and the email’s domain may not create one",
           "non_ascii_email": "the address isn’t plain ASCII",
           "invalid_email": "the address isn’t valid",
@@ -758,10 +773,18 @@
           "askAgain": "everyone accepts version {version} again",
           "nothing": "nothing"
         },
+        "accountRules": {
+          "blocked": "blocked {list}",
+          "unblocked": "unblocked {list}",
+          "throwawayOn": "throwaway domains blocked",
+          "throwawayOff": "throwaway domains allowed",
+          "nothing": "nothing"
+        },
         "signUpOutcomes": {
           "sent": "a code was sent",
           "existing": "it has an account, so its owner was told",
           "domain_not_allowed": "its domain isn't allowed",
+          "domain_blocked": "its domain is on the block list",
           "limited": "too many tries",
           "bot": "it looked like a bot, so nothing was sent",
           "unknown": "not recorded"
@@ -772,6 +795,7 @@
           "expired": "the code had ended",
           "used": "the code was used already",
           "closed": "sign-up had closed",
+          "domain_blocked": "its domain was put on the block list meanwhile",
           "none": "no code was sent",
           "exists": "an account was made for the address meanwhile",
           "unknown": "not recorded"
@@ -917,7 +941,8 @@
           "update_check": "Changed the check for updates: {state, select, on {turned on} off {turned off} other {changed}}",
           "languages": "Changed the languages: {changes}",
           "mail": "Changed outgoing email: {changes}",
-          "sign_up_changed": "Changed self-registration: {changes}"
+          "sign_up_changed": "Changed self-registration: {changes}",
+          "account_rules_changed": "Changed who may create accounts: {changes}"
         },
         "mail": {
           "test_sent": "Sent a test email{result, select, sent {, which the provider took} retry {, which didn't go yet ({reason})} failed {, which failed ({reason})} other {}}"
@@ -1084,9 +1109,22 @@
       "scopes": "Scopes",
       "scopesHint": "openid is always asked for.{groupsScope, select, none {} other { Add {groupsScope} when you map groups.}}",
       "whoLegend": "Who may sign in",
-      "domains": "Email domains this provider signs in",
-      "domainsHint": "A new address in these domains gets an account on its first sign-in; an existing account with one is linked if the box below is ticked. Empty: only accounts already linked sign in.",
-      "linkByEmail": "Link existing accounts by verified email, in these domains only",
+      "domains": "Allowed domains",
+      "domainsHint": "A new address in these domains gets an account on its first sign-in, and an existing account in one is linked if the box below is ticked. Matched exactly.",
+      "domainsList": "Only these domains",
+      "domainsAnyHint": "Any domain the block list allows. Throwaway domains are refused while Who may create accounts blocks them.",
+      "blockedDomain": "{domain} is on the block list, so this provider can't create accounts for it.",
+      "domainsMode": {
+        "any": "Any domain",
+        "list": "Only these domains"
+      },
+      "createsAccounts": "Creates accounts on first sign-in",
+      "createsAccountsHint": "Off, only accounts already linked, or linked by email below, sign in.",
+      "needsApproval": "New accounts wait for root's approval",
+      "needsApprovalHint": "The person is told the account waits, and hears a root's answer by email. Groups apply once it's approved.",
+      "needsApprovalNoMail": "Set up email with the instance contact first: a waiting account's owner hears a root's answer by email.",
+      "linkByEmail": "Link existing accounts by verified email, in the allowed domains only",
+      "linkByEmailAny": "Off with Any domain: a provider trusted for every domain could claim any account, root's included.",
       "groupsLegend": "Groups",
       "groupsClaim": "Groups claim",
       "warnTitle": "A group’s workspace was deleted.",
@@ -1517,6 +1555,43 @@
         "done": "Email stopped. {count, plural, =0 {Nothing was waiting.} one {# waiting message was dropped.} other {# waiting messages were dropped.}}"
       }
     },
+    "accountRules": {
+      "title": "Who may create accounts",
+      "intro": "Every way an account can be created obeys the block list first, then its own settings. Accounts that exist already keep signing in.",
+      "formLabel": "Block list",
+      "blockedLabel": "Blocked email domains",
+      "blockedHint": "One per line or separated by commas, like example.com. Matched exactly: example.com doesn't block eu.example.com. Type an internationalised domain as xn--….",
+      "throwaway": "Also block throwaway email domains",
+      "throwawayHint": "For every way in that takes any domain: addresses at disposable-mail services on the list Ronne bundles are refused.",
+      "save": "Save",
+      "staleHint": "Reload the page to see what's saved now.",
+      "done": {
+        "saved": "Saved who may create accounts.",
+        "unchanged": "Nothing changed."
+      },
+      "damaged": {
+        "title": "The stored block list couldn't be read",
+        "body": "No account can be created until you save the list again."
+      },
+      "overviewTitle": "Ways in",
+      "columns": {
+        "way": "Way in",
+        "on": "On",
+        "creates": "Creates accounts",
+        "domains": "Allowed domains",
+        "approval": "Approval",
+        "link": "Links by email"
+      },
+      "signUp": "Email sign-up",
+      "anyDomain": "Any domain",
+      "noDomains": "None",
+      "yes": "Yes",
+      "no": "No",
+      "warnings": {
+        "blocked": "{domain} is blocked, so {way} can't create accounts for it.",
+        "approvalWithoutMail": "{way} makes new accounts wait for approval, but email isn't set up: nobody will hear a root's answer."
+      }
+    },
     "signUp": {
       "title": "Self-registration",
       "intro": "Whether people can create their own account here, with a code sent to their email address. It's off until you turn it on.",
@@ -1541,8 +1616,7 @@
         "listLabel": "Domains",
         "listHint": "Separated by commas, spaces or lines, such as acme.com. Each matches exactly: acme.com doesn't cover eu.acme.com."
       },
-      "throwaway": "Also block throwaway email domains",
-      "throwawayHint": "Addresses at disposable-mail services on the list Ronne bundles are refused.",
+      "throwawayMoved": "Throwaway email domains are blocked or allowed in <link>Who may create accounts</link>, for every way in.",
       "approval": "New accounts wait for a root's approval",
       "approvalHint": "Roots are notified, and the account can't sign in until one approves it. One left waiting for 30 days is declined.",
       "minutes": "Code lifetime, in minutes",

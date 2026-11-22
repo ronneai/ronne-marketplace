@@ -54,7 +54,6 @@ export const SignUpForm = ({
   const blockers = blockersOf(readiness);
   const [enabled, setEnabled] = useState(policy.enabled);
   const [mode, setMode] = useState<"any" | "list">(policy.domains === "any" ? "any" : "list");
-  const [throwaway, setThrowaway] = useState(policy.blockThrowaway);
   const [termsUrl, setTermsUrl] = useState(policy.termsUrl);
   const [termsVersion, setTermsVersion] = useState(policy.termsVersion);
   const invalid = (field: string) => state.field === field || undefined;
@@ -142,28 +141,17 @@ export const SignUpForm = ({
             </p>
           </div>
         ) : (
-          <label
-            htmlFor="sign-up-throwaway"
-            className="flex items-start gap-2 pl-6 text-sm text-fg"
-          >
-            <input
-              id="sign-up-throwaway"
-              name="blockThrowaway"
-              type="checkbox"
-              checked={throwaway}
-              onChange={(event) => setThrowaway(event.target.checked)}
-              className="mt-0.5 size-4 accent-(--accent)"
-            />
-            <span className="grid gap-0.5">
-              <span>{t("throwaway")}</span>
-              <span className="text-xs text-muted">{t("throwawayHint")}</span>
-            </span>
-          </label>
+          // The throwaway setting is the account rules' now (191): every way in with Any domain.
+          <p className="pl-6 text-xs text-muted">
+            {t.rich("throwawayMoved", {
+              link: (chunks) => (
+                <a href="#who-may-create-accounts" className="text-link hover:underline">
+                  {chunks}
+                </a>
+              ),
+            })}
+          </p>
         )}
-        {/* With a list the throwaway setting is kept as last set, for when Any domain comes back. */}
-        {mode === "list" && throwaway ? (
-          <input type="hidden" name="blockThrowaway" value="on" />
-        ) : null}
       </fieldset>
 
       <label htmlFor="sign-up-approval" className="flex items-start gap-2 text-sm text-fg">

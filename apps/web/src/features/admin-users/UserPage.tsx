@@ -8,6 +8,7 @@ import { Notice } from "@/components/ui/Notice";
 import { PageHeader, Panel } from "@/components/ui/Panel";
 import type { UserDetail } from "@/server/domains/identity/actions/user-admin";
 import { LOCALE_NAMES } from "@/server/domains/identity/models/locale";
+import type { CreatedVia } from "@/server/domains/identity/models/user";
 import { ScimManagedNotice } from "./UserActionDialogs";
 import { ScimBadges } from "./UsersPage";
 import { type UserToken, UserTokens } from "./UserTokens";
@@ -118,11 +119,13 @@ export const UserPage = ({
         }
       />
       {user.approvalPendingAt && !erased ? (
-        // Made by signing up, waiting for a root's answer (190).
+        // Made by signing up (190) or a provider's first sign-in (191), waiting for a root's answer.
         <Notice kind="warn" title={u("waiting.title")}>
           <div className="grid gap-3">
             <p>
               {u.rich("waiting.body", {
+                how: user.createdVia?.startsWith("provider:") ? "provider" : "sign_up",
+                provider: user.createdVia?.startsWith("provider:") ? user.createdVia.slice(9) : "",
                 date: () => <LocalTime value={user.approvalPendingAt as Date} precision="day" />,
               })}
             </p>
@@ -150,6 +153,13 @@ export const UserPage = ({
             <Fact label={u("facts.created")}>
               <LocalTime value={user.createdAt} precision="day" />
             </Fact>
+            {user.createdVia ? (
+              <Fact label={u("facts.createdVia")}>
+                {user.createdVia.startsWith("provider:")
+                  ? u("createdVia.provider", { provider: user.createdVia.slice(9) })
+                  : u(`createdVia.${user.createdVia as Exclude<CreatedVia, `provider:${string}`>}`)}
+              </Fact>
+            ) : null}
             <Fact label={u("facts.language")}>
               {user.locale ? LOCALE_NAMES[user.locale] : u("automatic")}
             </Fact>

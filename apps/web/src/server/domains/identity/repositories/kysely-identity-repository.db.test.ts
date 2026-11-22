@@ -19,6 +19,7 @@ const add = (email: string, role: "root" | "moderator" | "user", at: string) =>
       email,
       name: email,
       role: role === "root" ? "root" : "user",
+      createdVia: "root",
       globalRole: role === "moderator" ? "moderator" : "user",
       passwordHash: "x",
     },

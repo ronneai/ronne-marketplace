@@ -127,7 +127,9 @@ export const setSignUpPolicy = async (
       enabled,
       domains,
       approval: on(input.approval),
-      blockThrowaway: on(input.blockThrowaway),
+      // Saved on the account rules' panel since 191, so kept as it is here.
+      blockThrowaway:
+        input.blockThrowaway === undefined ? from.blockThrowaway : on(input.blockThrowaway),
       codeMinutes: minutes,
       challenge: on(input.challenge),
       termsUrl,

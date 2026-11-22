@@ -18,6 +18,7 @@ import { kyselyIdentityProviderRepository } from "../repositories/kysely-identit
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import { kyselySsoRepository } from "../repositories/kysely-sso-repository";
 import { PROVIDER_TYPES } from "../repositories/provider-type-registry";
+import { approveAccount, declineAccount } from "../services/approval";
 import {
   createProvider,
   enableProvider,
@@ -35,6 +36,7 @@ import {
   testLimiter,
 } from "../testing/test-auth";
 import { totpCode } from "../testing/totp";
+import { approvalDeps } from "./approval";
 import { handleAuthRequest } from "./auth-http";
 import { changePassword, signIn as passwordSignIn } from "./session";
 import {
@@ -196,6 +198,11 @@ describe("first sign-in from a listed domain", () => {
     expect(last.get(user?.id as string)).toBeInstanceOf(Date);
     const provider = await deps.repo.find("acme");
     expect(provider?.provider.lastSignedInAt).not.toBeNull();
+  });
+
+  it("records that this provider made the account (191)", async () => {
+    await signIn({ next: "/items" });
+    expect((await userByEmail("ana@acme.com"))?.created_via).toBe("provider:acme");
   });
 
   it("opens a session of 24 hours that ends with the browser and isn't extended (decision 12)", async () => {
@@ -1041,5 +1048,127 @@ describe("the HTTP surface", () => {
     const direct = await app.auth.handler(request());
     expect(direct.status).toBe(404);
     expect(direct.headers.getSetCookie()).toEqual([]);
+  });
+});
+
+describe("who may create an account through a provider (191)", () => {
+  const block = (...domains: string[]) =>
+    kyselySettingsRepository(t.db, t.dialect).set(
+      "blocked_domains",
+      JSON.stringify(domains),
+      root.id,
+      new Date(),
+    );
+  const setProvider = (values: {
+    creates_accounts?: boolean;
+    any_domain?: boolean;
+    link_by_email?: boolean;
+  }) =>
+    t.db
+      .updateTable("identity_providers")
+      .set(
+        Object.fromEntries(
+          Object.entries(values).map(([k, v]) => [k, toDbBoolean(v as boolean, t.dialect)]),
+        ),
+      )
+      .where("id", "=", "acme")
+      .execute();
+  const refusedWhy = async () => (await audit("auth.sso_failed")).at(-1)?.metadata;
+
+  it("a blocked domain creates nothing, though the provider lists it; a linked account still signs in", async () => {
+    // Ana signs in first: linked. Then root blocks acme.com.
+    await signIn();
+    await block("acme.com");
+    const { response } = await signIn();
+    expect(await sessionUser(response)).toBe("ana@acme.com");
+
+    fake.user = { ...fake.user, sub: "sub-bo", email: "bo@acme.com" };
+    const refused = await signIn();
+    expect(location(refused.response)).toContain("error=not_allowed");
+    expect(await refusedWhy()).toMatchObject({ reason: "not_allowed", why: "domain_blocked" });
+    expect(await userByEmail("bo@acme.com")).toBeUndefined();
+  });
+
+  it("answers a provider's waiting account by email with the provider, not a password", async () => {
+    vi.stubEnv("AUTH_SECRET", MAIL_SECRET);
+    try {
+      await saveMailSetup(
+        { repo: kyselySettingsRepository(t.db, t.dialect) },
+        { user: root, ip: null },
+        {
+          transport: "resend",
+          fromAddress: "marketplace@acme.com",
+          replyTo: "it-help@acme.com",
+          contact: "it-help@acme.com",
+          secret: "re_test_key",
+        },
+        { authSecret: MAIL_SECRET, allowedHosts: new Set() },
+      );
+      await t.db
+        .updateTable("identity_providers")
+        .set({ needs_approval: toDbBoolean(true, t.dialect) })
+        .where("id", "=", "acme")
+        .execute();
+      const answered = async (
+        email: string,
+        answer: typeof approveAccount,
+        template: "sign_up_approved" | "sign_up_declined",
+      ) => {
+        fake.user = { ...fake.user, sub: `sub-${email}`, email };
+        await signIn();
+        const id = (await userByEmail(email))?.id as string;
+        await answer(
+          approvalDeps(t.db, t.dialect, { authSecret: MAIL_SECRET }),
+          { user: root, ip: null },
+          id,
+        );
+        const row = await t.db
+          .selectFrom("mail_outbox")
+          .selectAll()
+          .where("template", "=", template)
+          .executeTakeFirstOrThrow();
+        return openBody(MAIL_SECRET, row.id, row.body_enc ?? "")?.text ?? "";
+      };
+      const approved = await answered("ana@acme.com", approveAccount, "sign_up_approved");
+      expect(approved).toContain(
+        "when you signed in with Acme SSO. You can sign in now, with Acme SSO.",
+      );
+      expect(approved).not.toContain("password");
+      const declined = await answered("bo@acme.com", declineAccount, "sign_up_declined");
+      expect(declined).toContain("when you signed in with Acme SSO wasn't approved");
+      expect(declined).not.toContain("you typed");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("creating off refuses a new account, and still signs in a linked one", async () => {
+    await signIn();
+    await setProvider({ creates_accounts: false });
+    expect(await sessionUser((await signIn()).response)).toBe("ana@acme.com");
+    fake.user = { ...fake.user, sub: "sub-bo", email: "bo@acme.com" };
+    expect(location((await signIn()).response)).toContain("error=not_allowed");
+    expect(await refusedWhy()).toMatchObject({ why: "creating_off" });
+    expect(await userByEmail("bo@acme.com")).toBeUndefined();
+  });
+
+  it("any domain creates for any domain not blocked, never a throwaway one, and never links by email", async () => {
+    await setProvider({ any_domain: true, link_by_email: true });
+    fake.user = { ...fake.user, sub: "sub-sam", email: "sam@gmail.com" };
+    expect(await sessionUser((await signIn()).response)).toBe("sam@gmail.com");
+
+    fake.user = { ...fake.user, sub: "sub-x", email: "x@mailinator.com" };
+    expect(location((await signIn()).response)).toContain("error=not_allowed");
+    expect(await refusedWhy()).toMatchObject({ why: "domain_throwaway" });
+
+    await block("yahoo.com");
+    fake.user = { ...fake.user, sub: "sub-bob", email: "bob@yahoo.com" };
+    expect(location((await signIn()).response)).toContain("error=not_allowed");
+    expect(await refusedWhy()).toMatchObject({ why: "domain_blocked" });
+
+    // Root's account has the address a provider for any domain claims: never linked.
+    fake.user = { ...fake.user, sub: "sub-evil", email: "root@acme.com" };
+    expect(location((await signIn()).response)).toContain("error=not_allowed");
+    expect(await refusedWhy()).toMatchObject({ why: "link_off" });
   });
 });

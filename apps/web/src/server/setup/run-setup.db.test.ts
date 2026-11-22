@@ -151,7 +151,13 @@ describe("runSetup on SQLite", () => {
     });
     const { db, dialect } = openEnvDb();
     await kyselyIdentityRepository(db, dialect).createUserWithPassword(
-      { email: "second@example.com", name: "Second", role: "root", passwordHash: "x" },
+      {
+        email: "second@example.com",
+        name: "Second",
+        role: "root",
+        createdVia: "root",
+        passwordHash: "x",
+      },
       new Date(Date.now() + 1000),
     );
     const again = async () => {

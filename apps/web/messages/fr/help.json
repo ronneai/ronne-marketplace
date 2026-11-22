@@ -379,6 +379,14 @@
     "question": "Que bloque le seuil?",
     "answer": "Avec un score défini, une soumission dont la dernière analyse l’atteint ou le dépasse ne peut pas être approuvée, ni une dont l’analyse est en attente, a échoué ou n’a jamais eu lieu : une analyse en panne n’est pas un moyen de passer. Seul root peut l’approuver quand même, avec un motif consigné dans l’audit. La soumission d’une personne dans son propre espace de travail personnel n’est pas bloquée."
   },
+  "account-rules": {
+    "question": "Comment ces règles fonctionnent-elles ensemble?",
+    "answer": "Chaque nouveau compte, par l’inscription ou par un fournisseur, est refusé d’abord quand le domaine du courriel est dans la liste de blocage, puis selon les paramètres de ce moyen d’entrer. Les comptes qui existent déjà continuent de se connecter, et les comptes que vous créez vous-même ne demandent une confirmation que pour un domaine bloqué."
+  },
+  "provider-account-rules": {
+    "question": "Qui obtient un compte par ce fournisseur?",
+    "answer": "Une personne qui se connecte pour la première fois, si ce fournisseur crée des comptes et que le domaine de son courriel est permis ici et absent de la liste de blocage. Avec l’approbation activée, le compte attend un root, sans groupes jusqu’à son approbation."
+  },
   "self-registration": {
     "question": "De quoi l’inscription a-t-elle besoin d’abord?",
     "answer": "Le courriel configuré, pour que le code puisse être envoyé; le contact de l’instance, pour que chaque avis dise à qui s’adresser; et la connexion par mot de passe ouverte à tous. Chaque compte prouve son adresse par un code avant d’exister, et peut attendre l’approbation d’un root."

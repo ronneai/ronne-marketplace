@@ -235,7 +235,8 @@ export const kyselyScimUserRepository = (
 
     findUser: (userId) => identity.findUser(userId),
     findUserByEmail: (email) => identity.findUserByEmail(email),
-    createUser: (user, now) => identity.createUserWithoutPassword({ ...user, role: "user" }, now),
+    createUser: (user, now) =>
+      identity.createUserWithoutPassword({ ...user, role: "user", createdVia: "scim" }, now),
 
     async updateUserProfile(userId, fields, now) {
       await db

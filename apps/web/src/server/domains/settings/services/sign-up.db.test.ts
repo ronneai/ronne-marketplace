@@ -10,6 +10,7 @@ import { signUpReadiness } from "../actions/sign-up";
 import { InvalidSignUpSettingError, SignUpUnavailableError } from "../exceptions/errors";
 import { PASSWORD_SIGN_IN_POLICY_KEY } from "../models/password-sign-in-policy";
 import { kyselySettingsRepository } from "../repositories/kysely-settings-repository";
+import { setAccountRules } from "./account-rules";
 import { type SignUpInput, setSignUpPolicy, signUpPolicy } from "./sign-up";
 
 let t: TestDb;
@@ -213,5 +214,24 @@ describe("what sign-up needs first (190)", () => {
       })
       .execute();
     expect((await signUpReadiness(app)).password).toBe(false);
+  });
+});
+
+describe("the throwaway setting, saved on Who may create accounts since 191", () => {
+  it("a sign-up save from the form, which no longer posts it, keeps what that panel saved", async () => {
+    const { blockThrowaway: _, ...fromForm } = base;
+    // Off, then on again, on that panel: each sign-up save after keeps it.
+    for (const [version, on] of [
+      ["0", false],
+      ["1", true],
+    ] as const) {
+      await setAccountRules(
+        { repo: repo(), now: () => NOW },
+        { user: root, ip: null },
+        { blockedDomains: "", blockThrowaway: on, version },
+      );
+      await save({ ...fromForm, codeMinutes: on ? "25" : "30" });
+      expect((await signUpPolicy(repo())).blockThrowaway).toBe(on);
+    }
   });
 });

@@ -262,6 +262,7 @@ export const TOPICS = [
     sections: [
       { id: "overview", title: "How it fits together" },
       { id: "self-registration", title: "Self-registration" },
+      { id: "account-rules", title: "Who may create accounts" },
       { id: "providers", title: "Adding a provider" },
       { id: "groups", title: "Groups and workspace roles" },
       { id: "tokens", title: "Access tokens policy" },

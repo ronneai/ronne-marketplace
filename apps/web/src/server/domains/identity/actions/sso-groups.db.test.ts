@@ -12,6 +12,7 @@ import type { AppAuth } from "../repositories/auth-instance";
 import { kyselyIdentityProviderRepository } from "../repositories/kysely-identity-provider-repository";
 import { kyselyScimTokenRepository } from "../repositories/kysely-scim-token-repository";
 import { PROVIDER_TYPES } from "../repositories/provider-type-registry";
+import { approveAccount, declineAccount } from "../services/approval";
 import {
   createProvider,
   enableProvider,
@@ -24,6 +25,7 @@ import {
 import { disableScim, enableScim } from "../services/scim-tokens";
 import { type FakeOidc, followAuthorize, startFakeOidc } from "../testing/fake-oidc-server";
 import { createTestUser, testAppAuth } from "../testing/test-auth";
+import { approvalDeps } from "./approval";
 import { completeSsoSignIn, SSO_LIMIT, SSO_STATE_COOKIE, startSsoSignIn } from "./sso";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
@@ -421,5 +423,82 @@ describe("root's mappings", () => {
       expect(error.reason).toBe(reason);
     }
     expect(await listGroupMappings(deps, actor(), "acme")).toEqual([]);
+  });
+});
+
+describe("a provider's account waiting for approval (191)", () => {
+  const waitForApproval = () =>
+    t.db
+      .updateTable("identity_providers")
+      .set({ needs_approval: toDbBoolean(true, t.dialect) })
+      .where("id", "=", "acme")
+      .execute();
+
+  it("gets no groups while it waits, and its groups at the first sign-in after approval", async () => {
+    await setMappings([{ group: "engineering", workspaceId: eng, role: "user" }]);
+    await waitForApproval();
+    fake.user = { ...fake.user, groups: ["engineering"] };
+
+    const first = await signIn();
+    expect(first.headers.get("location")).toContain("/sign-in?signedUp=waiting");
+    // No session was opened.
+    expect(first.headers.getSetCookie().some((c) => c.includes("session_token"))).toBe(false);
+    expect(await memberships("ana@acme.com")).toEqual({ global: "user" });
+    expect(await memberEvents()).toEqual([]);
+    const waiting = await t.db
+      .selectFrom("user")
+      .select(["id", "approval_pending_at", "created_via"])
+      .where("email", "=", "ana@acme.com")
+      .executeTakeFirstOrThrow();
+    expect(waiting.approval_pending_at).not.toBeNull();
+    expect(waiting.created_via).toBe("provider:acme");
+    // Linked, so the next sign-in finds it by its subject.
+    expect(
+      await t.db
+        .selectFrom("account")
+        .select("provider_id")
+        .where("user_id", "=", waiting.id)
+        .execute(),
+    ).toEqual([{ provider_id: "acme" }]);
+    // The roots are told, as for a sign-up (190).
+    const told = await t.db
+      .selectFrom("notifications")
+      .select(["user_id", "kind"])
+      .where("kind", "=", "user.awaiting_approval")
+      .execute();
+    expect(told).toEqual([{ user_id: root.id, kind: "user.awaiting_approval" }]);
+
+    // Still waiting: refused, and still no groups.
+    const again = await signIn();
+    expect(again.headers.get("location")).toContain("error=disabled");
+    expect(await memberships("ana@acme.com")).toEqual({ global: "user" });
+
+    await approveAccount(
+      approvalDeps(t.db, t.dialect, { authSecret: "test-secret-test-secret-test-secret-00" }),
+      { user: root, ip: null },
+      waiting.id,
+    );
+    const after = await signIn();
+    expect(after.headers.get("location")).not.toContain("sign-in");
+    expect(await memberships("ana@acme.com")).toEqual({ global: "user", eng: "user (acme)" });
+  });
+
+  it("a declined one is deleted with its link, so the next sign-in starts again", async () => {
+    await waitForApproval();
+    await signIn();
+    const waiting = await t.db
+      .selectFrom("user")
+      .select("id")
+      .where("email", "=", "ana@acme.com")
+      .executeTakeFirstOrThrow();
+    await declineAccount(
+      approvalDeps(t.db, t.dialect, { authSecret: "test-secret-test-secret-test-secret-00" }),
+      { user: root, ip: null },
+      waiting.id,
+    );
+    expect(
+      await t.db.selectFrom("account").select("id").where("user_id", "=", waiting.id).execute(),
+    ).toEqual([]);
+    expect((await signIn()).headers.get("location")).toContain("signedUp=waiting");
   });
 });

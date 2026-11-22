@@ -12,6 +12,7 @@ import { type QueuedMail, type QueueResult, queueMail } from "../../mail/service
 import { notify } from "../../notifications/services/notify";
 import { activeRoots } from "../../notifications/services/recipients";
 import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
+import { readAccountRules } from "../../settings/services/account-rules";
 import { kyselyChallengeRepository } from "./kysely-challenge-repository";
 import { kyselyEmailCodeRepository } from "./kysely-email-code-repository";
 import { kyselyIdentityRepository } from "./kysely-identity-repository";
@@ -153,7 +154,13 @@ export const kyselySignUpRepository = (
     async createAccount(input: NewSignedUpAccount): Promise<string> {
       const { now } = input;
       const id = await kyselyIdentityRepository(db, dialect, queued ?? []).createUserWithPassword(
-        { email: input.email, name: input.name, role: "user", passwordHash: input.passwordHash },
+        {
+          email: input.email,
+          name: input.name,
+          role: "user",
+          passwordHash: input.passwordHash,
+          createdVia: "sign_up",
+        },
         now,
       );
       await db
@@ -178,6 +185,8 @@ export const kyselySignUpRepository = (
           .execute();
       return id;
     },
+
+    accountRules: () => readAccountRules(kyselySettingsRepository(db, dialect)),
 
     async notifyAwaitingApproval(userId, email, at) {
       await notify(

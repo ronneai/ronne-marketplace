@@ -1,5 +1,6 @@
 import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { QueuedMail, QueueResult } from "../../mail/services/outbox";
+import type { AccountRules } from "../../settings/models/account-rules";
 import type { EmailCodeRepository } from "./kysely-email-code-repository";
 
 /** A sign-up waiting for its code (190): nothing is in `user` until the code is right. */
@@ -38,6 +39,8 @@ export interface SignUpRepository {
    * committed (189), so a code's email exists if and only if its code does.
    */
   transaction<T>(work: (repo: SignUpRepository) => Promise<T>): Promise<T>;
+  /** Who may create accounts (191): the block list, as stored, read in this transaction. */
+  accountRules(): Promise<AccountRules>;
   /** The account with this address, compared as the unique index compares it. */
   findAccount(email: string): Promise<ExistingAccount | null>;
   insertPending(pending: PendingSignUp): Promise<void>;

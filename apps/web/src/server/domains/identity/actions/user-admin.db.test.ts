@@ -5,7 +5,9 @@ import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents, recordAudit } from "../../audit/actions/audit";
 import type { AuditMetadata } from "../../audit/models/audit-event";
+import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
 import {
+  BlockedDomainNotConfirmedError,
   CannotModifySelfError,
   EmailTakenError,
   ForbiddenError,
@@ -166,6 +168,46 @@ describe("createUser", () => {
     );
     expect(created.password).toBe("a typed passphrase");
     expect(await canSignIn("a@example.com", "a typed passphrase")).toBe(true);
+  });
+
+  it("records that a root made the account, a user or another root (191)", async () => {
+    await adminCreateUser(asRoot, { email: "u@example.com", name: "U", role: "user" }, app);
+    await adminCreateUser(asRoot, { email: "r@example.com", name: "R", role: "root" }, app);
+    const rows = await t.db
+      .selectFrom("user")
+      .select(["email", "created_via"])
+      .where("email", "in", ["u@example.com", "r@example.com"])
+      .orderBy("email")
+      .execute();
+    expect(rows).toEqual([
+      { email: "r@example.com", created_via: "root" },
+      { email: "u@example.com", created_via: "root" },
+    ]);
+  });
+
+  it("asks before an address in a blocked domain, then creates it, the audit saying so (191)", async () => {
+    await kyselySettingsRepository(t.db, t.dialect).set(
+      "blocked_domains",
+      '["acme.org"]',
+      null,
+      new Date(),
+    );
+    await expect(
+      adminCreateUser(asRoot, { email: "sam@ACME.org", name: "Sam", role: "user" }, app),
+    ).rejects.toThrow(new BlockedDomainNotConfirmedError("acme.org"));
+    expect(await events("user.created")).toHaveLength(0);
+    await adminCreateUser(
+      asRoot,
+      { email: "sam@acme.org", name: "Sam", role: "user", confirmBlocked: true },
+      app,
+    );
+    expect((await events("user.created"))[0]?.metadata).toMatchObject({
+      email: "sam@acme.org",
+      blockedDomain: true,
+    });
+    // Another domain asks nothing, nor one delivery can't read (root's to make, as before 191).
+    await adminCreateUser(asRoot, { email: "bo@acme.com", name: "Bo", role: "user" }, app);
+    await adminCreateUser(asRoot, { email: "ip@[1.2.3.4]", name: "Ip", role: "user" }, app);
   });
 
   it("refuses a duplicate email in any case, and unknown roles, recording nothing", async () => {
@@ -589,7 +631,7 @@ describe("resetPassword", () => {
   it("gives a password to an account that has none, made by a provider's sign-in or SCIM (108)", async () => {
     const repo = kyselyIdentityRepository(t.db, t.dialect);
     const id = await repo.createUserWithoutPassword(
-      { email: "sso@example.com", name: "SSO only", role: "user" },
+      { email: "sso@example.com", name: "SSO only", role: "user", createdVia: "root" },
       new Date(),
     );
     expect(await canSignIn("sso@example.com", "a typed passphrase")).toBe(false);
@@ -615,7 +657,7 @@ describe("resetPassword", () => {
       check();
     });
     const second = await repo.createUserWithoutPassword(
-      { email: "sso2@example.com", name: "SSO two", role: "user" },
+      { email: "sso2@example.com", name: "SSO two", role: "user", createdVia: "root" },
       new Date(),
     );
     const race = (hash: string) =>
@@ -699,7 +741,7 @@ describe("asking for a new password at first sign-in (128)", () => {
     );
     expect(await flagged(rootId)).toBeNull();
     const sso = await repo.createUserWithoutPassword(
-      { email: "sso@example.com", name: "SSO", role: "user" },
+      { email: "sso@example.com", name: "SSO", role: "user", createdVia: "root" },
       new Date(),
     );
     expect(await flagged(sso)).toBeNull();
@@ -802,7 +844,7 @@ describe("asking for a new password at first sign-in (128)", () => {
     it("refuses an account with no password, root's own row, an unknown user and anyone but root", async () => {
       const repo = kyselyIdentityRepository(t.db, t.dialect);
       const sso = await repo.createUserWithoutPassword(
-        { email: "sso@example.com", name: "SSO", role: "user" },
+        { email: "sso@example.com", name: "SSO", role: "user", createdVia: "root" },
         new Date(),
       );
       await expect(adminSetPasswordChange(asRoot, sso, true, app)).rejects.toThrow(NoPasswordError);
@@ -927,12 +969,19 @@ describe("listUsers sorting (061)", () => {
           email: `same${String(i).padStart(2, "0")}@example.com`,
           name: "Same",
           role: "user",
+          createdVia: "root",
           passwordHash: "x",
         },
         new Date(),
       );
     await repo.createUserWithPassword(
-      { email: "aaa@example.com", name: "Zed", role: "user", passwordHash: "x" },
+      {
+        email: "aaa@example.com",
+        name: "Zed",
+        role: "user",
+        createdVia: "root",
+        passwordHash: "x",
+      },
       new Date(),
     );
     const all = async (query: Parameters<typeof adminListUsers>[1]) => {
@@ -971,6 +1020,7 @@ describe("listUsers", () => {
           email: `user${i}@example.com`,
           name: i === 7 ? "Grace Hopper" : `User ${i}`,
           role: "user",
+          createdVia: "root",
           passwordHash: "x",
         },
         new Date(),

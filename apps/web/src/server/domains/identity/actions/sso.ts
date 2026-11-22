@@ -310,6 +310,13 @@ export const completeSsoSignIn = async (
   }
 
   const outcome = await signInWithProvider(sso, stored.provider, identity, { ip, now });
+  // Created and waiting for a root's approval (191): said, as sign-up says it, with no session.
+  if (!outcome.ok && outcome.reason === "awaiting_approval") {
+    await providers.recordSignIn(providerId, now);
+    const query = new URLSearchParams({ signedUp: "waiting" });
+    if (next !== "/") query.set("next", next);
+    return redirect(`${baseURL}/sign-in?${query}`);
+  }
   if (!outcome.ok) return fail(outcome.reason, { email: identity.email, why: outcome.why });
 
   const session = await betterAuthSessionStore(app.auth).startSession(headers, outcome.userId);
