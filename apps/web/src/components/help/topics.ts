@@ -21,7 +21,9 @@ export const TOPICS = [
     summary:
       "Running an instance with Docker or Node, as a service, a domain with HTTPS, the first-run setup and root.",
     sections: [
+      { id: "ai", title: "With an AI assistant" },
       { id: "docker", title: "With Docker" },
+      { id: "database", title: "Choosing the database" },
       { id: "https", title: "A domain and HTTPS" },
       { id: "packages", title: "With apt or dnf" },
       { id: "node", title: "With Node.js" },
