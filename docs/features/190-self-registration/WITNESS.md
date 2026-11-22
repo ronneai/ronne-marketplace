@@ -340,3 +340,60 @@ Witnessed: 2026-11-21 19:09 local time, by a fresh agent (blind, a third round a
 | 5 | `disposable-domains.test.js` passes | no | confirmed | 4 passed |
 
 **Overall:** met. With re-check 2 (adversarial) met, both latest passes are met. Process note: the witness ran its one mutation on the repository file, not a scratch copy, and restored it (`cmp` identical, `git status` unchanged); the implementer confirmed the file is identical to its own copy from before the pass.
+
+## Task 4 — Settings panel
+
+### Blind pass
+
+Witnessed: 2026-11-21 19:52 EST, by a fresh agent (blind). Commit: 6a988a23 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The panel is on the Authentication tab, root only | no | confirmed | `AuthenticationTab.tsx` panel `self-registration`; `requirePermission(…, "settings.manage")`; "is root's only" passes |
+| 2 | The switch is disabled with its reason and a link, without email, the contact, or with *Root only* | no | confirmed | `disabled={!ready && !enabled}`, a Notice per blocker with its link; removing `disabled` → the component test fails |
+| 3 | The server refuses to turn it on for each blocker | no | confirmed | `SignUpUnavailableError`; db test loops mail, contact, password; mutation → fails; *Root only* read as sign-in reads it, tested with and without a provider |
+| 4 | Component tests cover each field | no | partly | every default and the domain mode checked; no test ties the field names to the save: renaming `approval`/`challenge` → all green |
+| 5 | **Ask everyone to accept again** only when the version changes | no | confirmed | component test types a new version and back; mutation → fails; server moves `termsRequiredVersion` only with `askAgain` |
+| 6 | Code lifetime 5–60 | no | confirmed | 4, 61, 7.5 refused; mutation → fails |
+| 7 | A bad domain is refused, exact matching | no | confirmed | `*.acme.com`, `acme`, empty, 101 refused; IDNA and trailing-dot probes |
+| 8 | A non-HTTPS link is refused | no | confirmed | `http://`, `user:pw@`, `javascript:` refused; mutation → fails |
+| 9 | Saving and the audit row with before and after | no | confirmed | one `settings.sign_up_changed` row with `from`/`to`; a same save records nothing; removing `recordAudit` → fails |
+| 10 | The db test passes on every database | no | confirmed | SQLite, PostgreSQL, MySQL, MariaDB: 8/8 each |
+| 11 | The audit action registered, a sentence in every language | no | confirmed | `audit-event.ts`, `summary.ts`, fixture; sentences, errors, untranslated tests pass |
+| 12 | Every screen word a message; tokens only | no | confirmed | `t(...)` throughout; pt/fr no-English test; `src/i18n` 418 passed |
+| 13 | Arrow functions; typecheck and lint clean | no | confirmed | `tsc` exit 0; `biome check` no errors |
+
+**Overall:** not met (row 4). Remarks: a closed sign-up blocked every other save; `1.2.3.4`, `https:acme.com/t` and bidi overrides in the version were accepted; the hidden throwaway input lost an untick.
+
+Fixes after the blind pass: the save reads the form only through `signUpInputFrom` (`sign-up-input.ts`), tested from the mounted form's `FormData`; the blockers stop only turning sign-up on; the three inputs are refused; the throwaway box keeps its state.
+
+### Re-check 1 (blind)
+
+Witnessed: 2026-11-21 19:58 EST, by a fresh agent (blind). Commit: 6a988a23 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | Only off → on is blocked; on and closed, the rest saves | no | confirmed | `services/sign-up.ts:118-119`; db test saves `codeMinutes` with email gone; mutation → fails |
+| 4 | Each field as the save reads it | no | partly | renaming `approval`, `codeMinutes`, `domains` or the reader's `askAgain` now fails; renaming `challenge` or the throwaway checkbox still passes |
+| 7 | IP-like domains refused | no | confirmed | `1.2.3.4` refused; removing the check → fails |
+| 8 | Misleading links and versions refused | no | confirmed | `https:acme.com/terms` and U+202E refused; mutations → fail |
+| 10 | Every database | no | confirmed | 8/8 on each |
+| 13 | Typecheck and lint | no | confirmed | `tsc` exit 0; `biome check` clean |
+| R4 | The throwaway untick kept with the list | no | confirmed | new test; mutation → fails |
+
+**Overall:** not met (row 4: `challenge` and the throwaway checkbox).
+
+Fix after re-check 1: a test with every box ticked under *Any domain*, read through `signUpInputFrom`, then the throwaway box unticked.
+
+### Re-check 2 (blind)
+
+Witnessed: 2026-11-21 19:58 EST, by a fresh agent (blind). Commit: 6a988a23 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | Each field as the save reads it | no | confirmed | renaming `challenge` → 1 failed of 10; renaming the throwaway checkbox → 1 failed of 10; earlier mutations still caught |
+| 2–3, 5–13, R4 | The rest still holds | no | confirmed | 18 tests passed; `tsc` exit 0; `biome check` clean; no source changed since re-check 1 |
+
+**Overall:** met.
+
+Fix after re-check 2, test only: the pre-commit run failed four tests in `admin-settings.test.tsx`, which mocks the tab's data sources and lacked the new panel's. The test now mocks `settings/actions/sign-up` (`adminSignUpSettings`); `vitest run src/features/admin-settings` → 239 passed (rerun by the implementer). No code the witness checked changed.

@@ -177,5 +177,7 @@
   "MailPlainSmtpError": "No TLS is only for a relay the operator lists in RONNE_MAIL_HOSTS, and never with a user name and password.",
   "MailNotSetUpError": "Email isn't set up: choose a transport and save first.",
   "MailCredentialsUnreadableError": "The saved credential can't be read (an older AUTH_SECRET): type it again and save.",
-  "MailTestLimitError": "At most {limit} test emails in 10 minutes: wait a few minutes, then try again."
+  "MailTestLimitError": "At most {limit} test emails in 10 minutes: wait a few minutes, then try again.",
+  "InvalidSignUpSettingError": "{field, select, domains {List each email domain once, such as acme.com, up to 100 of them, separated by commas, spaces or lines.} codeMinutes {The code lifetime is a whole number of minutes from 5 to 60.} termsUrl {The terms link is an https:// address without a user name, 500 characters at most, or empty.} termsVersion {The terms version is 1 to 64 characters on one line, such as 2026-11.} other {This field can't be saved as typed.}}",
+  "SignUpUnavailableError": "{reason, select, mail {Set up email first: people get a code by email to create an account.} contact {Set the instance contact on the Email tab first: every notice names whom to tell.} password {Let everyone sign in with a password first: an account made here signs in with one.} other {Sign-up can't be turned on yet.}}"
 }

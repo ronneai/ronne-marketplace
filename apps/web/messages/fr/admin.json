@@ -727,6 +727,23 @@
           "server": "le fournisseur a échoué",
           "rejected": "refusé",
           "config": "la configuration ne peut pas marcher"
+        },
+        "signUp": {
+          "on": "a activé l’inscription",
+          "off": "a désactivé l’inscription",
+          "anyDomain": "n’importe quel domaine",
+          "domains": "domaines : {list}",
+          "approvalOn": "les nouveaux comptes attendent une approbation",
+          "approvalOff": "les nouveaux comptes n’attendent pas d’approbation",
+          "throwawayOn": "domaines jetables bloqués",
+          "throwawayOff": "domaines jetables permis",
+          "minutes": "les codes valent {to} minutes",
+          "challengeOn": "défi activé",
+          "challengeOff": "défi désactivé",
+          "terms": "conditions en version {version}",
+          "termsOff": "aucun lien vers les conditions",
+          "askAgain": "tout le monde accepte de nouveau la version {version}",
+          "nothing": "rien"
         }
       },
       "actions": {
@@ -862,7 +879,8 @@
           "skill_scan": "A modifié l’analyse de sécurité : {changes}",
           "update_check": "A modifié la vérification des mises à jour : {state, select, on {activée} off {désactivée} other {modifiée}}",
           "languages": "A modifié les langues : {changes}",
-          "mail": "A modifié l’envoi de courriels : {changes}"
+          "mail": "A modifié l’envoi de courriels : {changes}",
+          "sign_up_changed": "A modifié l’inscription : {changes}"
         },
         "mail": {
           "test_sent": "A envoyé un courriel d’essai{result, select, sent {, accepté par le fournisseur} retry {, pas encore parti ({reason})} failed {, qui a échoué ({reason})} other {}}"
@@ -1460,6 +1478,49 @@
         "confirmButton": "Arrêter l’envoi",
         "cancel": "Annuler",
         "done": "Envoi des courriels arrêté. {count, plural, =0 {Rien n’était en attente.} one {# message en attente a été abandonné.} other {# messages en attente ont été abandonnés.}}"
+      }
+    },
+    "signUp": {
+      "title": "Inscription",
+      "intro": "Si les gens peuvent créer leur propre compte ici, avec un code envoyé à leur adresse courriel. C’est désactivé jusqu’à ce que vous l’activiez.",
+      "blockedTitle": "L’inscription peut être activée une fois ceci fait :",
+      "closedTitle": "L’inscription est activée, mais fermée jusqu’à ce que ceci soit refait :",
+      "blockers": {
+        "mail": "Le courriel est configuré, pour que le code puisse être envoyé.",
+        "contact": "Le contact de l’instance est défini, pour que chaque avis dise à qui s’adresser.",
+        "password": "Tout le monde peut se connecter avec un mot de passe, pour qu’un nouveau compte puisse se connecter."
+      },
+      "fix": {
+        "mail": "Configurer le courriel",
+        "contact": "Définir le contact",
+        "password": "Voir Qui peut se connecter avec un mot de passe"
+      },
+      "enabled": "Les gens peuvent créer leur propre compte",
+      "enabledHint": "La page de connexion affiche Créer un compte. Chaque adresse est prouvée par un code à 6 chiffres avant que le compte existe.",
+      "domains": {
+        "legend": "Quels domaines de courriel",
+        "any": "N’importe quel domaine",
+        "list": "Seulement ces domaines",
+        "listLabel": "Domaines",
+        "listHint": "Séparés par des virgules, des espaces ou des lignes, comme acme.com. Chacun correspond exactement : acme.com ne couvre pas eu.acme.com."
+      },
+      "throwaway": "Bloquer aussi les domaines de courriel jetables",
+      "throwawayHint": "Les adresses des services de courriel jetable de la liste fournie avec Ronne sont refusées.",
+      "approval": "Les nouveaux comptes attendent l’approbation d’un root",
+      "approvalHint": "Les roots sont avisés, et le compte ne peut pas se connecter tant qu’un root ne l’a pas approuvé. Un compte qui attend 30 jours est refusé.",
+      "minutes": "Validité du code, en minutes",
+      "minutesHint": "De 5 à 60. La même validité s’applique à chaque code que Ronne envoie par courriel.",
+      "challenge": "Demander aux navigateurs de résoudre un défi",
+      "challengeHint": "Une vérification invisible, faite par le navigateur en une seconde environ, qui arrête la plupart des robots. Elle demande JavaScript.",
+      "termsUrl": "Lien des conditions et de la confidentialité",
+      "termsHint": "Facultatif, une adresse https://. Quand il est défini, le formulaire d’inscription demande de l’accepter.",
+      "termsVersion": "Version",
+      "askAgain": "Demander à tout le monde d’accepter de nouveau",
+      "askAgainHint": "Chaque personne qui a un compte accepte cette version à sa prochaine connexion Web. Sans cela, seules les nouvelles inscriptions l’acceptent. Les jetons, rmk et le serveur MCP continuent de fonctionner dans tous les cas.",
+      "save": "Enregistrer",
+      "done": {
+        "saved": "Inscription enregistrée.",
+        "unchanged": "Rien n’a changé."
       }
     }
   },

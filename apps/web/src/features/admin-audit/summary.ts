@@ -610,6 +610,39 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     ].filter((c) => c !== null);
     return { changes: changes.join(", ") || h.part("languages.nothing") };
   },
+  "settings.sign_up_changed": (m, _e, h) => {
+    // `{ from: {…}, to: {…} }` (190): every setting, only what changed is said.
+    const from = record(m.from);
+    const to = record(m.to);
+    const list = (value: AuditMetadataValue | undefined) =>
+      Array.isArray(value) ? value.map(text).join(", ") : text(value);
+    const flag = (key: string, onPart: string, offPart: string) =>
+      text(from[key]) !== text(to[key]) ? h.part(to[key] === true ? onPart : offPart) : null;
+    const changes = [
+      flag("enabled", "signUp.on", "signUp.off"),
+      list(from.domains) !== list(to.domains)
+        ? to.domains === "any"
+          ? h.part("signUp.anyDomain")
+          : h.part("signUp.domains", { list: list(to.domains) })
+        : null,
+      flag("approval", "signUp.approvalOn", "signUp.approvalOff"),
+      flag("blockThrowaway", "signUp.throwawayOn", "signUp.throwawayOff"),
+      text(from.codeMinutes) !== text(to.codeMinutes)
+        ? h.part("signUp.minutes", { to: text(to.codeMinutes) })
+        : null,
+      flag("challenge", "signUp.challengeOn", "signUp.challengeOff"),
+      text(from.termsUrl) !== text(to.termsUrl) || text(from.termsVersion) !== text(to.termsVersion)
+        ? text(to.termsUrl)
+          ? h.part("signUp.terms", { version: text(to.termsVersion) })
+          : h.part("signUp.termsOff")
+        : null,
+      text(from.termsRequiredVersion) !== text(to.termsRequiredVersion) &&
+      text(to.termsRequiredVersion)
+        ? h.part("signUp.askAgain", { version: text(to.termsRequiredVersion) })
+        : null,
+    ].filter((c) => c !== null);
+    return { changes: changes.join(", ") || h.part("signUp.nothing") };
+  },
   "settings.notice": (m, _e, h) => {
     // `{ from: { tone, shown }, to: { tone, shown }, revision }`: never the text (124).
     const from = record(m.from);

@@ -727,6 +727,23 @@
           "server": "o provedor falhou",
           "rejected": "recusado",
           "config": "a configuração não funciona"
+        },
+        "signUp": {
+          "on": "ativou o cadastro",
+          "off": "desativou o cadastro",
+          "anyDomain": "qualquer domínio",
+          "domains": "domínios: {list}",
+          "approvalOn": "contas novas aguardam aprovação",
+          "approvalOff": "contas novas não aguardam aprovação",
+          "throwawayOn": "domínios descartáveis bloqueados",
+          "throwawayOff": "domínios descartáveis permitidos",
+          "minutes": "códigos valem {to} minutos",
+          "challengeOn": "desafio ativado",
+          "challengeOff": "desafio desativado",
+          "terms": "termos na versão {version}",
+          "termsOff": "sem link para os termos",
+          "askAgain": "todos aceitam de novo a versão {version}",
+          "nothing": "nada"
         }
       },
       "actions": {
@@ -862,7 +879,8 @@
           "skill_scan": "Alterou a verificação de segurança: {changes}",
           "update_check": "Alterou a verificação de atualizações: {state, select, on {ativada} off {desativada} other {alterada}}",
           "languages": "Alterou os idiomas: {changes}",
-          "mail": "Alterou o envio de e-mail: {changes}"
+          "mail": "Alterou o envio de e-mail: {changes}",
+          "sign_up_changed": "Alterou o cadastro de contas: {changes}"
         },
         "mail": {
           "test_sent": "Enviou um e-mail de teste{result, select, sent {, aceito pelo provedor} retry {, que ainda não foi ({reason})} failed {, que falhou ({reason})} other {}}"
@@ -1460,6 +1478,49 @@
         "confirmButton": "Parar de enviar",
         "cancel": "Cancelar",
         "done": "Envio de e-mails parado. {count, plural, =0 {Nada aguardava.} one {# mensagem que aguardava foi descartada.} other {# mensagens que aguardavam foram descartadas.}}"
+      }
+    },
+    "signUp": {
+      "title": "Cadastro de contas",
+      "intro": "Se as pessoas podem criar a própria conta aqui, com um código enviado para o endereço de e-mail delas. Fica desativado até você ativá-lo.",
+      "blockedTitle": "O cadastro pode ser ativado quando isto estiver pronto:",
+      "closedTitle": "O cadastro está ativado, mas fechado até isto estar pronto de novo:",
+      "blockers": {
+        "mail": "O e-mail está configurado, para o código poder ser enviado.",
+        "contact": "O contato da instância está definido, para todo aviso dizer a quem avisar.",
+        "password": "Todos podem entrar com senha, para uma conta nova conseguir entrar."
+      },
+      "fix": {
+        "mail": "Configurar o e-mail",
+        "contact": "Definir o contato",
+        "password": "Ver Quem pode entrar com senha"
+      },
+      "enabled": "As pessoas podem criar a própria conta",
+      "enabledHint": "A página de entrada mostra Criar uma conta. Cada endereço é comprovado com um código de 6 dígitos antes de a conta existir.",
+      "domains": {
+        "legend": "Quais domínios de e-mail",
+        "any": "Qualquer domínio",
+        "list": "Só estes domínios",
+        "listLabel": "Domínios",
+        "listHint": "Separados por vírgulas, espaços ou linhas, como acme.com. Cada um corresponde exatamente: acme.com não inclui eu.acme.com."
+      },
+      "throwaway": "Bloquear também domínios de e-mail descartáveis",
+      "throwawayHint": "Endereços de serviços de e-mail descartável da lista que acompanha o Ronne são recusados.",
+      "approval": "Contas novas aguardam a aprovação de um root",
+      "approvalHint": "Os roots são avisados, e a conta não consegue entrar até um deles aprová-la. Uma que fica aguardando por 30 dias é recusada.",
+      "minutes": "Validade do código, em minutos",
+      "minutesHint": "De 5 a 60. A mesma validade vale para todo código que o Ronne envia por e-mail.",
+      "challenge": "Pedir aos navegadores que resolvam um desafio",
+      "challengeHint": "Uma verificação invisível, feita pelo navegador em cerca de um segundo, que impede a maioria dos robôs. Precisa de JavaScript.",
+      "termsUrl": "Link dos termos e da privacidade",
+      "termsHint": "Opcional, um endereço https://. Quando definido, o formulário de cadastro pede que as pessoas o aceitem.",
+      "termsVersion": "Versão",
+      "askAgain": "Pedir que todos aceitem de novo",
+      "askAgainHint": "Todos que têm conta aceitam esta versão na próxima vez que entrarem pela web. Sem isso, só os novos cadastros a aceitam. Tokens, o rmk e o servidor MCP continuam funcionando de qualquer forma.",
+      "save": "Salvar",
+      "done": {
+        "saved": "Cadastro de contas salvo.",
+        "unchanged": "Nada mudou."
       }
     }
   },

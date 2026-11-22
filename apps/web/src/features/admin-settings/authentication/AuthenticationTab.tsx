@@ -14,13 +14,17 @@ import { twoFactorCoverage } from "@/server/domains/identity/actions/two-factor"
 import type { TwoFactorCoverage } from "@/server/domains/identity/models/two-factor-coverage";
 import { getAppAuth } from "@/server/domains/identity/repositories/auth-instance";
 import { instanceSettings } from "@/server/domains/settings/actions/settings";
+import { adminSignUpSettings } from "@/server/domains/settings/actions/sign-up";
 import type { PasswordSignInPolicy } from "@/server/domains/settings/models/password-sign-in-policy";
+import type { SignUpPolicy } from "@/server/domains/settings/models/sign-up-policy";
 import type { TokenPolicy } from "@/server/domains/settings/models/token-policy";
 import type { TwoFactorPolicy } from "@/server/domains/settings/models/two-factor-policy";
+import type { SignUpReadiness } from "@/server/domains/settings/services/sign-up";
 import { requestHeaders } from "@/server/http/request-headers";
 import { PasswordPolicyForm } from "./PasswordPolicyForm";
 import { IdentityProvidersPanel } from "./providers/IdentityProvidersPanel";
 import { type SignInMethod, SignInMethodsPanel } from "./SignInMethodsPanel";
+import { SignUpForm } from "./SignUpForm";
 import { TokenPolicyForm } from "./TokenPolicyForm";
 import { TwoFactorPolicyForm } from "./TwoFactorPolicyForm";
 
@@ -37,6 +41,8 @@ type AuthenticationData = {
   tokenPolicy: TokenPolicy;
   /** Active tokens that last longer than their owner's cap allows (162). */
   tokensPast: number;
+  /** Self-registration (190) and what it needs first. */
+  signUp: { policy: SignUpPolicy; readiness: SignUpReadiness };
 };
 
 /**
@@ -107,6 +113,10 @@ const PANELS: readonly {
     ),
   },
   {
+    id: "self-registration",
+    render: ({ signUp }) => <SignUpForm policy={signUp.policy} readiness={signUp.readiness} />,
+  },
+  {
     id: "two-factor",
     render: ({ twoFactorPolicy, coverage }) => (
       <TwoFactorPolicyForm policy={twoFactorPolicy} coverage={coverage} />
@@ -128,14 +138,16 @@ export const AuthenticationTab = async () => {
   const request = await requestHeaders();
   const t = await getTranslations("admin.settings.methods");
   const app = getAppAuth();
-  const [settings, coverage, providers, usableProvider, affected, tokensPast] = await Promise.all([
-    instanceSettings(request),
-    twoFactorCoverage(request),
-    providerRows(request),
-    hasUsableProvider(app),
-    passwordUsersAffected(app),
-    countTokensPastPolicy(request),
-  ]);
+  const [settings, coverage, providers, usableProvider, affected, tokensPast, signUp] =
+    await Promise.all([
+      instanceSettings(request),
+      twoFactorCoverage(request),
+      providerRows(request),
+      hasUsableProvider(app),
+      passwordUsersAffected(app),
+      countTokensPastPolicy(request),
+      adminSignUpSettings(request),
+    ]);
   const data = {
     twoFactorPolicy: settings.twoFactorPolicy,
     coverage,
@@ -145,6 +157,7 @@ export const AuthenticationTab = async () => {
     affected,
     tokenPolicy: settings.tokenPolicy,
     tokensPast,
+    signUp,
   };
   return PANELS.map((panel) => (
     <Panel key={panel.id} padding="lg">

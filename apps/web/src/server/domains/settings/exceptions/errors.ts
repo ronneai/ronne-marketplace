@@ -269,3 +269,38 @@ export class ScanEndpointUnresolvedError extends SettingsError {
     super("That endpoint's host can't be found. Check its name.");
   }
 }
+
+/** A field of the Self-registration panel that can't be saved as typed (190). */
+export type SignUpField = "domains" | "codeMinutes" | "termsUrl" | "termsVersion";
+
+const SIGN_UP_MESSAGES: Record<SignUpField, string> = {
+  domains:
+    "List each email domain once, such as acme.com, up to 100 of them, separated by commas, spaces or lines.",
+  codeMinutes: "The code lifetime is a whole number of minutes from 5 to 60.",
+  termsUrl:
+    "The terms link is an https:// address without a user name, 500 characters at most, or empty.",
+  termsVersion: "The terms version is 1 to 64 characters on one line, such as 2026-11.",
+};
+
+export class InvalidSignUpSettingError extends SettingsError {
+  override readonly name: string = "InvalidSignUpSettingError";
+  constructor(readonly field: SignUpField) {
+    super(SIGN_UP_MESSAGES[field]);
+  }
+}
+
+/** What sign-up needs first (190): email set up, an instance contact, and password sign-in open. */
+export type SignUpBlocker = "mail" | "contact" | "password";
+
+export class SignUpUnavailableError extends SettingsError {
+  override readonly name: string = "SignUpUnavailableError";
+  constructor(readonly reason: SignUpBlocker) {
+    super(
+      reason === "mail"
+        ? "Set up email first: people get a code by email to create an account."
+        : reason === "contact"
+          ? "Set the instance contact on the Email tab first: every notice names whom to tell."
+          : "Let everyone sign in with a password first: an account made here signs in with one.",
+    );
+  }
+}

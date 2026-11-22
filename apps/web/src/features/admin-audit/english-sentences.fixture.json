@@ -418,5 +418,9 @@
   "mail.test_sent": {
     "empty": "Sent a test email",
     "rich": "Sent a test email"
+  },
+  "settings.sign_up_changed": {
+    "empty": "Changed self-registration: nothing",
+    "rich": "Changed self-registration: nothing"
   }
 }

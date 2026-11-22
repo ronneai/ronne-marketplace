@@ -94,6 +94,41 @@ describe("the email setup's sentence (189)", () => {
       "Sent a test email, which failed (credentials refused)",
     );
   });
+
+  it("says what changed in self-registration (190)", () => {
+    const base = {
+      enabled: false,
+      domains: "any",
+      approval: false,
+      blockThrowaway: true,
+      codeMinutes: 15,
+      challenge: true,
+      termsUrl: null,
+      termsVersion: null,
+      termsRequiredVersion: null,
+    };
+    const metadata = {
+      from: base,
+      to: {
+        ...base,
+        enabled: true,
+        domains: ["acme.com", "acme.co.uk"],
+        approval: true,
+        codeMinutes: 30,
+        termsUrl: "https://acme.com/terms",
+        termsVersion: "2026-11",
+        termsRequiredVersion: "2026-11",
+      },
+    };
+    expect(line("en", "settings.sign_up_changed", metadata)).toBe(
+      "Changed self-registration: turned sign-up on, domains: acme.com, acme.co.uk, new accounts wait for approval, codes last 30 minutes, terms version 2026-11, everyone accepts version 2026-11 again",
+    );
+    expect(line("pt", "settings.sign_up_changed", metadata)).toContain("ativou o cadastro");
+    expect(line("fr", "settings.sign_up_changed", metadata)).toContain("a activé l’inscription");
+    expect(line("en", "settings.sign_up_changed", { from: base, to: base })).toBe(
+      "Changed self-registration: nothing",
+    );
+  });
 });
 
 describe("audit sentences in Portuguese and French (132)", () => {

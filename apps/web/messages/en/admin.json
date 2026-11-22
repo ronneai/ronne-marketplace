@@ -727,6 +727,23 @@
           "server": "the provider failed",
           "rejected": "refused",
           "config": "the setup can't work"
+        },
+        "signUp": {
+          "on": "turned sign-up on",
+          "off": "turned sign-up off",
+          "anyDomain": "any domain",
+          "domains": "domains: {list}",
+          "approvalOn": "new accounts wait for approval",
+          "approvalOff": "new accounts don't wait for approval",
+          "throwawayOn": "throwaway domains blocked",
+          "throwawayOff": "throwaway domains allowed",
+          "minutes": "codes last {to} minutes",
+          "challengeOn": "the challenge on",
+          "challengeOff": "the challenge off",
+          "terms": "terms version {version}",
+          "termsOff": "no terms link",
+          "askAgain": "everyone accepts version {version} again",
+          "nothing": "nothing"
         }
       },
       "actions": {
@@ -862,7 +879,8 @@
           "skill_scan": "Changed the security scan: {changes}",
           "update_check": "Changed the check for updates: {state, select, on {turned on} off {turned off} other {changed}}",
           "languages": "Changed the languages: {changes}",
-          "mail": "Changed outgoing email: {changes}"
+          "mail": "Changed outgoing email: {changes}",
+          "sign_up_changed": "Changed self-registration: {changes}"
         },
         "mail": {
           "test_sent": "Sent a test email{result, select, sent {, which the provider took} retry {, which didn't go yet ({reason})} failed {, which failed ({reason})} other {}}"
@@ -1460,6 +1478,49 @@
         "confirmButton": "Stop sending",
         "cancel": "Cancel",
         "done": "Email stopped. {count, plural, =0 {Nothing was waiting.} one {# waiting message was dropped.} other {# waiting messages were dropped.}}"
+      }
+    },
+    "signUp": {
+      "title": "Self-registration",
+      "intro": "Whether people can create their own account here, with a code sent to their email address. It's off until you turn it on.",
+      "blockedTitle": "Sign-up can be turned on once these are done:",
+      "closedTitle": "Sign-up is on, but closed until these are done again:",
+      "blockers": {
+        "mail": "Email is set up, so the code can be sent.",
+        "contact": "The instance contact is set, so every notice says whom to tell.",
+        "password": "Everyone may sign in with a password, so a new account can sign in."
+      },
+      "fix": {
+        "mail": "Set up email",
+        "contact": "Set the contact",
+        "password": "See Who may sign in with a password"
+      },
+      "enabled": "People can create their own account",
+      "enabledHint": "The sign-in page shows Create an account. Each address is proven with a 6-digit code before the account exists.",
+      "domains": {
+        "legend": "Which email domains",
+        "any": "Any domain",
+        "list": "Only these domains",
+        "listLabel": "Domains",
+        "listHint": "Separated by commas, spaces or lines, such as acme.com. Each matches exactly: acme.com doesn't cover eu.acme.com."
+      },
+      "throwaway": "Also block throwaway email domains",
+      "throwawayHint": "Addresses at disposable-mail services on the list Ronne bundles are refused.",
+      "approval": "New accounts wait for a root's approval",
+      "approvalHint": "Roots are notified, and the account can't sign in until one approves it. One left waiting for 30 days is declined.",
+      "minutes": "Code lifetime, in minutes",
+      "minutesHint": "5 to 60. The same lifetime applies to every code Ronne emails.",
+      "challenge": "Ask browsers to solve a challenge",
+      "challengeHint": "An invisible check, done by the browser in about a second, that stops most bots. It needs JavaScript.",
+      "termsUrl": "Terms and privacy link",
+      "termsHint": "Optional, an https:// address. When it's set, the sign-up form asks people to accept it.",
+      "termsVersion": "Version",
+      "askAgain": "Ask everyone to accept again",
+      "askAgainHint": "Everyone who has an account accepts this version at their next web sign-in. Without it, only new sign-ups accept it. Tokens, rmk and the MCP server keep working either way.",
+      "save": "Save",
+      "done": {
+        "saved": "Self-registration saved.",
+        "unchanged": "Nothing changed."
       }
     }
   },

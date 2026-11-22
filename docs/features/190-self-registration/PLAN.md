@@ -43,7 +43,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     a replay and too many tries, and accept a real solve; the solve takes under 1.5 s on the e2e
     browser.
 
-- [ ] **4. Settings panel.**
+- [x] **4. Settings panel.**
   - The Self-registration panel on the Authentication tab:
     - the switch, disabled with its reason without email (189), without the instance contact (189)
       or with the policy *Root only*;

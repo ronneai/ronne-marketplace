@@ -40,6 +40,10 @@ and standards".
       it (NIST SP 800-63B-4 §4.6).
     - The password policy is *Everyone* (106's *Who may sign in with a password*): with *Root
       only*, a new account couldn't sign in.
+    - The password policy is read as sign-in reads it: *Root only* holds while an identity
+      provider is on, tested or not.
+    - Once on, it stays on if one of them goes: the panel says sign-up is closed until it's done
+      again, the sign-up pages refuse, and root can still save the rest or turn it off.
   - Every change audited (`settings.sign_up_changed`, before and after).
 - **One-time email codes**, a model shared with 194 and 197, in the identity domain:
   - 6 digits from `crypto.randomInt`; stored only as `code_hmac`, HMAC-SHA256 under a key HKDF

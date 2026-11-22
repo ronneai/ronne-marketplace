@@ -50,6 +50,18 @@ vi.mock("@/server/domains/identity/actions/password-policy", () => ({
 vi.mock("@/server/domains/identity/repositories/auth-instance", () => ({ getAppAuth: () => ({}) }));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/domains/settings/actions/settings", () => settings);
+// The Self-registration panel (190): its own data, off and ready.
+vi.mock("@/server/domains/settings/actions/sign-up", async () => {
+  const { DEFAULT_SIGN_UP_POLICY } = await import(
+    "@/server/domains/settings/models/sign-up-policy"
+  );
+  return {
+    adminSignUpSettings: vi.fn(async () => ({
+      policy: DEFAULT_SIGN_UP_POLICY,
+      readiness: { mail: true, contact: true, password: true },
+    })),
+  };
+});
 vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("next/cache", () => cache);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));

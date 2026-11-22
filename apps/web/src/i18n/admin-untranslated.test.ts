@@ -60,6 +60,8 @@ const SAME: Record<string, readonly string[]> = {
   "settings.email.transport.postmark": ["pt", "fr"],
   "settings.email.transport.resend": ["pt", "fr"],
   "settings.email.transport.label": ["fr"],
+  // 190: the terms version, the same word in French.
+  "settings.signUp.termsVersion": ["fr"],
   "settings.email.smtp.port": ["fr"],
   "settings.email.smtp.tlsOptions.starttls": ["fr"],
   "settings.email.smtp.tlsOptions.tls": ["fr"],

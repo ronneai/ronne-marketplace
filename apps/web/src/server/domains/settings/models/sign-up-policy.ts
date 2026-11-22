@@ -1,4 +1,5 @@
 import { emailCodeMinutes } from "../../identity/models/email-code";
+import { deliveryDomain } from "../../identity/models/sign-up-guard";
 
 /**
  * Self-registration's settings (feature 190), rows of `instance_settings`. A key that isn't there
@@ -97,3 +98,65 @@ export const signUpPolicyRows = (policy: SignUpPolicy): Record<string, string> =
   [SIGN_UP_KEYS.termsVersion]: policy.termsVersion,
   [SIGN_UP_KEYS.termsRequiredVersion]: policy.termsRequiredVersion,
 });
+
+/** At most this many domains in the allow list. */
+export const SIGN_UP_MAX_DOMAINS = 100;
+
+/**
+ * The domains root typed (commas, spaces or lines between them), each as mail delivery reads it,
+ * once each, or null when one isn't a plain domain or there are too many. `*` and the like are
+ * refused: a listed domain is compared exactly, never as a pattern.
+ */
+export const parseSignUpDomains = (text: string): string[] | null => {
+  const typed = text.split(/[\s,;]+/).filter((entry) => entry !== "");
+  if (typed.length > SIGN_UP_MAX_DOMAINS) return null;
+  const domains: string[] = [];
+  for (const entry of typed) {
+    const domain = deliveryDomain(entry);
+    // The last label is a name, never a number: `1.2.3.4` is an address, not a domain.
+    if (!PLAIN_DOMAIN.test(domain) || /^\d+$/.test(domain.slice(domain.lastIndexOf(".") + 1)))
+      return null;
+    if (!domains.includes(domain)) domains.push(domain);
+  }
+  return domains;
+};
+
+const PLAIN_DOMAIN =
+  /^(?=.{3,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
+
+/** Whether text has a control character, a space or a line separator (none belong in a link). */
+const hasControl = (value: string, spaces: boolean): boolean =>
+  [...value].some((ch) => {
+    const code = ch.codePointAt(0) ?? 0;
+    return (
+      code < 0x20 ||
+      code === 0x7f ||
+      code === 0x2028 ||
+      code === 0x2029 ||
+      // The bidirectional marks and overrides, which make text read other than it is.
+      code === 0x200e ||
+      code === 0x200f ||
+      (code >= 0x202a && code <= 0x202e) ||
+      (code >= 0x2066 && code <= 0x2069) ||
+      (spaces && /\s/.test(ch))
+    );
+  });
+
+/** A terms link root may save: empty, or an absolute https:// address with no user name. */
+export const isTermsUrl = (value: string): boolean => {
+  if (value === "") return true;
+  // Spelled out as typed: `https:acme.com` parses, but isn't what the form shows people.
+  if (value.length > 500 || !value.startsWith("https://") || hasControl(value, true)) return false;
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" && url.username === "" && url.password === "" && url.hostname !== ""
+    );
+  } catch {
+    return false;
+  }
+};
+
+/** A terms version: 1 to 64 characters, no line breaks or control characters. */
+export const isTermsVersion = (value: string): boolean =>
+  value.length >= 1 && value.length <= 64 && !hasControl(value, false);
