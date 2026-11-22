@@ -189,3 +189,154 @@ Witnessed: 2026-11-21 17:46 EST, by a fresh agent (adversarial, a third round on
 | 3 | The plan's note on exact domain matching | no | confirmed | probe on a copy of `sign-up-policy.ts` |
 
 **Overall:** met. With re-check 2 (blind) met, both latest passes are met. Cosmetic: a long spec line, rewrapped before the commit.
+
+## Task 3 — Bot protection
+
+Witnessed: 2026-11-21 18:05 EST, by a fresh agent (blind; a `grep` of PLAN.md showed it the task 3 Notes before its own checks, and it says it didn't rely on them). Commit: 27410ba1 + working-tree diff. Machine: macOS (Darwin 27.2.0), Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The checklist run on `altcha`; it failed, so our own solver | yes | confirmed | npm registry: one maintainer, 3.7.0 a day old; no `altcha` in `package.json`; `solve-challenge.ts` on `crypto.subtle` |
+| 2 | The server side on `node:crypto`: a signed challenge, verified | no | confirmed | mutation (no signature check) → fails |
+| 3 | A replay refused through `challenges_used`, racing included | no | confirmed | 1 of 8 concurrent takes, on 4 databases |
+| 4 | The list's licence passes | yes | confirmed | `LICENSE.txt` is CC0 1.0 |
+| 5 | The list bundled with its source, matching upstream | yes | confirmed | the raw file at the commit is identical |
+| 6 | The notice ships, and the test covers it | no | confirmed | `notices.js --filter @ronneai/web` → CC0 entry |
+| 7 | `pnpm licenses:check` passes | no | confirmed | 351 packages |
+| 8 | A release step refreshes it, with refusals | no | confirmed | `package.json`, CONTRIBUTING, release.md, tests |
+| 9 | A throwaway address refused with *Any domain* | no | partly | `bot@mailinator.com.` and `"bot@mailinator.com "` → allowed |
+| 10 | An allow list ignores the throwaway list | no | confirmed | mutation → fails |
+| 11 | Honeypot and fast post are bots | no | confirmed | mutations → fail |
+| 12 | Wrong answer and expired challenge refused | no | confirmed | mutations → fail |
+| 13 | Too many tries, on 109's limiter | no | confirmed | 4 databases |
+| 14 | A real solve accepted | no | confirmed | test |
+| 15 | Under 1.5 s in the e2e browser | yes | partly | read only (Playwright not run, as asked); Node worst case 534 ms |
+
+**Overall:** not met (rows 9, 15).
+
+### Adversarial pass
+
+Witnessed: 2026-11-21 18:10 EST, by a fresh agent (adversarial). Commit: 27410ba1 + working-tree diff. Machine: macOS 27.2.1, Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A changed or foreign challenge refused | no | partly | `signature + "0"`, `+ "0zz"`, upper case → `ok` (Node's hex decoder); extra keys accepted |
+| 2 | A replay refused, racing on warm connections | no | confirmed | 64 concurrent takes × 5 rounds on 4 databases |
+| 3 | 10-minute expiry | no | confirmed | — |
+| 4 | Out-of-range or malformed answers refused | no | confirmed | — |
+| 5 | Salt and number random; the check cheap | no | confirmed | no test pins the randomness |
+| 6 | The solver; under 1.5 s in the e2e browser | no | partly | Node 557 ms; Playwright not run |
+| 7 | The stamp | no | confirmed | same hex malleability, no effect |
+| 8 | The honeypot | no | confirmed | — |
+| 9 | Throwaway refused, subdomains included | no | partly | trailing dot, `0-mailer.dynv6。net`, `ｍailinator.com` → allowed |
+| 10 | An allow list exact; `*` literal; empty closed | no | confirmed | — |
+| 11 | The limits match the spec | no | confirmed | windows and names untested |
+| 12 | The module is the script's output for the commit | no | confirmed | regenerated == bundled |
+| 13 | The refresh refuses dangerous lines | no | partly | `co.uk`, `com.br`, `github.io`, `yahoo.co.uk`, `outlook.fr` accepted |
+| 14 | Licence and notices | no | confirmed | `main()` adding the data untested |
+| 15 | Tests fail when a rule is removed | no | partly | fixed salt, fixed number, a limit's window, a shared limit name, the notices' data survive |
+
+**Overall:** not met (rows 1, 6, 9, 13, 15).
+
+Fixes after both passes:
+- Signatures: a challenge's and a stamp's signature must be exactly 64 lower-case hex digits before they're compared; an answer must carry exactly Ronne's fields.
+- Domains: read as mail delivery does (`deliveryDomain`: trimmed, IDNA through `node:url`'s `domainToASCII`, lower-cased, trailing dots dropped; "" refuses), for the throwaway list and an allow list alike.
+- The refresh refuses a wider list of real providers and a list of shared suffixes (`co.uk`, `com.br`, `github.io`, …); the bundled list has none (its `co.cc` and `gob.re` are throwaway services listed upstream on purpose).
+- Tests: altered signatures and stamps, extra fields, full-width and ideographic look-alikes, trailing dots and spaces, fresh salts and varied secret numbers, each limit's window and distinct name, `noticeFileEntries` ending with the bundled data. Rerun by the implementer: removing the canonical-hex check, the IDNA step, the random salt, the random number or the field check each fails a test (files restored, `cmp`).
+
+### Re-check (blind)
+
+Witnessed: 2026-11-21 18:08 EST, by a fresh agent (blind; the earlier passes and their fixes were in WITNESS.md, which it read). Commit: 27410ba1 + working-tree diff. Machine: macOS (Darwin 27.2.0), Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm licenses:check` | no | confirmed | 351 packages |
+| 2 | The notices test covers the list | no | confirmed | mutation → fails |
+| 3 | The refresh refuses providers, suffixes, short lists; the list clean | no | confirmed | probe; mutation → 2 fail |
+| 4 | Throwaway refused with trailing dot, space, full-width, ideographic stop | no | confirmed | probe of 19 forms; mutations → fail |
+| 5 | An allow list ignores the throwaway list; exact | no | confirmed | mutation → fails |
+| 6 | Honeypot | no | confirmed | mutation → fails |
+| 7 | Fast post | no | confirmed | mutation → fails |
+| 8 | Wrong answer | no | confirmed | mutation → fails |
+| 9 | Expired challenge | no | confirmed | mutation → fails |
+| 10 | Changed or unsigned challenge, canonical hex | no | confirmed | mutations → fail |
+| 11 | Replay, racing | no | confirmed | 4 databases; mutation → fails |
+| 12 | The limits, counted apart | no | confirmed | 4 databases; mutations → fail |
+| 13 | A real solve; random salt and number | no | confirmed | mutations → fail |
+| 14 | Under 1.5 s in the e2e browser | no | confirmed | `playwright test e2e/sign-up-challenge.e2e.ts --project chromium` ×3 → 188 / 190 / 192 ms |
+
+**Overall:** met. Remarks: removing `.trim()` in `deliveryDomain` survived (only a spaced allow-list entry needs it); the timing runs on the page's thread (the worker is task 5's).
+
+### Re-check (adversarial)
+
+Witnessed: 2026-11-21 18:08 EST, by a fresh agent (adversarial). Commit: 27410ba1 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Only canonical lower-case hex signatures | no | confirmed | probe; mutations → fail |
+| 2 | Exactly Ronne's fields | no | confirmed | `__proto__`, strings, arrays refused |
+| 3 | Throwaway can't be slipped past | no | confirmed | 30+ forms |
+| 4 | An allow list read as delivery reads it | no | partly | `deliveryDomain(listed)` → `listed` survives; URL syntax maps to a bare domain (task 5's address check) |
+| 5 | The refresh refuses suffixes and providers | no | not met | `gouv.fr`, `qc.ca`, `gov.br`, `yahoo.com.br`, `hotmail.ca`, `mail.com` … accepted |
+| 6 | Each limit apart, an hour | no | confirmed | mutations on the servers |
+| 7 | Replay on every dialect | no | confirmed | — |
+| 8 | Notices carry the data | no | confirmed | — |
+| 9 | No cost attack | no | partly | `isThrowawayDomain` quadratic in labels: 60,000 characters 3 s |
+
+**Overall:** not met (rows 4, 5, 9).
+
+Fixes after both re-checks:
+- The refresh refuses a wider provider list (country domains of the big providers, Brazil's and Canada's providers, `mail.com`), more shared suffixes (`s3.amazonaws.com`, `eu.org`, …), and any two-label line shaped like a country's second-level suffix (`gouv.fr`, `qc.ca`, `com.br`) except the five upstream carries on purpose (`KNOWN_LISTED`); it prints every line added and removed for the refresh's pull request. The Public Suffix List (MPL-2.0) would be complete; it needs an exception, raised with the owner.
+- `deliveryDomain` refuses a name longer than 253 characters (and input over 1,024) before any work; a test checks 60,000 characters are refused within 200 ms.
+- Tests: root's allow-list entries normalised (`EXAMPLE.com.`, full-width, ideographic stop) and spaced. Rerun by the implementer: removing the length cap or `deliveryDomain(listed)` each fails a test (files restored).
+- Plan Notes: task 5 checks the address with 106's rules before the guard.
+
+### Re-check 2 (blind)
+
+Witnessed: 2026-11-21 18:20 EST, by a fresh agent (blind). Commit: 27410ba1 + working-tree diff. Machine: macOS 27.2.1, Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm licenses:check` | no | confirmed | 351 packages |
+| 2 | The notices test | no | confirmed | 9 passed |
+| 3 | The bundled list valid | no | confirmed | `--check` → 10455, valid |
+| 4 | Throwaway refused with *Any domain*; ignored with an allow list | no | confirmed | 20 passed on SQLite |
+| 5 | Honeypot, fast post, wrong, expired, replay, too many tries; a real solve | no | confirmed | SQLite and PostgreSQL |
+| 6 | Under 1.5 s in the e2e browser | no | can't check here | not rerun as asked; the solver unchanged since the 188–192 ms runs |
+| 7 | The 253-character cap tested | no | confirmed | mutation → fails |
+| 8 | The 1,024-character refusal tested | no | partly | removing it → 16/16 pass; its comment claims more |
+| 9 | An allow-list entry normalised, tested | no | confirmed | mutations → fail |
+| 10 | The wider refresh checks tested | no | confirmed | mutations → fail |
+
+**Overall:** not met (row 8).
+
+### Re-check 2 (adversarial)
+
+Witnessed: 2026-11-21 18:16 EST, by a fresh agent (adversarial). Commit: 27410ba1 + working-tree diff. Machine: macOS (Darwin 27.2.0), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tests and `--check` pass | no | confirmed | 20 and 4 passed; 10455 valid |
+| 2 | The refresh refuses provider country domains, suffixes, suffix-shaped lines | no | confirmed | probe; mutation → fails |
+| 3 | It prints the lines it adds and removes | no | confirmed | `main()` with a stubbed fetch |
+| 4 | What a hand-built check misses is stated, left to the owner | no | confirmed | `us.com`, `myshopify.com`, `nhs.uk`, `yahoo.co.jp` pass; PLAN.md says so |
+| 5 | A crafted domain costs nothing | no | confirmed | every shape under 1 ms; mutation → fails |
+| 6 | An allow-list entry normalised, tested | no | confirmed | mutations → fail |
+
+**Overall:** met. Remarks: `mooo.com` is a shared host upstream lists; a suffix in both checks was named twice; the 1,024 refusal untested.
+
+Fixes after re-check 2: a test refuses `a@acme.com` followed by 2,000 dots against an allow list of `acme.com` (removing the 1,024 refusal now fails it; rerun by the implementer, file restored) and its comment says what it does; a refusal names each suffix once; the plan's Notes list what the hand-built check misses, `mooo.com` included, for the owner.
+
+### Re-check 3 (blind)
+
+Witnessed: 2026-11-21 19:09 local time, by a fresh agent (blind, a third round at the owner's request). Commit: 27410ba1 + working-tree diff. Machine: macOS (Darwin 27.2.0), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `deliveryDomain` refuses input over 1,024 characters first | no | confirmed | `sign-up-guard.ts:57`, before `trim` and `domainToASCII` |
+| 2 | Its comment says what the code does | no | confirmed | lines 55-56 against 57 and 59 |
+| 3 | A test fails without the refusal | no | confirmed | line 57 removed → "refuses a name longer than a domain can be, at once" fails |
+| 4 | `sign-up-guard.test.ts` passes | no | confirmed | 16 passed |
+| 5 | `disposable-domains.test.js` passes | no | confirmed | 4 passed |
+
+**Overall:** met. With re-check 2 (adversarial) met, both latest passes are met. Process note: the witness ran its one mutation on the repository file, not a scratch copy, and restored it (`cmp` identical, `git status` unchanged); the implementer confirmed the file is identical to its own copy from before the pass.

@@ -113,6 +113,26 @@ export const withScanned = (entries, scanned) => {
   );
 };
 
+/**
+ * Data Ronne ships that isn't an npm package, each with its source and licence (190's throwaway
+ * email domains, CC0-1.0). It's in every notices file: the web app carries it.
+ */
+export const BUNDLED_DATA = [
+  {
+    name: "disposable-email-domains",
+    version:
+      "(the commit in apps/web/src/server/domains/identity/lists/disposable-domains.source.json)",
+    license: "CC0-1.0",
+    text: `https://github.com/disposable-email-domains/disposable-email-domains, file disposable_email_blocklist.conf.
+
+CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. The person who associated a work with this
+deed has dedicated the work to the public domain by waiving all of his or her rights to the work
+worldwide under copyright law, including all related and neighboring rights, to the extent allowed
+by law. You can copy, modify, distribute and perform the work, even for commercial purposes, all
+without asking permission. Details: https://creativecommons.org/publicdomain/zero/1.0/legalcode`,
+  },
+];
+
 export const RULE = "-".repeat(78);
 
 /** One package's section: the heading the bundle also looks for, then its licence. */
@@ -124,6 +144,12 @@ export const section = ({ name, version, license, text }) => {
       : `(No licence file in the package; its package.json says ${license}.)`);
   return `${name} ${version} (${license})\n\n${body}`;
 };
+
+/** Every entry a notices file holds: the packages, the ones found by scanning, and the bundled data. */
+export const noticeFileEntries = (byLicense, scanned = [], read = licenseFiles) => [
+  ...withScanned(noticeEntries(byLicense, read), scanned),
+  ...BUNDLED_DATA,
+];
 
 export const renderNotices = (title, entries) =>
   `${title}\n\n${entries.map(section).join(`\n\n${RULE}\n\n`)}\n`;
@@ -151,8 +177,8 @@ const main = () => {
   );
   // pnpm's list leaves out optional dependencies (pg's pg-cloudflare) and doesn't follow
   // workspace links; a --scan folder adds every package that's really there and isn't listed.
-  const entries = withScanned(
-    noticeEntries(JSON.parse(json)),
+  const entries = noticeFileEntries(
+    JSON.parse(json),
     scans.flatMap((dir) => collectPackages(dir)),
   );
   writeFileSync(

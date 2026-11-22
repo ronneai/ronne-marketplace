@@ -221,6 +221,7 @@ here.
 |---|---|
 | `pnpm witness:check` | Checks every `WITNESS.md`, and that each ticked task has a pass that met it |
 | `pnpm docs:check` | Checks that every root script has a row in this table and that the [knowledge index](docs/knowledge/README.md) lists every note |
+| `pnpm data:disposable-domains` | Refreshes the bundled throwaway email domains (190) from the CC0 `disposable-email-domains` list at its newest commit, checked before it's written; `-- --check` only validates the copy in the repository |
 | `pnpm licenses:check` | Checks every installed package's license against `license-policy.json` |
 | `pnpm audit --audit-level high` | Fails on known high or critical vulnerabilities |
 | `pnpm docs:links` | Checks that the app's Documentation links match the website's topics (skipped unless the private website repository is next to this one) |

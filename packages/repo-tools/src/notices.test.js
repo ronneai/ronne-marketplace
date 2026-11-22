@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { LICENSE_FILE, MIT_TEXT, noticeEntries, RULE, renderNotices, section } from "./notices.js";
+import {
+  BUNDLED_DATA,
+  LICENSE_FILE,
+  MIT_TEXT,
+  noticeEntries,
+  noticeFileEntries,
+  RULE,
+  renderNotices,
+  section,
+} from "./notices.js";
 
 describe("THIRD_PARTY_NOTICES (084)", () => {
   it("takes one entry per name@version from pnpm's licence list, with each version's folder", () => {
@@ -50,5 +59,21 @@ describe("THIRD_PARTY_NOTICES (084)", () => {
       expect(LICENSE_FILE.test(name), name).toBe(true);
     for (const name of ["license.js", "LICENSE.ts", "licenses.json", "notice.d.ts"])
       expect(LICENSE_FILE.test(name), name).toBe(false);
+  });
+
+  it("credits the bundled throwaway email domains, with their source and licence (190)", () => {
+    const [list] = BUNDLED_DATA;
+    expect(list).toMatchObject({ name: "disposable-email-domains", license: "CC0-1.0" });
+    const notices = renderNotices("Third-party software", BUNDLED_DATA);
+    expect(notices).toContain("disposable-email-domains");
+    expect(notices).toContain("CC0 1.0 Universal");
+    expect(notices).toContain("github.com/disposable-email-domains/disposable-email-domains");
+    // Every notices file the script writes ends with the bundled data.
+    const entries = noticeFileEntries(
+      { MIT: [{ name: "zod", versions: ["4.6.5"], paths: ["/z"] }] },
+      [],
+      () => "MIT text",
+    );
+    expect(entries.map((e) => e.name)).toEqual(["zod", "disposable-email-domains"]);
   });
 });
