@@ -193,6 +193,7 @@ export const kyselyTokenRepository = (
           "user.disabled_at",
           "user.erased_at",
           "user.password_change_required_at",
+          "user.approval_pending_at",
         ])
         .where("access_tokens.token_hash", "=", tokenHash)
         .executeTakeFirst();
@@ -212,7 +213,8 @@ export const kyselyTokenRepository = (
           role: isRole(row.role) ? row.role : "user",
           workspaces: await loadMemberships(db, row.user_id),
           personal: await loadPersonal(db, row.user_id),
-          disabledAt: fromDbDate(row.disabled_at),
+          // Waiting for a root's approval (190) is refused as disabled is: no token works for it.
+          disabledAt: fromDbDate(row.disabled_at) ?? fromDbDate(row.approval_pending_at),
           erasedAt: fromDbDate(row.erased_at),
           passwordChangeRequired: Boolean(row.password_change_required_at),
         },

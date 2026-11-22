@@ -42,6 +42,12 @@ export type UserDataAccount = {
   twoFactorEnabled: boolean;
   /** The language they chose (129); null is automatic. */
   locale: Locale | null;
+  /** When the person made the account by signing up (190); null when root or a provider did. */
+  signedUpAt: Date | null;
+  /** Since when it waits for a root's approval (190); null when it doesn't. */
+  approvalPendingAt: Date | null;
+  /** Every terms version accepted, at sign-up and since, oldest first (190). */
+  termsAcceptances: { version: string; acceptedAt: Date }[];
   signInMethods: UserDataSignInMethod[];
   scim: { provider: string; externalId: string | null; active: boolean } | null;
 };

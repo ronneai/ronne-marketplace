@@ -53,6 +53,8 @@ from this list.
 - [sort-needs-a-tiebreaker.md](sort-needs-a-tiebreaker.md): a sort by timestamp needs a second key.
 - [race-tests-on-mysql.md](race-tests-on-mysql.md): race tests pass or fail by chance on MySQL;
   run them many times, and look for a deadlock before theorising.
+- [reads-inside-transactions.md](reads-inside-transactions.md): inside a transaction, read only
+  through it; on SQLite's one connection, a read on the outer `db` waits forever.
 
 ## Tests
 

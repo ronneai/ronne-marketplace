@@ -47,5 +47,27 @@
       "body": "Agora é possível entrar na sua conta em {host} com {provider}.",
       "notYou": "Se não foi você, fale com o seu administrador imediatamente."
     }
+  },
+  "signUp": {
+    "sign_up_code": {
+      "subject": "Seu código para {host}: {code}",
+      "body": "Seu código para criar uma conta em {host} é {code}. Ele vale por {minutes} minutos. Digite-o na janela em que você fez o cadastro.",
+      "notYou": "Se não foi você, ignore este e-mail: nenhuma conta é criada sem o código."
+    },
+    "sign_up_existing": {
+      "subject": "Você já tem uma conta em {host}",
+      "body": "Alguém tentou criar uma conta em {host} com este endereço, mas você já tem uma. Entre, ou peça ao seu administrador para redefinir sua senha.",
+      "notYou": "Se não foi você, ignore este e-mail: nada mudou na sua conta."
+    },
+    "sign_up_approved": {
+      "subject": "Sua conta em {host} foi aprovada",
+      "body": "Um root aprovou a conta que você criou em {host}. Você já pode entrar, com o e-mail e a senha que escolheu.",
+      "notYou": "Se você não criou uma conta lá, fale com o seu administrador."
+    },
+    "sign_up_declined": {
+      "subject": "Sua conta em {host} não foi aprovada",
+      "body": "A conta que você criou em {host} não foi aprovada, então ela foi excluída, com o que você digitou. Você pode perguntar o motivo ao seu administrador.",
+      "notYou": "Se você não criou uma conta lá, ignore este e-mail: nada restou dela."
+    }
   }
 }

@@ -11,7 +11,7 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "env": ["RONNE_TEST_SCOPE"]
+      "env": ["RONNE_TEST_SCOPE", "RONNE_WEB_DIR"]
     },
     "dev": {
       "dependsOn": ["^build"],

@@ -10,6 +10,7 @@ export type NotificationLink =
   | { to: "requests" }
   | { to: "item"; workspace: string; scope: string; name: string }
   | { to: "feedback" }
+  | { to: "user"; id: string }
   | { to: "updates" };
 
 /** What a notification's subject turned out to be, read from the database (never stored). */
@@ -45,7 +46,11 @@ export const shownTo = (
   subject: ResolvedSubject | null,
 ): Shown => {
   // Root's own (127, 140): nobody else sees them, whatever they once were.
-  if (kind === "feedback.new" || kind === "instance.update_available")
+  if (
+    kind === "feedback.new" ||
+    kind === "instance.update_available" ||
+    kind === "user.awaiting_approval"
+  )
     return viewer.root ? { shown: true, link: subject?.link ?? null } : { shown: false };
   if (!subject) return { shown: true, link: null };
   const sees =

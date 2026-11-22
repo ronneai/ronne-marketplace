@@ -17,8 +17,20 @@ export const MAIL_NOTICES = [
 ] as const;
 export type MailNotice = (typeof MAIL_NOTICES)[number];
 
-/** Every email Ronne writes: root's test email and the notices. */
-export type MailTemplate = "test" | MailNotice;
+/** The emails self-registration sends (190): the code, and "you already have an account". */
+export const SIGN_UP_MAILS = [
+  "sign_up_code",
+  "sign_up_existing",
+  // A root's answer to an account waiting for approval (190), or the retention job's after 30 days.
+  "sign_up_approved",
+  "sign_up_declined",
+] as const;
+export type SignUpMail = (typeof SIGN_UP_MAILS)[number];
+const isSignUpMail = (template: string): template is SignUpMail =>
+  (SIGN_UP_MAILS as readonly string[]).includes(template);
+
+/** Every email Ronne writes: root's test email, the notices and sign-up's. */
+export type MailTemplate = "test" | MailNotice | SignUpMail;
 
 /** What a template is filled with. None of it comes from the person the email is about. */
 export type MailValues = {
@@ -30,6 +42,9 @@ export type MailValues = {
   at: Date;
   /** A company sign-in's name, required for `sso_linked`: root named it. */
   provider?: string;
+  /** The one-time code, required for `sign_up_code`, and how many minutes it works. */
+  code?: string;
+  minutes?: number;
 };
 
 export type RenderedMail = { subject: string; text: string; html: string };
@@ -87,12 +102,15 @@ export const renderMail = async (
   // A company sign-in's notice names it: never "with ." for a name left out.
   if (template === "sso_linked" && !values.provider?.trim())
     throw new Error("The sso_linked email needs the provider's name");
+  if (template === "sign_up_code" && !/^\d{6}$/.test(values.code ?? ""))
+    throw new Error("The sign_up_code email needs its 6-digit code");
   const t = createTranslator({
     locale,
     messages: messages ?? { mail: (await requestMessages(locale)).mail },
     namespace: "mail",
   });
   const { host, contact } = values;
+  const signUp = isSignUpMail(template);
   const words =
     template === "test"
       ? {
@@ -100,16 +118,26 @@ export const renderMail = async (
           body: t("test.body"),
           notYou: t("test.notYou"),
         }
-      : {
-          subject: t(`notices.${template}.subject`),
-          body: t(`notices.${template}.body`, { host, provider: values.provider ?? "" }),
-          notYou: t(`notices.${template}.notYou`),
-        };
+      : isSignUpMail(template)
+        ? {
+            subject: t(`signUp.${template}.subject`, { host, code: values.code ?? "" }),
+            body: t(`signUp.${template}.body`, {
+              host,
+              code: values.code ?? "",
+              minutes: values.minutes ?? 15,
+            }),
+            notYou: t(`signUp.${template}.notYou`),
+          }
+        : {
+            subject: t(`notices.${template}.subject`),
+            body: t(`notices.${template}.body`, { host, provider: values.provider ?? "" }),
+            notYou: t(`notices.${template}.notYou`),
+          };
   const when = t("footer.when", { at: mailTime(values.at) });
   const reach = contact ? t("footer.contact", { contact }) : t("footer.contactReply");
   const footer = [
     t("footer.sentBy", { host }),
-    ...(template === "test" ? [] : [t("footer.notice")]),
+    ...(template === "test" || signUp ? [] : [t("footer.notice")]),
   ];
   const text = [words.body, "", when, "", words.notYou, reach, "", "-- ", ...footer, ""].join("\n");
   const html = [

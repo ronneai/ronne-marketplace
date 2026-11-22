@@ -16,6 +16,8 @@ export const FLASH_MAX_LENGTH = 1024;
 export const FLASH_KEYS = [
   "draftDeleted",
   "tokenRevoked",
+  // A root declined an account waiting since sign-up (190): its page is gone.
+  "accountDeclined",
   "languageSaved",
   "languageAutomatic",
 ] as const;

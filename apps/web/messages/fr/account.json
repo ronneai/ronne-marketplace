@@ -193,5 +193,17 @@
     "title": "Pour commencer",
     "description": "Faites revenir la liste « Pour commencer » sur l’accueil. Elle reprend là où vous en êtes : ce que vous avez fait reste coché.",
     "show": "Afficher de nouveau la liste « Pour commencer »"
+  },
+  "terms": {
+    "title": "Acceptez les conditions mises à jour",
+    "description": "Les conditions et l’avis de confidentialité de ce marketplace ont changé. Lisez-les et acceptez-les pour continuer. Les jetons d’accès, rmk et le serveur MCP continuent de fonctionner pendant ce temps.",
+    "read": "Lire les conditions et l’avis de confidentialité (version {version})",
+    "accept": "J’accepte les conditions et l’avis de confidentialité mis à jour",
+    "continue": "Continuer",
+    "signOut": "Se déconnecter",
+    "errors": {
+      "unticked": "Cochez la case pour accepter les conditions, ou déconnectez-vous.",
+      "changed": "Les conditions ont encore changé pendant que cette page était ouverte. Lisez la nouvelle version et acceptez-la."
+    }
   }
 }

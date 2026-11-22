@@ -59,6 +59,7 @@ const Filters = ({ state }: { state: UsersListState }) => {
             <option value="active">{t("status.active")}</option>
             <option value="disabled">{t("status.disabled")}</option>
             <option value="erased">{t("status.erased")}</option>
+            <option value="awaiting">{t("status.awaiting")}</option>
           </select>
         </div>
         <div className="flex gap-2">
@@ -173,7 +174,13 @@ const StatusCell = ({ user }: { user: UserSummary }) => {
   const t = useTranslations("admin.users.status");
   return (
     <span className={user.disabledAt ? "text-muted" : undefined}>
-      {user.erasedAt ? t("erased") : user.disabledAt ? t("disabled") : t("active")}
+      {user.erasedAt
+        ? t("erased")
+        : user.disabledAt
+          ? t("disabled")
+          : user.approvalPendingAt
+            ? t("awaiting")
+            : t("active")}
     </span>
   );
 };

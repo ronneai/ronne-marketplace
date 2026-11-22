@@ -34,6 +34,8 @@ export const NOTIFICATION_KINDS = [
   // Root (127, 140).
   "feedback.new",
   "instance.update_available",
+  // An account that signed up and waits for a root's approval (190).
+  "user.awaiting_approval",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -51,6 +53,8 @@ export const SUBJECT_TYPES = [
   "feedback",
   // The instance itself (140): its id is the version announced.
   "instance",
+  // An account (190): its id is the user's.
+  "user",
 ] as const;
 
 export type SubjectType = (typeof SUBJECT_TYPES)[number];

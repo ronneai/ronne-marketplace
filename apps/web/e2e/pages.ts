@@ -50,6 +50,19 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
     roles: "signedOut",
     urls: () => ["/sign-in/two-factor", "/sign-in/two-factor?method=backup"],
   },
+  // Self-registration (190): open only while root has it on, which the sweep's instance hasn't.
+  {
+    route: "/sign-up",
+    roles: "signedOut",
+    urls: () => ["/sign-up"],
+    skip: "Only while sign-up is on: sign-up.e2e.ts turns it on and covers the form",
+  },
+  {
+    route: "/sign-up/code",
+    roles: "signedOut",
+    urls: () => ["/sign-up/code"],
+    skip: "Only with a sign-up in this browser: sign-up.e2e.ts covers it",
+  },
   {
     route: "/setup",
     roles: "signedOut",
@@ -160,6 +173,12 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
   { route: "/workspaces/requests", roles: REVIEWERS, urls: () => ["/workspaces/requests"] },
   { route: "/account/password", roles: EVERYONE, urls: () => ["/account/password"] },
   { route: "/account/security", roles: EVERYONE, urls: () => ["/account/security"] },
+  {
+    route: "/account/terms",
+    roles: EVERYONE,
+    urls: () => ["/account/terms"],
+    skip: "Only while root asks everyone to accept new terms; with nothing to accept it sends you on (terms.e2e.ts covers it, 190)",
+  },
   { route: "/account/language", roles: EVERYONE, urls: () => ["/account/language"] },
   { route: "/account/tokens", roles: EVERYONE, urls: () => ["/account/tokens"] },
   { route: "/device", roles: EVERYONE, urls: () => ["/device", "/device?user_code=WDJB-MJHT"] },

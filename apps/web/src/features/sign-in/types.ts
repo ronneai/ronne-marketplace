@@ -1,5 +1,8 @@
 /** What the sign-in form shows after a failed attempt. The email is kept; the password never is. */
-export type SignInFormState = { error?: "invalid_credentials" | "rate_limited"; email?: string };
+export type SignInFormState = {
+  error?: "invalid_credentials" | "rate_limited" | "approval_pending";
+  email?: string;
+};
 
 /**
  * Why the sign-in page was opened again from the second step (105), as `?reason=`. The words are
@@ -7,6 +10,9 @@ export type SignInFormState = { error?: "invalid_credentials" | "rate_limited"; 
  */
 export const SIGN_IN_AGAIN = ["expired", "too_many"] as const;
 export type SignInAgain = (typeof SIGN_IN_AGAIN)[number];
+
+/** Back from sign-up's code page (190), as `?signedUp=`: `auth.signIn.signedUp.<code>`. */
+export const SIGNED_UP = ["ready", "waiting"] as const;
 
 /** What the second step (105) shows after a refused code (`auth.twoFactor.errors.<code>`). */
 export type TwoFactorStepState = {

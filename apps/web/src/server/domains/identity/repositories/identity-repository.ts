@@ -20,7 +20,7 @@ export type UserFilters = {
   search?: string;
   role?: Role;
   /** `disabled` is disabled but not erased; `erased` (103) is erased. */
-  status?: "active" | "disabled" | "erased";
+  status?: "active" | "disabled" | "erased" | "awaiting";
 };
 
 /** `created` sorts by the id (a ULID); `email` and `name` by that column, then the id. */
@@ -54,6 +54,11 @@ export interface IdentityRepository {
    */
   lockRoots(actorId: string): Promise<void>;
   /** The user, or null when they don't exist, are disabled or were erased (103). */
+  /**
+   * Whether Better Auth may open a session for the account: not disabled, not erased. One waiting
+   * for approval may (190): password sign-in ends it at once, saying why, and no request counts it.
+   */
+  mayHaveSession(userId: string): Promise<boolean>;
   findActiveUser(userId: string): Promise<CurrentUser | null>;
   /** A user and their password hash, for checking credentials outside a web sign-in (009). */
   findCredentialByEmail(email: string): Promise<{
@@ -61,6 +66,8 @@ export interface IdentityRepository {
     disabledAt: Date | null;
     /** Erased (103): refused like a disabled one; it has no password row either. */
     erasedAt: Date | null;
+    /** Waiting for a root's approval (190): refused, once the password is right. */
+    approvalPending: boolean;
     passwordHash: string | null;
     /** Two-factor is on: what makes a web sign-in ask for a code (105). */
     twoFactor: boolean;

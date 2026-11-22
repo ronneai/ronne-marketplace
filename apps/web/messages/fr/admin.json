@@ -64,7 +64,8 @@
     "status": {
       "active": "actif",
       "disabled": "désactivé",
-      "erased": "effacé"
+      "erased": "effacé",
+      "awaiting": "en attente d’approbation"
     },
     "columns": {
       "name": "Nom",
@@ -152,7 +153,8 @@
     },
     "badge": {
       "disabled": "Désactivé",
-      "erased": "Effacé"
+      "erased": "Effacé",
+      "awaiting": "en attente d’approbation"
     },
     "automatic": "Automatique",
     "never": "Jamais",
@@ -196,6 +198,12 @@
       "body": "Révoquer <strong>{name}</strong>? Tout ce qui l’utilise, comme rmk sur sa machine, cesse de fonctionner jusqu’à ce que la personne crée un nouveau jeton.",
       "cancel": "Annuler",
       "submit": "Révoquer le jeton"
+    },
+    "waiting": {
+      "title": "Ce compte attend l’approbation d’un root",
+      "body": "Il a été créé par inscription, <date></date>. Il ne peut pas se connecter tant qu’un root ne l’a pas approuvé; s’il attend 30 jours, il est refusé.",
+      "approve": "Approuver",
+      "decline": "Refuser"
     }
   },
   "actions": {
@@ -211,7 +219,9 @@
       "disable": "Désactiver l’utilisateur",
       "enable": "Activer l’utilisateur",
       "reset": "Réinitialiser le mot de passe",
-      "twoFactor": "Réinitialiser la double authentification"
+      "twoFactor": "Réinitialiser la double authentification",
+      "approve": "Approuver le compte",
+      "decline": "Refuser le compte"
     },
     "erasedDownload": "Télécharger ses données (compte effacé)",
     "erasedReason": "Ce compte a été effacé : il n’y a rien à télécharger.",
@@ -235,7 +245,9 @@
       "title": "Retirer le rôle root à {email}?",
       "body": "La personne perdra l’administration des utilisateurs, les portées, les réglages et le journal d’audit à sa prochaine requête."
     },
-    "changeRole": "Faire passer son rôle de <from></from> à <to></to>."
+    "changeRole": "Faire passer son rôle de <from></from> à <to></to>.",
+    "approveBody": "{email} pourra se connecter une fois le compte approuvé, et reçoit un courriel le lui disant.",
+    "declineBody": "Le compte de {email} est supprimé, avec ce que la personne a tapé, et elle reçoit un courriel disant qu’il n’a pas été approuvé. Impossible d’annuler."
   },
   "erase": {
     "button": "Effacer",
@@ -627,7 +639,8 @@
           "rate_limited": "trop de tentatives",
           "two_factor_required": "le compte utilise la double authentification",
           "password_disabled": "la connexion par mot de passe est réservée à root",
-          "password_sign_in_disabled": "la connexion par mot de passe est réservée à root"
+          "password_sign_in_disabled": "la connexion par mot de passe est réservée à root",
+          "approval_pending": "le compte attend une approbation"
         },
         "policies": {
           "off": "désactivée",
@@ -727,6 +740,41 @@
           "server": "le fournisseur a échoué",
           "rejected": "refusé",
           "config": "la configuration ne peut pas marcher"
+        },
+        "signUp": {
+          "on": "a activé l’inscription",
+          "off": "a désactivé l’inscription",
+          "anyDomain": "n’importe quel domaine",
+          "domains": "domaines : {list}",
+          "approvalOn": "les nouveaux comptes attendent une approbation",
+          "approvalOff": "les nouveaux comptes n’attendent pas d’approbation",
+          "throwawayOn": "domaines jetables bloqués",
+          "throwawayOff": "domaines jetables permis",
+          "minutes": "les codes valent {to} minutes",
+          "challengeOn": "défi activé",
+          "challengeOff": "défi désactivé",
+          "terms": "conditions en version {version}",
+          "termsOff": "aucun lien vers les conditions",
+          "askAgain": "tout le monde accepte de nouveau la version {version}",
+          "nothing": "rien"
+        },
+        "signUpOutcomes": {
+          "sent": "un code a été envoyé",
+          "existing": "elle a déjà un compte, donc son titulaire a été avisé",
+          "domain_not_allowed": "son domaine n’est pas permis",
+          "limited": "trop de tentatives",
+          "bot": "cela ressemblait à un robot, donc rien n’a été envoyé",
+          "unknown": "non consigné"
+        },
+        "signUpCodeReasons": {
+          "wrong": "code erroné",
+          "spent": "trop de codes erronés",
+          "expired": "le code avait expiré",
+          "used": "le code avait déjà servi",
+          "closed": "l’inscription avait été fermée",
+          "none": "aucun code n’avait été envoyé",
+          "exists": "un compte a été créé pour l’adresse entre-temps",
+          "unknown": "non consigné"
         }
       },
       "actions": {
@@ -764,7 +812,11 @@
           "disabled": "A désactivé <name>{who}</name>{ended}",
           "enabled": "A activé <name>{who}</name>",
           "erased": "A effacé <name>{who}</name>",
-          "data_exported": "A téléchargé les données de <name>{who}</name>{byRoot, select, true { (par root)} other {}}"
+          "data_exported": "A téléchargé les données de <name>{who}</name>{byRoot, select, true { (par root)} other {}}",
+          "signed_up": "<name>{who}</name> a créé son propre compte{waiting, select, true {, en attente de l’approbation d’un root} other {}}",
+          "terms_accepted": "A accepté les conditions, version <code>{version}</code>",
+          "approved": "A approuvé le compte de <name>{email}</name>",
+          "declined": "{job, select, true {A refusé le compte de <name>{email}</name>, qui attendait depuis 30 jours, et l’a supprimé} other {A refusé le compte de <name>{email}</name> et l’a supprimé}}"
         },
         "auth": {
           "signed_in": "{sso, select, true {Connexion avec <code>{provider}</code>} other {{remember, select, true {Connexion (mémorisée pendant 30 jours)} other {Connexion}}}}",
@@ -779,7 +831,9 @@
           "two_factor_enabled": "A activé la double authentification",
           "two_factor_disabled": "A désactivé la double authentification",
           "backup_codes_regenerated": "A créé de nouveaux codes de secours; les anciens ont cessé de fonctionner",
-          "two_factor_failed": "Un code de double authentification a été refusé à la connexion ({reason})"
+          "two_factor_failed": "Un code de double authentification a été refusé à la connexion ({reason})",
+          "sign_up_requested": "A demandé de créer un compte pour <name>{email}</name> : {outcome}",
+          "sign_up_code_failed": "Un code d’inscription pour <name>{email}</name> a été refusé : {reason}"
         },
         "access_token": {
           "created": "A créé le jeton <name>{label}</name> ({expiry}{how, select, cli {, depuis rmk login} device {, par approbation dans le navigateur} other {}})",
@@ -862,7 +916,8 @@
           "skill_scan": "A modifié l’analyse de sécurité : {changes}",
           "update_check": "A modifié la vérification des mises à jour : {state, select, on {activée} off {désactivée} other {modifiée}}",
           "languages": "A modifié les langues : {changes}",
-          "mail": "A modifié l’envoi de courriels : {changes}"
+          "mail": "A modifié l’envoi de courriels : {changes}",
+          "sign_up_changed": "A modifié l’inscription : {changes}"
         },
         "mail": {
           "test_sent": "A envoyé un courriel d’essai{result, select, sent {, accepté par le fournisseur} retry {, pas encore parti ({reason})} failed {, qui a échoué ({reason})} other {}}"
@@ -1176,7 +1231,7 @@
       "fields": {
         "ipDays": {
           "label": "Garder les adresses IP pendant",
-          "hint": "Les adresses des clients conservées avec les événements d’audit, les sessions et les approbations de connexion rmk, et le courriel saisi lors d’une connexion échouée. Les plus anciennes sont effacées; les événements restent."
+          "hint": "Les adresses des clients conservées avec les événements d’audit, les sessions et les approbations de connexion rmk, et les courriels saisis lors d’une connexion échouée ou d’une inscription. Les plus anciennes sont effacées; les événements restent."
         },
         "sessionsDays": {
           "label": "Garder les sessions expirées pendant",
@@ -1192,7 +1247,7 @@
         "schedulerOff": "Les tâches planifiées sont désactivées (RONNE_JOBS) : exécutez rmk-server purge depuis cron.",
         "firstRun": "La première exécution a lieu 5 minutes après le démarrage du serveur, puis toutes les 6 heures.",
         "failed": "La dernière exécution, le <date></date>, a échoué ({error}). Les journaux du serveur disent pourquoi; la prochaine exécution aura lieu comme prévu.",
-        "done": "Dernière exécution le <date></date> : {ips, plural, one {# adresse IP effacée} other {# adresses IP effacées}} et {emails, plural, one {# courriel de connexion échouée effacé} other {# courriels de connexions échouées effacés}}; {sessions, plural, one {# session expirée supprimée} other {# sessions expirées supprimées}}, {grants, plural, one {# approbation de connexion rmk terminée supprimée} other {# approbations de connexion rmk terminées supprimées}}, {feedback, plural, one {# message de commentaires traité supprimé} other {# messages de commentaires traités supprimés}}, {notifications, plural, one {# notification supprimée} other {# notifications supprimées}}, {rateLimits, plural, one {# compteur de limite de débit expiré supprimé} other {# compteurs de limite de débit expirés supprimés}} et {mail, plural, one {# trace de courriel supprimée} other {# traces de courriels supprimées}}.",
+        "done": "Dernière exécution le <date></date> : {ips, plural, one {# adresse IP effacée} other {# adresses IP effacées}} et {emails, plural, one {# courriel tapé lors d’une connexion échouée ou d’une inscription effacé} other {# courriels tapés lors de connexions échouées ou d’inscriptions effacés}}; {sessions, plural, one {# session expirée supprimée} other {# sessions expirées supprimées}}, {grants, plural, one {# approbation de connexion rmk terminée supprimée} other {# approbations de connexion rmk terminées supprimées}}, {feedback, plural, one {# message de commentaires traité supprimé} other {# messages de commentaires traités supprimés}}, {notifications, plural, one {# notification supprimée} other {# notifications supprimées}}, {rateLimits, plural, one {# compteur de limite de débit expiré supprimé} other {# compteurs de limite de débit expirés supprimés}}, {mail, plural, one {# trace de courriel supprimée} other {# traces de courriels supprimées}} et {signUps, plural, one {# trace d’inscription terminée supprimée} other {# traces d’inscriptions terminées supprimées}}{declined, plural, =0 {} one {; # compte refusé après 30 jours d’attente d’approbation} other {; # comptes refusés après 30 jours d’attente d’approbation}}.",
         "running": "Une exécution est en cours."
       },
       "erasures": {
@@ -1461,6 +1516,49 @@
         "cancel": "Annuler",
         "done": "Envoi des courriels arrêté. {count, plural, =0 {Rien n’était en attente.} one {# message en attente a été abandonné.} other {# messages en attente ont été abandonnés.}}"
       }
+    },
+    "signUp": {
+      "title": "Inscription",
+      "intro": "Si les gens peuvent créer leur propre compte ici, avec un code envoyé à leur adresse courriel. C’est désactivé jusqu’à ce que vous l’activiez.",
+      "blockedTitle": "L’inscription peut être activée une fois ceci fait :",
+      "closedTitle": "L’inscription est activée, mais fermée jusqu’à ce que ceci soit refait :",
+      "blockers": {
+        "mail": "Le courriel est configuré, pour que le code puisse être envoyé.",
+        "contact": "Le contact de l’instance est défini, pour que chaque avis dise à qui s’adresser.",
+        "password": "Tout le monde peut se connecter avec un mot de passe, pour qu’un nouveau compte puisse se connecter."
+      },
+      "fix": {
+        "mail": "Configurer le courriel",
+        "contact": "Définir le contact",
+        "password": "Voir Qui peut se connecter avec un mot de passe"
+      },
+      "enabled": "Les gens peuvent créer leur propre compte",
+      "enabledHint": "La page de connexion affiche Créer un compte. Chaque adresse est prouvée par un code à 6 chiffres avant que le compte existe.",
+      "domains": {
+        "legend": "Quels domaines de courriel",
+        "any": "N’importe quel domaine",
+        "list": "Seulement ces domaines",
+        "listLabel": "Domaines",
+        "listHint": "Séparés par des virgules, des espaces ou des lignes, comme acme.com. Chacun correspond exactement : acme.com ne couvre pas eu.acme.com."
+      },
+      "throwaway": "Bloquer aussi les domaines de courriel jetables",
+      "throwawayHint": "Les adresses des services de courriel jetable de la liste fournie avec Ronne sont refusées.",
+      "approval": "Les nouveaux comptes attendent l’approbation d’un root",
+      "approvalHint": "Les roots sont avisés, et le compte ne peut pas se connecter tant qu’un root ne l’a pas approuvé. Un compte qui attend 30 jours est refusé.",
+      "minutes": "Validité du code, en minutes",
+      "minutesHint": "De 5 à 60. La même validité s’applique à chaque code que Ronne envoie par courriel.",
+      "challenge": "Demander aux navigateurs de résoudre un défi",
+      "challengeHint": "Une vérification invisible, faite par le navigateur en une seconde environ, qui arrête la plupart des robots. Elle demande JavaScript.",
+      "termsUrl": "Lien des conditions et de l’avis de confidentialité",
+      "termsHint": "Facultatif, une adresse https://. Quand il est défini, le formulaire d’inscription demande de l’accepter.",
+      "termsVersion": "Version",
+      "askAgain": "Demander à tout le monde d’accepter de nouveau",
+      "askAgainHint": "Chaque personne qui a un compte accepte cette version dans l’application Web, à la prochaine page qu’elle ouvre. Sans cela, seules les nouvelles inscriptions l’acceptent. Les jetons, rmk et le serveur MCP continuent de fonctionner dans tous les cas.",
+      "save": "Enregistrer",
+      "done": {
+        "saved": "Inscription enregistrée.",
+        "unchanged": "Rien n’a changé."
+      }
     }
   },
   "setup": {
@@ -1595,7 +1693,8 @@
       "enabled": "Activé. La personne peut se reconnecter.",
       "twoFactorOff": "Double authentification désactivée. La personne est déconnectée partout, et ses jetons d’accès sont révoqués.",
       "twoFactorNone": "La personne n’avait pas de double authentification : rien n’a changé.",
-      "erased": "Effacé. Le compte est maintenant deleted-user et rien de ce qui le concernait ne peut être relu."
+      "erased": "Effacé. Le compte est maintenant deleted-user et rien de ce qui le concernait ne peut être relu.",
+      "approved": "Approuvé. La personne peut se connecter, et un courriel le lui dit."
     },
     "scopes": {
       "created": "@{name} créée.",

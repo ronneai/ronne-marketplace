@@ -73,7 +73,7 @@ export const planSsoSignIn = async (
   const linkedId = await repo.findLinkedUser(provider.id, identity.subject);
   const linked = linkedId ? await repo.findUser(linkedId) : null;
   if (linked) {
-    if (linked.disabledAt || linked.erasedAt)
+    if (linked.disabledAt || linked.erasedAt || linked.approvalPendingAt)
       return { action: "refuse", reason: "disabled", user: linked };
     return { action: "sign_in", user: linked };
   }
@@ -101,7 +101,8 @@ export const planSsoSignIn = async (
   // is this person's. Another one that the database calls equal can't be linked, or created beside.
   if (existing && existing.email !== email) return notAllowed("lookalike_email", existing);
   if (existing) {
-    if (existing.disabledAt || existing.erasedAt)
+    // Waiting for a root's approval (190): no way in through a provider either.
+    if (existing.disabledAt || existing.erasedAt || existing.approvalPendingAt)
       return { action: "refuse", reason: "disabled", user: existing };
     if (!provider.linkByEmail) return notAllowed("link_off", existing);
     if (!emailInDomains(email, provider.domains)) return notAllowed("domain_not_listed", existing);

@@ -8,7 +8,7 @@
 //   node packages/repo-tools/src/docs-links.js                 app topics against ../ronne-web
 //   node packages/repo-tools/src/docs-links.js --live [base]   every page and section on the site
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const LOCALES = ["en", "pt", "fr"];
@@ -132,6 +132,15 @@ const fail = (problems) => {
   process.exitCode = 1;
 };
 
+/**
+ * Where the website's checkout is: `../ronne-web` next to this repository, or `RONNE_WEB_DIR` when
+ * it's set (relative to this repository's root). A feature whose website pages live in a worktree
+ * of their own (`../ronne-web-190`, say) points the check at it, and the main checkout, which
+ * another piece of work may be using, stays as it is.
+ */
+export const websiteDir = (root, env = process.env) =>
+  env.RONNE_WEB_DIR ? resolve(root, env.RONNE_WEB_DIR) : join(root, "..", "ronne-web");
+
 const main = async () => {
   const root = repoRoot();
   const app = appTopics(readFileSync(join(root, TOPICS_FILE), "utf8"));
@@ -141,9 +150,9 @@ const main = async () => {
     problems.push(...(await checkLive(app, args[1] ?? SITE)));
     console.log(`Opened ${pagesOf(app, args[1] ?? SITE).length} pages.`);
   } else {
-    const web = join(root, "..", "ronne-web", SITE_TOPICS_FILE);
+    const web = join(websiteDir(root), SITE_TOPICS_FILE);
     if (!existsSync(web)) {
-      console.log(`Skipped: ../ronne-web is not next to this repository (${web}).`);
+      console.log(`Skipped: the website's checkout isn't there (${web}).`);
       if (problems.length > 0) fail(problems);
       return;
     }

@@ -36,6 +36,7 @@ type UserRow = {
   created_at: Date | string;
   locale: string | null;
   password_change_required_at: Date | string | null;
+  approval_pending_at: Date | string | null;
 };
 
 const summary = (row: UserRow): UserSummary => {
@@ -51,6 +52,7 @@ const summary = (row: UserRow): UserSummary => {
     // The language they chose (129); one the app no longer speaks reads as automatic.
     locale: isLocale(row.locale) ? row.locale : null,
     passwordChangeRequiredAt: fromDbDate(row.password_change_required_at),
+    approvalPendingAt: fromDbDate(row.approval_pending_at),
   };
 };
 
@@ -64,6 +66,7 @@ const USER_COLUMNS = [
   "created_at",
   "locale",
   "password_change_required_at",
+  "approval_pending_at",
 ] as const;
 
 /** Better Auth's provider id for email and password accounts. */
@@ -140,10 +143,16 @@ export const kyselyIdentityRepository = (
       );
     if (role) query = query.where("role", "=", role);
     if (status === "active")
-      query = query.where("disabled_at", "is", null).where("erased_at", "is", null);
+      query = query
+        .where("disabled_at", "is", null)
+        .where("erased_at", "is", null)
+        .where("approval_pending_at", "is", null);
     if (status === "disabled")
       query = query.where("disabled_at", "is not", null).where("erased_at", "is", null);
     if (status === "erased") query = query.where("erased_at", "is not", null);
+    // Made by signing up and waiting for a root's approval (190).
+    if (status === "awaiting")
+      query = query.where("approval_pending_at", "is not", null).where("erased_at", "is", null);
     return query;
   };
 
@@ -272,6 +281,17 @@ export const kyselyIdentityRepository = (
       ).execute();
     },
 
+    async mayHaveSession(userId) {
+      const row = await db
+        .selectFrom("user")
+        .select("id")
+        .where("id", "=", userId)
+        .where("disabled_at", "is", null)
+        .where("erased_at", "is", null)
+        .executeTakeFirst();
+      return row !== undefined;
+    },
+
     async findActiveUser(userId) {
       const row = await db
         .selectFrom("user")
@@ -279,6 +299,8 @@ export const kyselyIdentityRepository = (
         .where("id", "=", userId)
         .where("disabled_at", "is", null)
         .where("erased_at", "is", null)
+        // Waiting for a root's approval (190): no session of it is a signed-in person.
+        .where("approval_pending_at", "is", null)
         .executeTakeFirst();
       // A role outside the two known ones gets no access rather than a guess.
       if (!row || !isRole(row.role)) return null;
@@ -310,6 +332,7 @@ export const kyselyIdentityRepository = (
           "user.disabled_at",
           "user.erased_at",
           "user.two_factor_enabled",
+          "user.approval_pending_at",
           "account.password",
         ])
         .where("user.email", "=", email)
@@ -326,6 +349,7 @@ export const kyselyIdentityRepository = (
         },
         disabledAt: fromDbDate(row.disabled_at),
         erasedAt: fromDbDate(row.erased_at),
+        approvalPending: row.approval_pending_at !== null,
         passwordHash: row.password ?? null,
         twoFactor: Boolean(row.two_factor_enabled),
       };

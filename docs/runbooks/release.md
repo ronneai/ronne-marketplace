@@ -21,6 +21,9 @@ until you approve its "npm" environment.
       security release is announced for the coming days, wait for it.
 - [ ] The Caddy pin in `compose.yaml` (and the CI's Caddy download) has no open policy exception
       past its date (`docs/policies/dependencies.md` §5).
+- [ ] The bundled throwaway email domains are fresh (190): `pnpm data:disposable-domains`, then
+  commit the two files it changes in `apps/web/src/server/domains/identity/lists/` in their own
+  pull request. It stops if the list's licence is no longer CC0 1.0: then ask the owner.
 - [ ] The threat model ([`docs/security/threat-model.md`](../security/threat-model.md)) still
       matches: every feature in this release that added a trust boundary, a kind of token, a way to
       upload, an item type or a feed updated it, and its known gaps are current. Change its date and
@@ -30,6 +33,9 @@ until you approve its "npm" environment.
       branch that goes with this release, `pnpm docs:links` finds no difference between the app's
       topics and sections and the website's (a topic or section added or renamed on one side is
       changed on the other, [`docs/knowledge/i18n.md`](../knowledge/i18n.md)).
+- [ ] The website's `purge` example is real output: on the test instance, run
+      `pnpm run purge --dry-run` and `pnpm run purge`, and put both in `purgeSession` in
+      `../ronne-web`'s `www/src/content/screenshots.ts`, in that release's branch.
 
 **The version:**
 

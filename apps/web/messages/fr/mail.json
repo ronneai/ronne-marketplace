@@ -47,5 +47,27 @@
       "body": "Il est maintenant possible de se connecter à votre compte sur {host} avec {provider}.",
       "notYou": "Si ce n’était pas vous, communiquez sans tarder avec votre administrateur."
     }
+  },
+  "signUp": {
+    "sign_up_code": {
+      "subject": "Votre code pour {host} : {code}",
+      "body": "Votre code pour créer un compte sur {host} est {code}. Il est valide pendant {minutes} minutes. Tapez-le dans la fenêtre où vous avez demandé ce code.",
+      "notYou": "Si ce n’était pas vous, ignorez ce courriel : aucun compte n’est créé sans le code."
+    },
+    "sign_up_existing": {
+      "subject": "Vous avez déjà un compte sur {host}",
+      "body": "Quelqu’un a tenté de créer un compte sur {host} avec cette adresse, mais vous en avez déjà un. Connectez-vous, ou demandez à votre administrateur de réinitialiser votre mot de passe.",
+      "notYou": "Si ce n’était pas vous, ignorez ce courriel : rien n’a changé dans votre compte."
+    },
+    "sign_up_approved": {
+      "subject": "Votre compte sur {host} est approuvé",
+      "body": "Un root a approuvé le compte que vous avez créé sur {host}. Vous pouvez maintenant vous connecter, avec le courriel et le mot de passe choisis.",
+      "notYou": "Si vous n’avez pas créé de compte là-bas, communiquez avec votre administrateur."
+    },
+    "sign_up_declined": {
+      "subject": "Votre compte sur {host} n’a pas été approuvé",
+      "body": "Le compte que vous avez créé sur {host} n’a pas été approuvé, il a donc été supprimé, avec ce que vous avez tapé. Vous pouvez demander pourquoi à votre administrateur.",
+      "notYou": "Si vous n’avez pas créé de compte là-bas, ignorez ce courriel : il n’en reste rien."
+    }
   }
 }

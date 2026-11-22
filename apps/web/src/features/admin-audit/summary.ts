@@ -263,6 +263,15 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     reason: h.word("signInReasons", text(m.reason)),
     via: h.via(m),
   }),
+  "auth.sign_up_requested": (m, _e, h) => ({
+    // `{ email, outcome }` (190): the address typed, and what came of it.
+    email: text(m.email) || h.part("fallback.unknownEmail"),
+    outcome: h.word("signUpOutcomes", text(m.outcome) || "unknown"),
+  }),
+  "auth.sign_up_code_failed": (m, _e, h) => ({
+    email: text(m.email) || h.part("fallback.unknownEmail"),
+    reason: h.word("signUpCodeReasons", text(m.reason) || "unknown"),
+  }),
   "auth.signed_out": () => ({}),
   "auth.two_factor_enabled": () => ({}),
   "auth.two_factor_disabled": () => ({}),
@@ -288,6 +297,17 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     change: flag(m.changeRequired === true),
     sso: flag(m.via === "sso"),
     provider: text(m.provider),
+  }),
+  "user.signed_up": (m, e, h) => ({
+    who: h.who(m, e),
+    waiting: flag(m.approval === true),
+  }),
+  "user.terms_accepted": (m) => ({ version: text(m.version) || "?" }),
+  // `{ email }`, and for a decline `{ by: root | retention }` (190).
+  "user.approved": (m, _e, h) => ({ email: text(m.email) || h.part("fallback.unknownEmail") }),
+  "user.declined": (m, _e, h) => ({
+    email: text(m.email) || h.part("fallback.unknownEmail"),
+    job: flag(m.by === "retention"),
   }),
   "user.sso_linked": (m, e, h) => ({ email: h.who(m, e), provider: text(m.provider) }),
   "user.role_changed": (m, e, h) => ({
@@ -609,6 +629,39 @@ export const SUMMARIES: Record<AuditAction, Build> = {
         : null,
     ].filter((c) => c !== null);
     return { changes: changes.join(", ") || h.part("languages.nothing") };
+  },
+  "settings.sign_up_changed": (m, _e, h) => {
+    // `{ from: {…}, to: {…} }` (190): every setting, only what changed is said.
+    const from = record(m.from);
+    const to = record(m.to);
+    const list = (value: AuditMetadataValue | undefined) =>
+      Array.isArray(value) ? value.map(text).join(", ") : text(value);
+    const flag = (key: string, onPart: string, offPart: string) =>
+      text(from[key]) !== text(to[key]) ? h.part(to[key] === true ? onPart : offPart) : null;
+    const changes = [
+      flag("enabled", "signUp.on", "signUp.off"),
+      list(from.domains) !== list(to.domains)
+        ? to.domains === "any"
+          ? h.part("signUp.anyDomain")
+          : h.part("signUp.domains", { list: list(to.domains) })
+        : null,
+      flag("approval", "signUp.approvalOn", "signUp.approvalOff"),
+      flag("blockThrowaway", "signUp.throwawayOn", "signUp.throwawayOff"),
+      text(from.codeMinutes) !== text(to.codeMinutes)
+        ? h.part("signUp.minutes", { to: text(to.codeMinutes) })
+        : null,
+      flag("challenge", "signUp.challengeOn", "signUp.challengeOff"),
+      text(from.termsUrl) !== text(to.termsUrl) || text(from.termsVersion) !== text(to.termsVersion)
+        ? text(to.termsUrl)
+          ? h.part("signUp.terms", { version: text(to.termsVersion) })
+          : h.part("signUp.termsOff")
+        : null,
+      text(from.termsRequiredVersion) !== text(to.termsRequiredVersion) &&
+      text(to.termsRequiredVersion)
+        ? h.part("signUp.askAgain", { version: text(to.termsRequiredVersion) })
+        : null,
+    ].filter((c) => c !== null);
+    return { changes: changes.join(", ") || h.part("signUp.nothing") };
   },
   "settings.notice": (m, _e, h) => {
     // `{ from: { tone, shown }, to: { tone, shown }, revision }`: never the text (124).

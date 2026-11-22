@@ -99,6 +99,7 @@ describe("the notification filters (139)", () => {
       "Requests waiting for you",
       "Feedback",
       "Updates",
+      "New accounts",
     ]);
     await click(box("Comment"));
     expect(lastUrl()).toBe("/notifications?state=unread&kind=submission.comment&size=50");

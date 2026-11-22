@@ -70,6 +70,10 @@ export const prepareInstance = (): Instance => {
       RONNE_SCAN_KEY: "",
       // 136: the tests' fake LLM provider listens here, over http.
       RONNE_SKILL_SCANNER_HTTP_HOSTS: "127.0.0.1",
+      // 190: the tests' fake SMTP server (189's, smtp-fake.ts) listens on this port, a relay the
+      // operator allows, so email can be sent without leaving the machine.
+      RONNE_MAIL_HOSTS: "127.0.0.1",
+      RONNE_E2E_SMTP_PORT: String(freePort()),
       NEXT_TELEMETRY_DISABLED: "1",
     },
   };

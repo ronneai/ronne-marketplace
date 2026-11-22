@@ -279,6 +279,354 @@ O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails n
 "
 `;
 
+exports[`renderMail (189) > writes sign_up_approved in en, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Your account on marketplace.acme.example is approved</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">A root approved the account you created on marketplace.acme.example. You can sign in now, with the email and password you chose.</p>
+<p style="margin:0 0 16px">When: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">If you didn&#39;t create an account there, contact your administrator.</p>
+<p style="margin:0 0 16px">To reach your administrator, reply to this email.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">This email was sent by Ronne at marketplace.acme.example.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_approved in en, as text and HTML > text 1`] = `
+"A root approved the account you created on marketplace.acme.example. You can sign in now, with the email and password you chose.
+
+When: 2026-11-21 16:32 UTC
+
+If you didn't create an account there, contact your administrator.
+To reach your administrator, reply to this email.
+
+-- 
+This email was sent by Ronne at marketplace.acme.example.
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_approved in fr, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Votre compte sur marketplace.acme.example est approuvé</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Un root a approuvé le compte que vous avez créé sur marketplace.acme.example. Vous pouvez maintenant vous connecter, avec le courriel et le mot de passe choisis.</p>
+<p style="margin:0 0 16px">Quand : 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Si vous n’avez pas créé de compte là-bas, communiquez avec votre administrateur.</p>
+<p style="margin:0 0 16px">Pour joindre votre administrateur, répondez à ce courriel.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ce courriel a été envoyé par Ronne sur marketplace.acme.example.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_approved in fr, as text and HTML > text 1`] = `
+"Un root a approuvé le compte que vous avez créé sur marketplace.acme.example. Vous pouvez maintenant vous connecter, avec le courriel et le mot de passe choisis.
+
+Quand : 2026-11-21 16:32 UTC
+
+Si vous n’avez pas créé de compte là-bas, communiquez avec votre administrateur.
+Pour joindre votre administrateur, répondez à ce courriel.
+
+-- 
+Ce courriel a été envoyé par Ronne sur marketplace.acme.example.
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_approved in pt, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="pt">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Sua conta em marketplace.acme.example foi aprovada</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Um root aprovou a conta que você criou em marketplace.acme.example. Você já pode entrar, com o e-mail e a senha que escolheu.</p>
+<p style="margin:0 0 16px">Quando: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Se você não criou uma conta lá, fale com o seu administrador.</p>
+<p style="margin:0 0 16px">Para falar com o seu administrador, responda a este e-mail.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Este e-mail foi enviado pelo Ronne em marketplace.acme.example.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_approved in pt, as text and HTML > text 1`] = `
+"Um root aprovou a conta que você criou em marketplace.acme.example. Você já pode entrar, com o e-mail e a senha que escolheu.
+
+Quando: 2026-11-21 16:32 UTC
+
+Se você não criou uma conta lá, fale com o seu administrador.
+Para falar com o seu administrador, responda a este e-mail.
+
+-- 
+Este e-mail foi enviado pelo Ronne em marketplace.acme.example.
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_code in en, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Your code for marketplace.acme.example: 482913</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Your code to create an account on marketplace.acme.example is 482913. It works for 15 minutes. Type it in the window where you signed up.</p>
+<p style="margin:0 0 16px">When: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">If this wasn&#39;t you, ignore this email: no account is created without the code.</p>
+<p style="margin:0 0 16px">To reach your administrator, reply to this email.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">This email was sent by Ronne at marketplace.acme.example.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_code in en, as text and HTML > text 1`] = `
+"Your code to create an account on marketplace.acme.example is 482913. It works for 15 minutes. Type it in the window where you signed up.
+
+When: 2026-11-21 16:32 UTC
+
+If this wasn't you, ignore this email: no account is created without the code.
+To reach your administrator, reply to this email.
+
+-- 
+This email was sent by Ronne at marketplace.acme.example.
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_code in fr, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Votre code pour marketplace.acme.example : 482913</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Votre code pour créer un compte sur marketplace.acme.example est 482913. Il est valide pendant 15 minutes. Tapez-le dans la fenêtre où vous avez demandé ce code.</p>
+<p style="margin:0 0 16px">Quand : 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Si ce n’était pas vous, ignorez ce courriel : aucun compte n’est créé sans le code.</p>
+<p style="margin:0 0 16px">Pour joindre votre administrateur, répondez à ce courriel.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ce courriel a été envoyé par Ronne sur marketplace.acme.example.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_code in fr, as text and HTML > text 1`] = `
+"Votre code pour créer un compte sur marketplace.acme.example est 482913. Il est valide pendant 15 minutes. Tapez-le dans la fenêtre où vous avez demandé ce code.
+
+Quand : 2026-11-21 16:32 UTC
+
+Si ce n’était pas vous, ignorez ce courriel : aucun compte n’est créé sans le code.
+Pour joindre votre administrateur, répondez à ce courriel.
+
+-- 
+Ce courriel a été envoyé par Ronne sur marketplace.acme.example.
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_code in pt, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="pt">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Seu código para marketplace.acme.example: 482913</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Seu código para criar uma conta em marketplace.acme.example é 482913. Ele vale por 15 minutos. Digite-o na janela em que você fez o cadastro.</p>
+<p style="margin:0 0 16px">Quando: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Se não foi você, ignore este e-mail: nenhuma conta é criada sem o código.</p>
+<p style="margin:0 0 16px">Para falar com o seu administrador, responda a este e-mail.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Este e-mail foi enviado pelo Ronne em marketplace.acme.example.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_code in pt, as text and HTML > text 1`] = `
+"Seu código para criar uma conta em marketplace.acme.example é 482913. Ele vale por 15 minutos. Digite-o na janela em que você fez o cadastro.
+
+Quando: 2026-11-21 16:32 UTC
+
+Se não foi você, ignore este e-mail: nenhuma conta é criada sem o código.
+Para falar com o seu administrador, responda a este e-mail.
+
+-- 
+Este e-mail foi enviado pelo Ronne em marketplace.acme.example.
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_declined in en, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Your account on marketplace.acme.example wasn&#39;t approved</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">The account you created on marketplace.acme.example wasn&#39;t approved, so it was deleted, with what you typed. You can ask your administrator why.</p>
+<p style="margin:0 0 16px">When: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">If you didn&#39;t create an account there, ignore this email: nothing is left of it.</p>
+<p style="margin:0 0 16px">To reach your administrator, reply to this email.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">This email was sent by Ronne at marketplace.acme.example.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_declined in en, as text and HTML > text 1`] = `
+"The account you created on marketplace.acme.example wasn't approved, so it was deleted, with what you typed. You can ask your administrator why.
+
+When: 2026-11-21 16:32 UTC
+
+If you didn't create an account there, ignore this email: nothing is left of it.
+To reach your administrator, reply to this email.
+
+-- 
+This email was sent by Ronne at marketplace.acme.example.
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_declined in fr, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Votre compte sur marketplace.acme.example n’a pas été approuvé</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Le compte que vous avez créé sur marketplace.acme.example n’a pas été approuvé, il a donc été supprimé, avec ce que vous avez tapé. Vous pouvez demander pourquoi à votre administrateur.</p>
+<p style="margin:0 0 16px">Quand : 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Si vous n’avez pas créé de compte là-bas, ignorez ce courriel : il n’en reste rien.</p>
+<p style="margin:0 0 16px">Pour joindre votre administrateur, répondez à ce courriel.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ce courriel a été envoyé par Ronne sur marketplace.acme.example.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_declined in fr, as text and HTML > text 1`] = `
+"Le compte que vous avez créé sur marketplace.acme.example n’a pas été approuvé, il a donc été supprimé, avec ce que vous avez tapé. Vous pouvez demander pourquoi à votre administrateur.
+
+Quand : 2026-11-21 16:32 UTC
+
+Si vous n’avez pas créé de compte là-bas, ignorez ce courriel : il n’en reste rien.
+Pour joindre votre administrateur, répondez à ce courriel.
+
+-- 
+Ce courriel a été envoyé par Ronne sur marketplace.acme.example.
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_declined in pt, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="pt">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Sua conta em marketplace.acme.example não foi aprovada</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">A conta que você criou em marketplace.acme.example não foi aprovada, então ela foi excluída, com o que você digitou. Você pode perguntar o motivo ao seu administrador.</p>
+<p style="margin:0 0 16px">Quando: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Se você não criou uma conta lá, ignore este e-mail: nada restou dela.</p>
+<p style="margin:0 0 16px">Para falar com o seu administrador, responda a este e-mail.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Este e-mail foi enviado pelo Ronne em marketplace.acme.example.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_declined in pt, as text and HTML > text 1`] = `
+"A conta que você criou em marketplace.acme.example não foi aprovada, então ela foi excluída, com o que você digitou. Você pode perguntar o motivo ao seu administrador.
+
+Quando: 2026-11-21 16:32 UTC
+
+Se você não criou uma conta lá, ignore este e-mail: nada restou dela.
+Para falar com o seu administrador, responda a este e-mail.
+
+-- 
+Este e-mail foi enviado pelo Ronne em marketplace.acme.example.
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_existing in en, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>You already have an account on marketplace.acme.example</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Someone tried to create an account on marketplace.acme.example with this address, but you already have one. Sign in, or ask your administrator to reset your password.</p>
+<p style="margin:0 0 16px">When: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">If this wasn&#39;t you, ignore this email: nothing about your account changed.</p>
+<p style="margin:0 0 16px">To reach your administrator, reply to this email.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">This email was sent by Ronne at marketplace.acme.example.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_existing in en, as text and HTML > text 1`] = `
+"Someone tried to create an account on marketplace.acme.example with this address, but you already have one. Sign in, or ask your administrator to reset your password.
+
+When: 2026-11-21 16:32 UTC
+
+If this wasn't you, ignore this email: nothing about your account changed.
+To reach your administrator, reply to this email.
+
+-- 
+This email was sent by Ronne at marketplace.acme.example.
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_existing in fr, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Vous avez déjà un compte sur marketplace.acme.example</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Quelqu’un a tenté de créer un compte sur marketplace.acme.example avec cette adresse, mais vous en avez déjà un. Connectez-vous, ou demandez à votre administrateur de réinitialiser votre mot de passe.</p>
+<p style="margin:0 0 16px">Quand : 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Si ce n’était pas vous, ignorez ce courriel : rien n’a changé dans votre compte.</p>
+<p style="margin:0 0 16px">Pour joindre votre administrateur, répondez à ce courriel.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ce courriel a été envoyé par Ronne sur marketplace.acme.example.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_existing in fr, as text and HTML > text 1`] = `
+"Quelqu’un a tenté de créer un compte sur marketplace.acme.example avec cette adresse, mais vous en avez déjà un. Connectez-vous, ou demandez à votre administrateur de réinitialiser votre mot de passe.
+
+Quand : 2026-11-21 16:32 UTC
+
+Si ce n’était pas vous, ignorez ce courriel : rien n’a changé dans votre compte.
+Pour joindre votre administrateur, répondez à ce courriel.
+
+-- 
+Ce courriel a été envoyé par Ronne sur marketplace.acme.example.
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_existing in pt, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="pt">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Você já tem uma conta em marketplace.acme.example</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Alguém tentou criar uma conta em marketplace.acme.example com este endereço, mas você já tem uma. Entre, ou peça ao seu administrador para redefinir sua senha.</p>
+<p style="margin:0 0 16px">Quando: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Se não foi você, ignore este e-mail: nada mudou na sua conta.</p>
+<p style="margin:0 0 16px">Para falar com o seu administrador, responda a este e-mail.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Este e-mail foi enviado pelo Ronne em marketplace.acme.example.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes sign_up_existing in pt, as text and HTML > text 1`] = `
+"Alguém tentou criar uma conta em marketplace.acme.example com este endereço, mas você já tem uma. Entre, ou peça ao seu administrador para redefinir sua senha.
+
+Quando: 2026-11-21 16:32 UTC
+
+Se não foi você, ignore este e-mail: nada mudou na sua conta.
+Para falar com o seu administrador, responda a este e-mail.
+
+-- 
+Este e-mail foi enviado pelo Ronne em marketplace.acme.example.
+"
+`;
+
 exports[`renderMail (189) > writes sso_linked in en, as text and HTML > html 1`] = `
 "<!doctype html>
 <html lang="en">

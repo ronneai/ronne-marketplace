@@ -193,5 +193,17 @@
     "title": "Primeiros passos",
     "description": "Traga de volta a lista de Primeiros passos no Início. Ela retoma de onde você parou: o que você já fez continua marcado.",
     "show": "Mostrar Primeiros passos de novo"
+  },
+  "terms": {
+    "title": "Aceite os termos atualizados",
+    "description": "Os termos e o aviso de privacidade deste marketplace mudaram. Leia-os e aceite-os para continuar. Os tokens de acesso, o rmk e o servidor MCP continuam funcionando enquanto isso.",
+    "read": "Ler os termos e o aviso de privacidade (versão {version})",
+    "accept": "Aceito os termos e o aviso de privacidade atualizados",
+    "continue": "Continuar",
+    "signOut": "Sair",
+    "errors": {
+      "unticked": "Marque a caixa para aceitar os termos, ou saia.",
+      "changed": "Os termos mudaram de novo enquanto esta página estava aberta. Leia a nova versão e aceite-a."
+    }
   }
 }

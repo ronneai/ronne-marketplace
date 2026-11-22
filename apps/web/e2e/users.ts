@@ -25,6 +25,8 @@ export const E2E_USERS = {
   wrongPassword: "wrong-password@e2e.test",
   remember: "remember@e2e.test",
   signOut: "sign-out@e2e.test",
+  // Accepts new terms root asked everyone to accept (190).
+  terms: "terms@e2e.test",
   // Folds the sidebar and opens the workspace switcher (119).
   sidebar: "sidebar@e2e.test",
   // Reads the shell in Portuguese and French (129): a moderator, who sees the Reviews link. One per
@@ -321,6 +323,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   wrongPassword: "Wrong Password",
   remember: "Remember Me",
   signOut: "Sign Out Tester",
+  terms: "Terms Tester",
   sidebar: "Sid Sidebar",
   languageChooser: "Language Chooser",
   languageNoJs: "Language No JS",

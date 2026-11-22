@@ -30,9 +30,12 @@ and standards".
   - **Also block throwaway email domains** (on by default): the bundled list of disposable-address
     domains, checked with the block step. It matters only with *Any domain*.
   - **Terms and privacy link** (optional): a URL and a version label root types (such as
-    `2026-11`). When set, the sign-up form shows it with a required checkbox.
+    `2026-11`). When set, the sign-up form shows it with a required checkbox. The version names
+    the document: a new link with the same version is the same terms, so a new document needs a new
+    version. The form posts the version it showed; a different one (root changed it while the form
+    was open) is refused with the new link and version to read, and nothing is sent.
     - When root changes the version, a box **Ask everyone to accept again** appears. Ticked, every
-      existing person accepts at their next web sign-in. Unticked, only new sign-ups accept it.
+      existing person accepts it on the web, at their next page. Unticked, only new sign-ups accept it.
   - The switch can be turned on only while three things hold. Otherwise it's disabled with the
     reason and a link to the place that fixes it.
     - Email is set up (189).
@@ -40,6 +43,10 @@ and standards".
       it (NIST SP 800-63B-4 §4.6).
     - The password policy is *Everyone* (106's *Who may sign in with a password*): with *Root
       only*, a new account couldn't sign in.
+    - The password policy is read as sign-in reads it: *Root only* holds while an identity
+      provider is on, tested or not.
+    - Once on, it stays on if one of them goes: the panel says sign-up is closed until it's done
+      again, the sign-up pages refuse, and root can still save the rest or turn it off.
   - Every change audited (`settings.sign_up_changed`, before and after).
 - **One-time email codes**, a model shared with 194 and 197, in the identity domain:
   - 6 digits from `crypto.randomInt`; stored only as `code_hmac`, HMAC-SHA256 under a key HKDF
@@ -48,8 +55,16 @@ and standards".
   - Compared in constant time (`timingSafeEqual`). Single use. Ends at the code lifetime.
   - 5 wrong tries end the code. Asking for a new one ends the previous one for the same purpose and
     subject. A new code can be asked for after 60 seconds, and at most 3 emails go to one address
-    for one purpose in an hour (counted from `email_codes` rows), under 189's outbox cap of 10
-    messages an hour to any one address.
+    for one purpose in an hour, under 189's outbox cap of 10 messages an hour to any one address.
+    Both limits are counted by 109's database-backed limiter before the transaction that issues
+    the code (`reserveEmailCodeSend`), all or nothing under row locks, so sends racing on several
+    replicas can't pass either window. Its windows are fixed, as for every limit 109 counts: an
+    hour starts at its window's first send. The stored codes are checked again to the second as
+    the code is issued, so sends one after another never pass 3 in any 60 minutes; sends racing
+    just as a window opens can reach 5 in 60 minutes, never more (and 189's cap of 10 stands
+    behind it). A code leaves the hour exactly 60 minutes after it was sent: "in any 60 minutes"
+    is a span that includes its last moment and not its first. The minute per subject holds
+    exactly, racing or not. A reserved send whose transaction then fails still counts.
 - **The sign-up page**, `/sign-up`, in the auth shell (`components/auth-shell/AuthShell.tsx`):
   - Name, email, password (the password rule in `identity/models/password.ts`, with a show button
     and no second password field), the terms checkbox when root set a link.
@@ -78,7 +93,9 @@ and standards".
     someone guessing.
   - Every root gets an in-app notification (139).
   - Users gains the status filter *Awaiting approval* (`features/admin-users/list.ts`). The user
-    page (123) gains **Approve** and **Decline**, and the list's selection gains Approve many.
+    page (123) gains **Approve** and **Decline**, each with a confirm that says what follows. The
+    list has no selection to add *Approve many* to; its filter lists who waits, and each is answered
+    on its page (Claude, 2026-11-22).
   - Approve clears the mark and emails the person.
   - Decline deletes the account (it holds nothing yet) and emails the person.
   - An account left waiting for 30 days is declined by the retention job, with the same email.
@@ -89,8 +106,12 @@ and standards".
   - An allow list makes it irrelevant. 191 applies the same list to every way in with *Any domain*.
 - **Accepting new terms:**
   - After a web sign-in (password or provider), a person who hasn't accepted the version root asked
-    everyone to accept sees **Accept the updated terms**. It has the link, a required checkbox,
-    **Continue**, and **Sign out**. It's held like a required password change
+    everyone to accept sees **Accept the updated terms**. A session already open is held at its next
+    page or action, as for a required password change. Any acceptance since root asked is enough,
+    whatever its version (a sign-up after it, or after changes root didn't ask everyone to
+    accept); one from before never is, of the same label included. Someone held is asked for the
+    version the link shows, so what is recorded is what they read. It
+    has the link, a required checkbox, **Continue**, and **Sign out**. It's held like a required password change
     (`server/http/password-change-hold.ts`).
   - Access tokens, `rmk` and the MCP server keep working: the web asks, the API doesn't, so no build
     or install breaks over terms.
@@ -121,14 +142,20 @@ and standards".
   email".
 - **Audit:**
   - `auth.sign_up_requested`, with its outcome: `sent`, `existing`, `domain_not_allowed`,
-    `limited` or `bot`;
+    `limited`, `challenge` or `bot`. Every `sent` and `existing` is recorded; the others cost a
+    forged post next to nothing, so at most 100 of them an hour are, across the instance;
   - `auth.sign_up_code_failed`;
   - `user.signed_up`, with how: `password`;
   - `user.approved`, `user.declined` (with who, or `retention` when it ran out).
 - **Data protection**:
   - pending sign-ups and email codes are purged a day after they expire, by the retention job (102);
   - the email typed in a sign-up attempt is kept in the audit log only as long as IP addresses
-    (`ipDays`), as 102 already does for failed sign-ins;
+    (`ipDays`), as 102 already does for failed sign-ins: `auth.sign_up_requested`,
+    `auth.sign_up_code_failed`, `user.signed_up` and `user.declined`. The Privacy tab's last run
+    counts them with failed sign-ins' ("emails typed at failed sign-ins or sign-ups"), then the
+    ended sign-up rows, and the accounts declined after 30 days when there were some;
+  - a declined account's notifications to roots go with it, so its address isn't kept for their 90
+    days;
   - erase (103) and your data (104) cover the new columns and tables, the terms acceptances
     included.
 
@@ -157,15 +184,22 @@ created, and the sign-in page opens with her email filled in and "Your account i
 **Someone tries an address that has an account.** They see exactly what Ana saw, and the code page.
 No code exists, so any code they type is wrong. The owner of the address gets "Someone tried to
 create an account at Acme Marketplace with this address, but you already have one. Sign in, or
-reset your password. If this wasn't you, ignore this email."
+reset your password. If this wasn't you, ignore this email." Until 194 (forgot password) exists,
+it says "ask your administrator to reset your password".
 
 **Approval is on.** After the code, Ana sees "Your account was created and waits for a root's
 approval. We'll email you." Each root sees a notification. One opens Users › *Awaiting approval*
 and approves her. Ana gets "Your account at Acme Marketplace is approved" and signs in.
 
 **A bot.** It fills the honeypot or posts in under 3 seconds: it sees the success page and nothing
-is sent. Without a valid challenge answer, the form is refused with "Your browser couldn't finish
-the check. Try again." Past the limits: "Too many tries. Wait a few minutes and try again."
+is sent. Its sign-up goes on as an existing address's does (the same checks, limits, cookie and
+code page), with no password kept and no email: every code is wrong. Its email is written and
+dropped, so it takes as long as a person's. Two consequences are accepted (owner, 2026-11-21): a
+bot's post counts against the address's limits like any other (3 codes an hour), so it can use
+them up with nothing reaching the inbox, as anyone could by signing up with that address; and a
+bot's **Send a new code** for an address that has an account emails its owner "you already have
+an account", as a person's would, since a bot and a person must look the same. Without a valid challenge answer, the form is refused with "Your
+browser couldn't finish the check. Try again." Past the limits: "Too many tries. Wait a few minutes and try again."
 
 ## Edge cases
 
@@ -218,7 +252,9 @@ the check. Try again." Past the limits: "Too many tries. Wait a few minutes and 
 - **`terms_acceptances`:** user_id, version, accepted_at. One row per acceptance, never updated.
 - **`user`:** `approval_pending_at`, `signed_up_at`, both nullable.
 - **Settings keys:**
-  - `sign_up_enabled`, `sign_up_domains` (JSON: `"any"` or a list), `sign_up_approval`;
+  - `sign_up_enabled`, `sign_up_domains` (JSON: `"any"` or a list; only an absent key is `"any"`,
+    and a stored value that can't be read, an empty one included, is an empty list, which lets no
+    domain in), `sign_up_approval`;
   - `sign_up_block_throwaway`, `email_code_minutes`, `sign_up_challenge`;
   - `terms_url`, `terms_version`, `terms_required_version` (the version everyone must have
     accepted; it moves only when the box is ticked).
@@ -256,7 +292,7 @@ the check. Try again." Past the limits: "Too many tries. Wait a few minutes and 
 - [ ] With approval on, the account can't sign in, get a token or use the device flow; roots are
   notified; Approve and Decline work and email the person; 30 days unapproved declines it.
 - [ ] The terms checkbox is required when root sets a link, and its version and time are stored.
-  With **Ask everyone to accept again** ticked, existing people accept at their next web sign-in,
+  With **Ask everyone to accept again** ticked, existing people accept it on the web, at their next page,
   and their tokens keep working; unticked, only new sign-ups accept it. Every acceptance is a row.
 - [ ] With *Any domain* and the throwaway setting on, an address in the bundled list is refused.
 - [ ] Sign-up can't be turned on without email, the instance contact, and the policy *Everyone*.
@@ -310,4 +346,13 @@ the check. Try again." Past the limits: "Too many tries. Wait a few minutes and 
 
 ## Open questions
 
-None.
+None. Decided by the owner on 2026-11-22, after the build:
+
+- **The hourly code cap stays as built:** 3 for sends one after another, at most 5 for sends
+  racing as a window opens. An exact 3 needs a lock per address, which risks deadlocks on MySQL.
+- **The Public Suffix List may be used by the throwaway list's refresh only** (MPL-2.0, as data
+  read by `pnpm data:disposable-domains`, never bundled in the app). A follow-up change records
+  the exception in `docs/policies/dependencies.md` and makes the refresh refuse any line that is
+  a public suffix; until then, a person reads each refresh's printed lines.
+- **The website's `purge` example is captured again from a real run at each release**
+  ([`release.md`](../../runbooks/release.md)).

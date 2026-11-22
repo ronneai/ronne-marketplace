@@ -33,6 +33,7 @@ const PARAMS: Record<string, Record<string, string | number>> = {
   "request.item_move_waiting": { item: "lint", newName: "lint", from: "tools", to: "more" },
   "feedback.new": { feedbackKind: "idea" },
   "instance.update_available": { version: "0.9.0", current: "0.8.2" },
+  "user.awaiting_approval": { email: "ana@acme.com" },
 };
 
 const view = (
@@ -102,6 +103,7 @@ describe("notification links (139)", () => {
     expect(notificationHref({ to: "workspaces" })).toBe("/workspaces");
     expect(notificationHref({ to: "requests" })).toBe("/workspaces/requests");
     expect(notificationHref({ to: "feedback" })).toBe("/admin/feedback");
+    expect(notificationHref({ to: "user", id: "01ABC" })).toBe("/admin/users/01ABC");
     expect(
       notificationHref({ to: "item", workspace: "global", scope: "tools", name: "lint" }),
     ).toBe("/items/tools/lint");

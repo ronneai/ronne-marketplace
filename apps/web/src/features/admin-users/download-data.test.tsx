@@ -8,6 +8,8 @@ vi.mock("./actions", () => ({
   disableUserFromForm: vi.fn(),
   enableUserFromForm: vi.fn(),
   resetPasswordFromForm: vi.fn(),
+  approveUserFromForm: vi.fn(),
+  declineUserFromForm: vi.fn(),
   resetTwoFactorFromForm: vi.fn(),
   setPasswordChangeFromForm: vi.fn(),
   eraseUserFromForm: vi.fn(),

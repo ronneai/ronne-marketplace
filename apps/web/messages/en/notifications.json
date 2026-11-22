@@ -66,7 +66,8 @@
       "membership": "Your membership",
       "request": "Requests waiting for you",
       "feedback": "Feedback",
-      "instance": "Updates"
+      "instance": "Updates",
+      "user": "New accounts"
     },
     "kinds": {
       "submission": {
@@ -106,6 +107,9 @@
       },
       "instance": {
         "update_available": "Update available"
+      },
+      "user": {
+        "awaiting_approval": "Waiting for approval"
       }
     },
     "columns": {
@@ -141,5 +145,8 @@
   },
   "instance": {
     "update_available": "Ronne AI Marketplace {version} is out. You run version {current}."
+  },
+  "user": {
+    "awaiting_approval": "{actor} ({email}) created an account and is waiting for a root's approval."
   }
 }

@@ -21,6 +21,8 @@ export type UserPageSlots = {
   workspaces?: ReactNode;
   data?: ReactNode;
   erase?: ReactNode;
+  /** Approve and Decline, for an account waiting since sign-up (190). */
+  approval?: ReactNode;
 };
 
 const Section = ({ id, title, children }: { id: string; title: string; children: ReactNode }) => (
@@ -109,10 +111,25 @@ export const UserPage = ({
               <Badge tone="warning">{u("badge.erased")}</Badge>
             ) : user.disabledAt ? (
               <Badge tone="warning">{u("badge.disabled")}</Badge>
+            ) : user.approvalPendingAt ? (
+              <Badge tone="warning">{u("badge.awaiting")}</Badge>
             ) : null}
           </span>
         }
       />
+      {user.approvalPendingAt && !erased ? (
+        // Made by signing up, waiting for a root's answer (190).
+        <Notice kind="warn" title={u("waiting.title")}>
+          <div className="grid gap-3">
+            <p>
+              {u.rich("waiting.body", {
+                date: () => <LocalTime value={user.approvalPendingAt as Date} precision="day" />,
+              })}
+            </p>
+            {slots.approval ? <div className="flex flex-wrap gap-2">{slots.approval}</div> : null}
+          </div>
+        </Notice>
+      ) : null}
       {self ? (
         <Notice kind="info" title={u("self.title")}>
           {u("self.body")} <Help id="own-row" />

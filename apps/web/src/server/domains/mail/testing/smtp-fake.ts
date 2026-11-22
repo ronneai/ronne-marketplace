@@ -59,6 +59,8 @@ export type FakeSmtpOptions = {
   brokenStartTls?: boolean;
   /** Refuses MAIL FROM with 550, echoing the AUTH line the client sent earlier (careless). */
   echoAuthAtMail?: boolean;
+  /** The port to listen on; any free one when left out (190's end-to-end test names its own). */
+  port?: number;
 };
 
 export type FakeSmtp = {
@@ -212,7 +214,7 @@ export const startFakeSmtp = async (options: FakeSmtpOptions): Promise<FakeSmtp>
           session(socket, false);
         });
   server.on("tlsClientError", () => {});
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  await new Promise<void>((resolve) => server.listen(options.port ?? 0, "127.0.0.1", resolve));
   const address = server.address();
   const port = typeof address === "object" && address ? address.port : 0;
   return {

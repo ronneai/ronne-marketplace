@@ -165,6 +165,8 @@ export const eraseUser = async (
       await repo.deleteMemberships(userId);
       const favoritesDeleted = await repo.deleteFavorites(userId);
       await repo.deleteOnboarding(userId);
+      // Self-registration's rows (190): terms accepted, codes, a sign-up waiting at the address.
+      await repo.deleteSignUpData(userId, target.email);
       const feedbackDeleted = await repo.deleteFeedback(userId);
       const notificationsDeleted = await repo.deleteNotifications(userId);
       // Their emails (189), queued or not: nothing is sent once the account is erased.

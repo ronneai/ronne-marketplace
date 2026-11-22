@@ -7,6 +7,8 @@
 export const PATH_HEADER = "x-ronne-path";
 
 export const SIGN_IN_PATH = "/sign-in";
+/** Self-registration (190): the form and the code page. Public; it answers 404 while closed. */
+export const SIGN_UP_PATH = "/sign-up";
 /** The web setup (feature 036): the only page until the instance is ready. */
 export const SETUP_PATH = "/setup";
 /** Where the language switch's links go (feature 129): sets the cookie and comes back. */
@@ -21,7 +23,10 @@ const under = (pathname: string, base: string) =>
  */
 export const isPublicPath = (pathname: string): boolean => {
   return (
-    under(pathname, SIGN_IN_PATH) || under(pathname, SETUP_PATH) || under(pathname, LANGUAGE_PATH)
+    under(pathname, SIGN_IN_PATH) ||
+    under(pathname, SIGN_UP_PATH) ||
+    under(pathname, SETUP_PATH) ||
+    under(pathname, LANGUAGE_PATH)
   );
 };
 

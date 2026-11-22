@@ -209,6 +209,13 @@ export const HELP = {
   "password-lockout": {
     href: docsHref("password-sign-in", "lockout"),
   },
+  // Self-registration (190): the panel, and the sign-up page.
+  "self-registration": {
+    href: docsHref("authentication", "self-registration"),
+  },
+  "signing-up": {
+    href: docsHref("account", "signing-up"),
+  },
   "backup-codes-once": {
     href: docsHref("account", "two-factor"),
   },

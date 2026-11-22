@@ -44,6 +44,11 @@ export interface EraseRepository {
   deleteDeviceGrants(userId: string): Promise<number>;
   /** The person's favorites (125): theirs alone, so they go with them. Returns how many. */
   deleteFavorites(userId: string): Promise<number>;
+  /**
+   * Their sign-up data (190): the terms they accepted, their one-time codes, and any sign-up still
+   * waiting for a code at their address (and its codes). Returns how many rows went.
+   */
+  deleteSignUpData(userId: string, email: string): Promise<number>;
   /** The person's Getting started state (126): theirs alone, so it goes with them. */
   deleteOnboarding(userId: string): Promise<void>;
   /**

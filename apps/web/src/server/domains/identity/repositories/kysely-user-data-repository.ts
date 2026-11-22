@@ -88,10 +88,19 @@ export const kyselyUserDataRepository = (
           "disabled_at",
           "two_factor_enabled",
           "locale",
+          "signed_up_at",
+          "approval_pending_at",
         ])
         .where("id", "=", userId)
         .executeTakeFirst();
       if (!user) return null;
+      const terms = await db
+        .selectFrom("terms_acceptances")
+        .select(["version", "accepted_at"])
+        .where("user_id", "=", userId)
+        .orderBy("accepted_at")
+        .orderBy("id")
+        .execute();
       const names = await providerNames();
       // `password` is never selected: whether there is one is what the file says.
       const accounts = await db
@@ -127,6 +136,12 @@ export const kyselyUserDataRepository = (
         disabledAt: user.disabled_at ? fromDbDate(user.disabled_at) : null,
         twoFactorEnabled: Boolean(user.two_factor_enabled),
         locale: isLocale(user.locale) ? user.locale : null,
+        signedUpAt: user.signed_up_at ? fromDbDate(user.signed_up_at) : null,
+        approvalPendingAt: user.approval_pending_at ? fromDbDate(user.approval_pending_at) : null,
+        termsAcceptances: terms.map((row) => ({
+          version: row.version,
+          acceptedAt: fromDbDate(row.accepted_at),
+        })),
         signInMethods,
         scim: scim
           ? {

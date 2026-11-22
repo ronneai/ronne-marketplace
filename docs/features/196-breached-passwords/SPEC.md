@@ -44,7 +44,7 @@ sign-in must be replaced, with 128's hold.
   - Matching ignores letter case and compares after Unicode NFKC, as the length rule counts
     characters.
 - **The list file**:
-  - `apps/web/src/server/domains/identity/data/common-passwords.txt`: one entry per line,
+  - `apps/web/src/server/domains/identity/lists/common-passwords.txt` (not `data/`, which `.gitignore` ignores everywhere, as 190's throwaway list found): one entry per line,
     lowercased, NFKC, deduplicated, sorted;
   - a header line naming the source, its commit and its licence;
   - made by a script from a pinned commit, never fetched at run time;

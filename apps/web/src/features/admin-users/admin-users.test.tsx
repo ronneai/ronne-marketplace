@@ -59,6 +59,10 @@ describe("the users list's URL (061)", () => {
     });
   });
 
+  it("keeps the Awaiting approval status (190)", () => {
+    expect(usersQueryOf(state({ status: "awaiting" }))).toMatchObject({ status: "awaiting" });
+  });
+
   it("drops a role or status it doesn't know", () => {
     expect(state({ role: "admin", status: "gone" }).filters).toEqual({
       q: "",
@@ -89,6 +93,27 @@ const page = (props: Partial<Parameters<typeof UsersPage>[0]> = {}) =>
   );
 
 describe("UsersPage (061)", () => {
+  it("offers the Awaiting approval status, and says it of an account that waits (190)", () => {
+    const html = page({
+      users: [
+        {
+          id: "01WAIT",
+          email: "ana@acme.com",
+          name: "Ana",
+          role: "user",
+          disabledAt: null,
+          erasedAt: null,
+          createdAt: new Date("2026-11-20T10:00:00Z"),
+          approvalPendingAt: new Date("2026-11-20T10:00:00Z"),
+          workspaces: [],
+          lastSignInAt: null,
+        },
+      ],
+    });
+    expect(html).toContain('<option value="awaiting">awaiting approval</option>');
+    expect(html).toContain(">awaiting approval</span>");
+  });
+
   it("shows root, or a badge per workspace role with how many workspaces (091, 092)", () => {
     const html = page({
       users: [

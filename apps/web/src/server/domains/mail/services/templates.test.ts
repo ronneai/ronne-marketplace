@@ -1,11 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { LOCALES } from "@/i18n/locale";
 import { DEFAULT_LANGUAGE_POLICY } from "../../settings/models/language-policy";
-import { MAIL_NOTICES, type MailTemplate, mailLocale, mailTime, renderMail } from "./templates";
+import {
+  MAIL_NOTICES,
+  type MailTemplate,
+  mailLocale,
+  mailTime,
+  renderMail,
+  SIGN_UP_MAILS,
+} from "./templates";
 
-const TEMPLATES: MailTemplate[] = ["test", ...MAIL_NOTICES];
+const TEMPLATES: MailTemplate[] = ["test", ...MAIL_NOTICES, ...SIGN_UP_MAILS];
 const AT = new Date("2026-11-21T16:32:09.000Z");
-const values = { host: "marketplace.acme.example", contact: "", at: AT, provider: "Acme SSO" };
+const values = {
+  host: "marketplace.acme.example",
+  contact: "",
+  at: AT,
+  provider: "Acme SSO",
+  code: "482913",
+  minutes: 15,
+};
 
 describe("renderMail (189)", () => {
   for (const locale of LOCALES)
@@ -66,6 +80,15 @@ describe("renderMail (189)", () => {
       await expect(renderMail("sso_linked", "pt", { ...values, provider })).rejects.toThrow(
         "needs the provider's name",
       );
+  });
+
+  it("puts the sign-up code in the subject and the body, with its minutes, and needs one (190)", async () => {
+    const mail = await renderMail("sign_up_code", "en", values);
+    expect(mail.subject).toBe("Your code for marketplace.acme.example: 482913");
+    expect(mail.text).toContain("is 482913. It works for 15 minutes.");
+    expect(mail.text).not.toContain("turned off");
+    await expect(renderMail("sign_up_code", "en", { ...values, code: "" })).rejects.toThrow();
+    expect((await renderMail("sign_up_existing", "en", values)).text).not.toContain("482913");
   });
 
   it("says a notice can't be turned off, and the test email doesn't", async () => {

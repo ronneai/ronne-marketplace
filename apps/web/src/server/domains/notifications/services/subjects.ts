@@ -138,6 +138,12 @@ export const resolveSubjects = async (
       .execute())
       out.set(key("feedback", row.id), { workspaceIds: [], link: { to: "feedback" } });
 
+  // An account waiting for approval (190): its page, while it's still there (declined, it's gone).
+  const users = idsOf(refs, "user");
+  if (users.length)
+    for (const row of await db.selectFrom("user").select("id").where("id", "in", users).execute())
+      out.set(key("user", row.id), { workspaceIds: [], link: { to: "user", id: row.id } });
+
   // The instance has no row to look up: the version announced is its own subject (140).
   for (const id of idsOf(refs, "instance"))
     out.set(key("instance", id), { workspaceIds: [], link: { to: "updates" } });

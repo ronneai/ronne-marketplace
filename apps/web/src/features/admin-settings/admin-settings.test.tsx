@@ -50,6 +50,18 @@ vi.mock("@/server/domains/identity/actions/password-policy", () => ({
 vi.mock("@/server/domains/identity/repositories/auth-instance", () => ({ getAppAuth: () => ({}) }));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/domains/settings/actions/settings", () => settings);
+// The Self-registration panel (190): its own data, off and ready.
+vi.mock("@/server/domains/settings/actions/sign-up", async () => {
+  const { DEFAULT_SIGN_UP_POLICY } = await import(
+    "@/server/domains/settings/models/sign-up-policy"
+  );
+  return {
+    adminSignUpSettings: vi.fn(async () => ({
+      policy: DEFAULT_SIGN_UP_POLICY,
+      readiness: { mail: true, contact: true, password: true },
+    })),
+  };
+});
 vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("next/cache", () => cache);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
@@ -524,9 +536,11 @@ describe("Admin › Settings › Privacy › Retention (102)", () => {
         }}
       />,
     );
-    expect(ok).toContain("cleared 1,204 IP addresses and 37 failed sign-ins’ emails");
     expect(ok).toContain(
-      "deleted 312 expired sessions, 9 finished rmk login approvals, 6 handled feedback messages, 15 notifications, 42 expired rate limit counters and 7 email records",
+      "cleared 1,204 IP addresses and 37 emails typed at failed sign-ins or sign-ups",
+    );
+    expect(ok).toContain(
+      "deleted 312 expired sessions, 9 finished rmk login approvals, 6 handled feedback messages, 15 notifications, 42 expired rate limit counters, 7 email records and 0 ended sign-up records.",
     );
     expect(ok).toMatch(/<time dateTime="2026-10-18T12:00:00.000Z"/);
     const failed = renderToStaticMarkup(

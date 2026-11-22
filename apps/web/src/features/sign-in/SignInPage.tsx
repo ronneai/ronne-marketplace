@@ -6,7 +6,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import type { Locale } from "@/server/domains/identity/models/locale";
 import { ProviderButtons } from "./ProviderButtons";
 import { SignInForm } from "./SignInForm";
-import { SIGN_IN_AGAIN, SSO_ERROR_CODES } from "./types";
+import { SIGN_IN_AGAIN, SIGNED_UP, SSO_ERROR_CODES } from "./types";
 
 /**
  * The sign-in screen (spec 006, redesigned in 157 from the split-screen mocks): the auth shell with
@@ -22,6 +22,8 @@ export const SignInPage = ({
   providers = [],
   rootOnly = false,
   ssoError,
+  signUpOpen = false,
+  signedUp,
   here,
   languages,
 }: {
@@ -41,6 +43,10 @@ export const SignInPage = ({
   rootOnly?: boolean;
   /** Back from a provider (106): `?error=`, said above the form. */
   ssoError?: string;
+  /** Self-registration is open (190): the **Create an account** link. */
+  signUpOpen?: boolean;
+  /** Back from the code page (190): `?signedUp=ready` or `waiting`. */
+  signedUp?: string;
   /** This page's path and query, for the language switch to come back to (129). */
   here?: string;
   /** The languages the switch offers (141); none hides it. Every language when absent. */
@@ -49,6 +55,7 @@ export const SignInPage = ({
   const t = useTranslations("auth.signIn");
   const againCode = SIGN_IN_AGAIN.find((code) => code === again);
   const ssoCode = SSO_ERROR_CODES.find((code) => code === ssoError);
+  const signedUpCode = SIGNED_UP.find((code) => code === signedUp);
   // Root only applies while a provider is on; with none, the password form is for everyone.
   const passwordBehindLink = rootOnly && providers.length > 0;
   const form = (
@@ -73,6 +80,7 @@ export const SignInPage = ({
           {t("setupDone")}
         </Notice>
       ) : null}
+      {signedUpCode ? <Notice kind="info" title={t(`signedUp.${signedUpCode}`)} /> : null}
       {againCode ? <Notice kind="warn" title={t(`again.${againCode}`)} /> : null}
       {ssoCode ? <Notice kind="error" title={t(`sso.${ssoCode}`)} /> : null}
       {passwordBehindLink ? (
@@ -97,6 +105,14 @@ export const SignInPage = ({
           ) : null}
         </>
       )}
+      {signUpOpen ? (
+        <p className="text-sm text-muted">
+          {t("noAccount")}{" "}
+          <a href="/sign-up" className="text-link underline-offset-2 hover:underline">
+            {t("createAccount")}
+          </a>
+        </p>
+      ) : null}
     </div>
   );
   return (

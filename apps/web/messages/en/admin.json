@@ -64,7 +64,8 @@
     "status": {
       "active": "active",
       "disabled": "disabled",
-      "erased": "erased"
+      "erased": "erased",
+      "awaiting": "awaiting approval"
     },
     "columns": {
       "name": "Name",
@@ -152,7 +153,8 @@
     },
     "badge": {
       "disabled": "Disabled",
-      "erased": "Erased"
+      "erased": "Erased",
+      "awaiting": "awaiting approval"
     },
     "automatic": "Automatic",
     "never": "Never",
@@ -196,6 +198,12 @@
       "body": "Revoke <strong>{name}</strong>? Anything using it, such as rmk on their machine, stops working until they make a new token.",
       "cancel": "Cancel",
       "submit": "Revoke token"
+    },
+    "waiting": {
+      "title": "This account waits for a root's approval",
+      "body": "It was made by signing up, <date></date>. It can't sign in until a root approves it; left waiting for 30 days, it's declined.",
+      "approve": "Approve",
+      "decline": "Decline"
     }
   },
   "actions": {
@@ -211,7 +219,9 @@
       "disable": "Disable user",
       "enable": "Enable user",
       "reset": "Reset password",
-      "twoFactor": "Reset two-factor"
+      "twoFactor": "Reset two-factor",
+      "approve": "Approve account",
+      "decline": "Decline account"
     },
     "erasedDownload": "Download their data (erased)",
     "erasedReason": "This account was erased: there’s nothing of theirs to download.",
@@ -235,7 +245,9 @@
       "title": "Remove root from {email}?",
       "body": "They’ll lose user admin, scopes, settings and the audit log on their next request."
     },
-    "changeRole": "Change their role from <from></from> to <to></to>."
+    "changeRole": "Change their role from <from></from> to <to></to>.",
+    "approveBody": "{email} can sign in once approved, and gets an email saying so.",
+    "declineBody": "The account of {email} is deleted, with what they typed, and they get an email saying it wasn't approved. This can't be undone."
   },
   "erase": {
     "button": "Erase",
@@ -627,7 +639,8 @@
           "rate_limited": "too many attempts",
           "two_factor_required": "the account uses two-factor sign-in",
           "password_disabled": "password sign-in is root only",
-          "password_sign_in_disabled": "password sign-in is root only"
+          "password_sign_in_disabled": "password sign-in is root only",
+          "approval_pending": "the account is waiting for approval"
         },
         "policies": {
           "off": "off",
@@ -727,6 +740,41 @@
           "server": "the provider failed",
           "rejected": "refused",
           "config": "the setup can't work"
+        },
+        "signUp": {
+          "on": "turned sign-up on",
+          "off": "turned sign-up off",
+          "anyDomain": "any domain",
+          "domains": "domains: {list}",
+          "approvalOn": "new accounts wait for approval",
+          "approvalOff": "new accounts don't wait for approval",
+          "throwawayOn": "throwaway domains blocked",
+          "throwawayOff": "throwaway domains allowed",
+          "minutes": "codes last {to} minutes",
+          "challengeOn": "the challenge on",
+          "challengeOff": "the challenge off",
+          "terms": "terms version {version}",
+          "termsOff": "no terms link",
+          "askAgain": "everyone accepts version {version} again",
+          "nothing": "nothing"
+        },
+        "signUpOutcomes": {
+          "sent": "a code was sent",
+          "existing": "it has an account, so its owner was told",
+          "domain_not_allowed": "its domain isn't allowed",
+          "limited": "too many tries",
+          "bot": "it looked like a bot, so nothing was sent",
+          "unknown": "not recorded"
+        },
+        "signUpCodeReasons": {
+          "wrong": "wrong code",
+          "spent": "too many wrong codes",
+          "expired": "the code had ended",
+          "used": "the code was used already",
+          "closed": "sign-up had closed",
+          "none": "no code was sent",
+          "exists": "an account was made for the address meanwhile",
+          "unknown": "not recorded"
         }
       },
       "actions": {
@@ -764,7 +812,11 @@
           "disabled": "Disabled <name>{who}</name>{ended}",
           "enabled": "Enabled <name>{who}</name>",
           "erased": "Erased <name>{who}</name>",
-          "data_exported": "Downloaded the data of <name>{who}</name>{byRoot, select, true { (by root)} other {}}"
+          "data_exported": "Downloaded the data of <name>{who}</name>{byRoot, select, true { (by root)} other {}}",
+          "signed_up": "<name>{who}</name> created their own account{waiting, select, true {, waiting for a root's approval} other {}}",
+          "terms_accepted": "Accepted the terms, version <code>{version}</code>",
+          "approved": "Approved the account of <name>{email}</name>",
+          "declined": "{job, select, true {Declined the account of <name>{email}</name>, which waited 30 days, and deleted it} other {Declined the account of <name>{email}</name>, and deleted it}}"
         },
         "auth": {
           "signed_in": "{sso, select, true {Signed in with <code>{provider}</code>} other {{remember, select, true {Signed in (remembered for 30 days)} other {Signed in}}}}",
@@ -779,7 +831,9 @@
           "two_factor_enabled": "Turned on two-factor sign-in",
           "two_factor_disabled": "Turned off two-factor sign-in",
           "backup_codes_regenerated": "Made new backup codes; the old ones stopped working",
-          "two_factor_failed": "A two-factor code was refused at sign-in ({reason})"
+          "two_factor_failed": "A two-factor code was refused at sign-in ({reason})",
+          "sign_up_requested": "Asked to create an account for <name>{email}</name>: {outcome}",
+          "sign_up_code_failed": "A sign-up code for <name>{email}</name> was refused: {reason}"
         },
         "access_token": {
           "created": "Created token <name>{label}</name> ({expiry}{how, select, cli {, from rmk login} device {, by browser approval} other {}})",
@@ -862,7 +916,8 @@
           "skill_scan": "Changed the security scan: {changes}",
           "update_check": "Changed the check for updates: {state, select, on {turned on} off {turned off} other {changed}}",
           "languages": "Changed the languages: {changes}",
-          "mail": "Changed outgoing email: {changes}"
+          "mail": "Changed outgoing email: {changes}",
+          "sign_up_changed": "Changed self-registration: {changes}"
         },
         "mail": {
           "test_sent": "Sent a test email{result, select, sent {, which the provider took} retry {, which didn't go yet ({reason})} failed {, which failed ({reason})} other {}}"
@@ -1176,7 +1231,7 @@
       "fields": {
         "ipDays": {
           "label": "Keep IP addresses for",
-          "hint": "The client addresses kept with audit events, sessions and rmk login approvals, and the email typed in a failed sign-in. Older ones are cleared; the events stay."
+          "hint": "The client addresses kept with audit events, sessions and rmk login approvals, and the emails typed at a failed sign-in or a sign-up. Older ones are cleared; the events stay."
         },
         "sessionsDays": {
           "label": "Keep expired sessions for",
@@ -1192,7 +1247,7 @@
         "schedulerOff": "Scheduled jobs are off (RONNE_JOBS): run rmk-server purge from cron.",
         "firstRun": "The first run is 5 minutes after the server starts, then every 6 hours.",
         "failed": "Last run <date></date> failed ({error}). The server’s logs say why; the next run is on schedule.",
-        "done": "Last run <date></date>: cleared {ips, plural, one {# IP address} other {# IP addresses}} and {emails, plural, one {# failed sign-in’s email} other {# failed sign-ins’ emails}}; deleted {sessions, plural, one {# expired session} other {# expired sessions}}, {grants, plural, one {# finished rmk login approval} other {# finished rmk login approvals}}, {feedback, plural, one {# handled feedback message} other {# handled feedback messages}}, {notifications, plural, one {# notification} other {# notifications}}, {rateLimits, plural, one {# expired rate limit counter} other {# expired rate limit counters}} and {mail, plural, one {# email record} other {# email records}}.",
+        "done": "Last run <date></date>: cleared {ips, plural, one {# IP address} other {# IP addresses}} and {emails, plural, one {# email typed at a failed sign-in or a sign-up} other {# emails typed at failed sign-ins or sign-ups}}; deleted {sessions, plural, one {# expired session} other {# expired sessions}}, {grants, plural, one {# finished rmk login approval} other {# finished rmk login approvals}}, {feedback, plural, one {# handled feedback message} other {# handled feedback messages}}, {notifications, plural, one {# notification} other {# notifications}}, {rateLimits, plural, one {# expired rate limit counter} other {# expired rate limit counters}}, {mail, plural, one {# email record} other {# email records}} and {signUps, plural, one {# ended sign-up record} other {# ended sign-up records}}{declined, plural, =0 {} one {; declined # account that waited 30 days for approval} other {; declined # accounts that waited 30 days for approval}}.",
         "running": "A run is in progress."
       },
       "erasures": {
@@ -1461,6 +1516,49 @@
         "cancel": "Cancel",
         "done": "Email stopped. {count, plural, =0 {Nothing was waiting.} one {# waiting message was dropped.} other {# waiting messages were dropped.}}"
       }
+    },
+    "signUp": {
+      "title": "Self-registration",
+      "intro": "Whether people can create their own account here, with a code sent to their email address. It's off until you turn it on.",
+      "blockedTitle": "Sign-up can be turned on once these are done:",
+      "closedTitle": "Sign-up is on, but closed until these are done again:",
+      "blockers": {
+        "mail": "Email is set up, so the code can be sent.",
+        "contact": "The instance contact is set, so every notice says whom to tell.",
+        "password": "Everyone may sign in with a password, so a new account can sign in."
+      },
+      "fix": {
+        "mail": "Set up email",
+        "contact": "Set the contact",
+        "password": "See Who may sign in with a password"
+      },
+      "enabled": "People can create their own account",
+      "enabledHint": "The sign-in page shows Create an account. Each address is proven with a 6-digit code before the account exists.",
+      "domains": {
+        "legend": "Which email domains",
+        "any": "Any domain",
+        "list": "Only these domains",
+        "listLabel": "Domains",
+        "listHint": "Separated by commas, spaces or lines, such as acme.com. Each matches exactly: acme.com doesn't cover eu.acme.com."
+      },
+      "throwaway": "Also block throwaway email domains",
+      "throwawayHint": "Addresses at disposable-mail services on the list Ronne bundles are refused.",
+      "approval": "New accounts wait for a root's approval",
+      "approvalHint": "Roots are notified, and the account can't sign in until one approves it. One left waiting for 30 days is declined.",
+      "minutes": "Code lifetime, in minutes",
+      "minutesHint": "5 to 60. The same lifetime applies to every code Ronne emails.",
+      "challenge": "Ask browsers to solve a challenge",
+      "challengeHint": "An invisible check, done by the browser in about a second, that stops most bots. It needs JavaScript.",
+      "termsUrl": "Terms and privacy notice link",
+      "termsHint": "Optional, an https:// address. When it's set, the sign-up form asks people to accept it.",
+      "termsVersion": "Version",
+      "askAgain": "Ask everyone to accept again",
+      "askAgainHint": "Everyone who has an account accepts this version on the web, at the next page they open. Without it, only new sign-ups accept it. Tokens, rmk and the MCP server keep working either way.",
+      "save": "Save",
+      "done": {
+        "saved": "Self-registration saved.",
+        "unchanged": "Nothing changed."
+      }
     }
   },
   "setup": {
@@ -1595,7 +1693,8 @@
       "enabled": "Enabled. They can sign in again.",
       "twoFactorOff": "Two-factor sign-in turned off. They’re signed out everywhere, and their access tokens are revoked.",
       "twoFactorNone": "They had no two-factor sign-in: nothing changed.",
-      "erased": "Erased. The account is now deleted-user and nothing of theirs can be read back."
+      "erased": "Erased. The account is now deleted-user and nothing of theirs can be read back.",
+      "approved": "Approved. They can sign in, and an email tells them."
     },
     "scopes": {
       "created": "Created @{name}.",

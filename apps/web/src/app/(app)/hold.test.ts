@@ -8,6 +8,11 @@ vi.mock("@/server/http/password-change-hold", () => ({
   PASSWORD_PATH: "/account/password",
   passwordChangeHold: vi.fn(async () => password.held),
 }));
+const terms = vi.hoisted(() => ({ held: false }));
+vi.mock("@/server/http/terms-hold", () => ({
+  TERMS_PATH: "/account/terms",
+  termsHold: vi.fn(async () => terms.held),
+}));
 vi.mock("@/server/http/two-factor-hold", () => ({
   SECURITY_PATH: "/account/security",
   twoFactorHold: vi.fn(async () => hold.requirement),
@@ -109,5 +114,32 @@ describe("the two-factor hold on pages (105)", () => {
       });
     expect(missing).toEqual([]);
     expect(pages(root).length).toBeGreaterThan(20);
+  });
+});
+
+describe("the terms hold on pages (190)", () => {
+  it("sends someone who must accept new terms to the terms page, with where they were going", async () => {
+    terms.held = true;
+    path.value = "/catalogue?q=a";
+    await expect(holdPage()).rejects.toThrow("REDIRECT /account/terms?next=%2Fcatalogue%3Fq%3Da");
+    path.value = "/";
+    await expect(holdPage()).rejects.toThrow(/^REDIRECT \/account\/terms$/);
+    // The terms page itself is open to them.
+    path.value = "/account/terms?next=%2Fitems";
+    await expect(holdPage()).resolves.toBeUndefined();
+    terms.held = false;
+  });
+
+  it("comes after the password change and before two-factor", async () => {
+    terms.held = true;
+    password.held = true;
+    hold.requirement = "everyone";
+    path.value = "/items";
+    await expect(holdPage()).rejects.toThrow("REDIRECT /account/password?next=%2Fitems");
+    password.held = false;
+    await expect(holdPage()).rejects.toThrow("REDIRECT /account/terms?next=%2Fitems");
+    terms.held = false;
+    await expect(holdPage()).rejects.toThrow(/REDIRECT \/account\/security/);
+    hold.requirement = null;
   });
 });

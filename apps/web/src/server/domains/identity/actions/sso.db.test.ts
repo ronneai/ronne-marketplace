@@ -587,6 +587,27 @@ describe("the decision list", () => {
     expect(location((await signIn()).response)).toContain("error=disabled");
   });
 
+  it("refuses an account waiting for a root's approval, matched by email or linked (190)", async () => {
+    const id = await createTestUser(app, {
+      email: "ana@acme.com",
+      password: "correct horse battery",
+    });
+    const wait = (at: Date | null) =>
+      t.db
+        .updateTable("user")
+        .set({ approval_pending_at: at ? toDbDate(at, t.dialect) : null })
+        .where("id", "=", id)
+        .execute();
+    await wait(new Date());
+    expect(location((await signIn()).response)).toContain("error=disabled");
+    expect(await sessionUser((await signIn()).response)).toBeNull();
+    // Linked while approved, then waiting again (marked by hand): still refused.
+    await wait(null);
+    await signIn();
+    await wait(new Date());
+    expect(location((await signIn()).response)).toContain("error=disabled");
+  });
+
   it("refuses a linked account that was disabled, before the session (the plan says so)", async () => {
     await signIn();
     const user = await userByEmail("ana@acme.com");

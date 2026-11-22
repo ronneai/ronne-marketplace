@@ -9,6 +9,7 @@ import {
   pagesOf,
   pageUrl,
   siteTopics,
+  websiteDir,
   writtenLinkProblems,
 } from "./docs-links.js";
 
@@ -92,7 +93,7 @@ describe("the pages", () => {
 
 describe("the real lists", () => {
   const root = join(import.meta.dirname, "../../..");
-  const web = join(root, "..", "ronne-web", "www/src/content/docs/topics.ts");
+  const web = join(websiteDir(root), "www/src/content/docs/topics.ts");
   const app = appTopics(readFileSync(join(root, "apps/web/src/components/help/topics.ts"), "utf8"));
 
   it("reads every topic of the app", () => {
@@ -126,9 +127,21 @@ describe("the real lists", () => {
   it.skipIf(!here)(
     here
       ? "the website has the app's topics and sections"
-      : "SKIPPED: ../ronne-web is not next to this repository, so the website's topics are not compared",
+      : "SKIPPED: the website's checkout (../ronne-web, or RONNE_WEB_DIR) isn't there, so its topics are not compared",
     () => {
       expect(compareTopics(app, siteTopics(readFileSync(web, "utf8")))).toEqual([]);
     },
   );
+});
+
+describe("where the website's checkout is", () => {
+  it("is ../ronne-web, or RONNE_WEB_DIR relative to this repository", () => {
+    expect(websiteDir("/repos/marketplace", {})).toBe("/repos/ronne-web");
+    expect(websiteDir("/repos/marketplace", { RONNE_WEB_DIR: "../ronne-web-190" })).toBe(
+      "/repos/ronne-web-190",
+    );
+    expect(websiteDir("/repos/marketplace", { RONNE_WEB_DIR: "/elsewhere/site" })).toBe(
+      "/elsewhere/site",
+    );
+  });
 });

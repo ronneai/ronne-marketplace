@@ -33,6 +33,7 @@ const {
   MailCredentialsUnreadableError,
   MailTestLimitError,
 } = mailErrors;
+const { InvalidSignUpSettingError, SignUpUnavailableError } = settingsErrors;
 
 type L = "en" | "pt" | "fr";
 const text = (locale: L, error: Error) => inLocale(locale, () => errorText(error));
@@ -102,7 +103,58 @@ describe("domain errors in three languages (129)", () => {
         pt: "Esta conta não tem senha (ela entra por um provedor), então não há senha para trocar.",
         fr: "Ce compte n’a pas de mot de passe (il se connecte par un fournisseur); il n’y a donc rien à remplacer.",
       },
-    ], // 189: the Email tab's errors, a field's code worded by `InvalidMailSetupError`'s select.
+    ],
+    // 190: another root answered first.
+    [
+      new identityErrors.ApprovalAnsweredError("approved"),
+      {
+        en: "This account was already approved.",
+        pt: "Esta conta já foi aprovada.",
+        fr: "Ce compte a déjà été approuvé.",
+      },
+    ],
+    [
+      new identityErrors.ApprovalAnsweredError("declined"),
+      {
+        en: "This account was already declined, and is gone.",
+        pt: "Esta conta já foi recusada e não existe mais.",
+        fr: "Ce compte a déjà été refusé, et n’existe plus.",
+      },
+    ],
+    // 190: the Self-registration panel's errors.
+    [
+      new InvalidSignUpSettingError("domains"),
+      {
+        en: "List each email domain once, such as acme.com, up to 100 of them, separated by commas, spaces or lines.",
+        pt: "Liste cada domínio de e-mail uma vez, como acme.com, até 100, separados por vírgulas, espaços ou linhas.",
+        fr: "Indiquez chaque domaine de courriel une fois, comme acme.com, jusqu’à 100, séparés par des virgules, des espaces ou des lignes.",
+      },
+    ],
+    [
+      new InvalidSignUpSettingError("termsUrl"),
+      {
+        en: "The terms link is an https:// address without a user name, 500 characters at most, or empty.",
+        pt: "O link dos termos é um endereço https:// sem nome de usuário, com no máximo 500 caracteres, ou vazio.",
+        fr: "Le lien des conditions est une adresse https:// sans nom d’utilisateur, d’au plus 500 caractères, ou vide.",
+      },
+    ],
+    [
+      new SignUpUnavailableError("mail"),
+      {
+        en: "Set up email first: people get a code by email to create an account.",
+        pt: "Configure o e-mail primeiro: as pessoas recebem um código por e-mail para criar uma conta.",
+        fr: "Configurez d’abord le courriel : les gens reçoivent un code par courriel pour créer un compte.",
+      },
+    ],
+    [
+      new SignUpUnavailableError("password"),
+      {
+        en: "Let everyone sign in with a password first: an account made here signs in with one.",
+        pt: "Permita primeiro que todos entrem com senha: uma conta criada aqui entra com uma.",
+        fr: "Permettez d’abord à tout le monde de se connecter avec un mot de passe : un compte créé ici se connecte avec un.",
+      },
+    ],
+    // 189: the Email tab's errors, a field's code worded by `InvalidMailSetupError`'s select.
     [
       new InvalidMailSetupError("contact"),
       {

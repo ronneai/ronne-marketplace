@@ -21,7 +21,10 @@ export const PURGE_BATCH = 1000;
 export type PurgeCounts = {
   /** IP addresses set to null, by table. */
   ipsCleared: { auditLog: number; sessions: number; deviceGrants: number };
-  /** `auth.sign_in_failed` events whose typed email was removed from the metadata. */
+  /**
+   * Events whose typed email was removed from the metadata: failed sign-ins, and self-registration's
+   * attempts, failed codes, sign-ups and declines (190).
+   */
   emailsCleared: number;
   sessionsDeleted: number;
   grantsDeleted: number;
@@ -33,7 +36,21 @@ export type PurgeCounts = {
   rateLimitsDeleted: number;
   /** Outbox rows older than the IP retention, whatever became of them, deleted (189). */
   mailDeleted: number;
+  /** Pending sign-ups, one-time codes and used challenges a day past their end, deleted (190). */
+  signUpsDeleted: number;
 };
+
+/**
+ * The audit events whose `email` is typed by someone who may never have an account, or no longer
+ * has one: kept only as long as IP addresses (102, 190).
+ */
+export const EMAIL_CLEARED_ACTIONS = [
+  "auth.sign_in_failed",
+  "auth.sign_up_requested",
+  "auth.sign_up_code_failed",
+  "user.signed_up",
+  "user.declined",
+] as const;
 
 export type PurgeOptions = {
   /** Count what a run would do and change nothing. */
@@ -132,7 +149,7 @@ const clearFailedSignInEmails = async (
     let query = q
       .selectFrom("audit_log")
       .select(["id", "metadata", "created_at"])
-      .where("action", "=", "auth.sign_in_failed")
+      .where("action", "in", EMAIL_CLEARED_ACTIONS)
       .where("created_at", "<", toDbDate(cutoff, dialect))
       .where("metadata", "like", '%"email":%');
     if (after)
@@ -466,6 +483,61 @@ const deleteOldMail = async (db: Db, dialect: DatabaseDialect, cutoff: Date, o: 
   );
 };
 
+/**
+ * Self-registration's short-lived rows (190): a pending sign-up, a one-time code or a used
+ * challenge, a day past its end. A day's grace so a code entered at its last minute still finds
+ * its row; nothing in them is of use after.
+ */
+const deleteEndedSignUps = async (db: Db, dialect: DatabaseDialect, now: Date, o: PurgeOptions) => {
+  const before = toDbDate(daysBefore(now, 1), dialect);
+  let total = 0;
+  for (const table of ["pending_sign_ups", "email_codes"] as const) {
+    const matching = (q: Db) => q.selectFrom(table).where("expires_at", "<", before);
+    if (o.dryRun) {
+      total += await count(matching(db).select((eb) => eb.fn.countAll().as("n")));
+      continue;
+    }
+    total += await inBatches(o, () =>
+      db.transaction().execute(async (trx) => {
+        const ids = (
+          await matching(trx)
+            .select("id")
+            .orderBy("expires_at")
+            .orderBy("id")
+            .limit(PURGE_BATCH)
+            .execute()
+        ).map((r) => r.id);
+        if (ids.length === 0) return 0;
+        const result = await trx.deleteFrom(table).where("id", "in", ids).executeTakeFirst();
+        return Number(result.numDeletedRows);
+      }),
+    );
+  }
+  const challenges = (q: Db) => q.selectFrom("challenges_used").where("expires_at", "<", before);
+  if (o.dryRun)
+    return total + (await count(challenges(db).select((eb) => eb.fn.countAll().as("n"))));
+  return (
+    total +
+    (await inBatches(o, () =>
+      db.transaction().execute(async (trx) => {
+        const keys = (
+          await challenges(trx)
+            .select("challenge_hmac")
+            .orderBy("expires_at")
+            .limit(PURGE_BATCH)
+            .execute()
+        ).map((r) => r.challenge_hmac);
+        if (keys.length === 0) return 0;
+        const result = await trx
+          .deleteFrom("challenges_used")
+          .where("challenge_hmac", "in", keys)
+          .executeTakeFirst();
+        return Number(result.numDeletedRows);
+      }),
+    ))
+  );
+};
+
 /** One purge at `now`, by `policy`. The rules run in the spec's order; each ends before the next. */
 export const runRetentionPurge = async (
   db: Db,
@@ -500,6 +572,7 @@ export const runRetentionPurge = async (
   );
   const rateLimitsDeleted = await rule((o) => deleteExpiredRateLimits(db, dialect, now, o));
   const mailDeleted = await rule((o) => deleteOldMail(db, dialect, cutoff.ip, o));
+  const signUpsDeleted = await rule((o) => deleteEndedSignUps(db, dialect, now, o));
   return {
     ipsCleared: { auditLog, sessions, deviceGrants },
     emailsCleared,
@@ -509,5 +582,6 @@ export const runRetentionPurge = async (
     notificationsDeleted,
     rateLimitsDeleted,
     mailDeleted,
+    signUpsDeleted,
   };
 };

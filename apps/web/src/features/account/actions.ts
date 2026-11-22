@@ -41,7 +41,7 @@ export const signOutFromMenu = serverAction(
     redirect(SIGN_IN_PATH);
   },
   // Someone held for two-factor (105) can still sign out.
-  { whileHeld: true, whilePasswordHeld: true },
+  { whileHeld: true, whilePasswordHeld: true, whileTermsHeld: true },
 );
 
 /**
@@ -66,5 +66,5 @@ export const setLanguageFromForm = serverAction(
     return { saved: result.locale ?? "automatic" };
   },
   // The language switch is open to someone who must replace their password first (128).
-  { whilePasswordHeld: true },
+  { whilePasswordHeld: true, whileTermsHeld: true },
 );

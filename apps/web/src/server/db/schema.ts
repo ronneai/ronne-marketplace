@@ -34,6 +34,10 @@ export interface UserTable {
   locale: string | null;
   /** When the person must replace the password root chose (migration 0036_password_change_required, feature 128); null asks nothing. */
   password_change_required_at: Timestamp | null;
+  /** Since when a self-registered account waits for a root's approval (migration 0046, feature 190); null when it doesn't. */
+  approval_pending_at: Timestamp | null;
+  /** When the person created the account themselves (migration 0046, feature 190); null for every other account. */
+  signed_up_at: Timestamp | null;
 }
 
 export interface SessionTable {
@@ -512,6 +516,49 @@ export interface PluginFeedTable {
   warned_revision: number | null;
 }
 
+/** A sign-up until its code is right (migration 0046, 190); nothing is in `user` before that. */
+export interface PendingSignUpTable {
+  id: string;
+  email: string;
+  name: string;
+  /** Null for an address that already has an account: the same answer, and no code that works. */
+  password_hash: string | null;
+  locale: string;
+  terms_version: string | null;
+  terms_accepted_at: Timestamp | null;
+  created_at: Timestamp;
+  expires_at: Timestamp;
+}
+
+/** A one-time code by email (migration 0046, 190; 194 and 197 too): only HMACs are kept. */
+export interface EmailCodeTable {
+  id: string;
+  /** `sign_up`, `password_reset` or `email_change`. */
+  purpose: string;
+  /** The pending sign-up or the user the code is for. */
+  subject_id: string;
+  email_hmac: string;
+  code_hmac: string;
+  attempts: Generated<number>;
+  created_at: Timestamp;
+  expires_at: Timestamp;
+  consumed_at: Timestamp | null;
+}
+
+/** A proof-of-work answer already taken (migration 0046, 190), kept until it would expire. */
+export interface ChallengeUsedTable {
+  challenge_hmac: string;
+  expires_at: Timestamp;
+}
+
+/** One acceptance of the terms (migration 0046, 190): never updated. */
+export interface TermsAcceptanceTable {
+  id: string;
+  user_id: string;
+  version: string;
+  accepted_at: Timestamp;
+}
+
 /** A queued, sent or failed email (migration 0045, 189). The body is sealed, and gone once done. */
 export interface MailOutboxTable {
   id: string;
@@ -754,6 +801,10 @@ export interface Database {
   jobs: JobTable;
   rate_limits: RateLimitTable;
   mail_outbox: MailOutboxTable;
+  pending_sign_ups: PendingSignUpTable;
+  email_codes: EmailCodeTable;
+  challenges_used: ChallengeUsedTable;
+  terms_acceptances: TermsAcceptanceTable;
   workspaces: WorkspaceTable;
   workspace_members: WorkspaceMemberTable;
   identity_providers: IdentityProviderTable;

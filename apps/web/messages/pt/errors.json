@@ -177,5 +177,8 @@
   "MailPlainSmtpError": "Sem TLS é só para um relay que o operador inclui em RONNE_MAIL_HOSTS, e nunca com nome de usuário e senha.",
   "MailNotSetUpError": "O e-mail não está configurado: escolha um transporte e salve primeiro.",
   "MailCredentialsUnreadableError": "Não é possível ler a credencial salva (um AUTH_SECRET antigo): digite-a de novo e salve.",
-  "MailTestLimitError": "No máximo {limit} e-mails de teste em 10 minutos: espere alguns minutos e tente de novo."
+  "MailTestLimitError": "No máximo {limit} e-mails de teste em 10 minutos: espere alguns minutos e tente de novo.",
+  "InvalidSignUpSettingError": "{field, select, domains {Liste cada domínio de e-mail uma vez, como acme.com, até 100, separados por vírgulas, espaços ou linhas.} codeMinutes {A validade do código é um número inteiro de minutos de 5 a 60.} termsUrl {O link dos termos é um endereço https:// sem nome de usuário, com no máximo 500 caracteres, ou vazio.} termsVersion {A versão dos termos tem de 1 a 64 caracteres numa só linha, como 2026-11.} other {Não é possível salvar este campo como foi digitado.}}",
+  "SignUpUnavailableError": "{reason, select, mail {Configure o e-mail primeiro: as pessoas recebem um código por e-mail para criar uma conta.} contact {Defina primeiro o contato da instância na aba E-mail: todo aviso diz a quem avisar.} password {Permita primeiro que todos entrem com senha: uma conta criada aqui entra com uma.} other {Ainda não é possível ativar o cadastro.}}",
+  "ApprovalAnsweredError": "{answer, select, approved {Esta conta já foi aprovada.} other {Esta conta já foi recusada e não existe mais.}}"
 }
