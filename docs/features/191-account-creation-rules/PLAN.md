@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Decision.**
+- [x] **1. Decision.**
   - MVP.md §14.3 and §15: a "Who may create accounts" row with option C, and 106's decisions it
     extends.
   - `docs/features/README.md` lists 191 in M32.
