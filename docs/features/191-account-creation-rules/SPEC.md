@@ -38,7 +38,8 @@ This feature gives root that place, with the rule the owner chose (option C, 202
   - **Creates accounts on first sign-in** (on or off).
   - **Allowed domains:** *Any domain* or *Only these domains*. This is 106's *Email domains this
     provider signs in*, renamed.
-  - **New accounts wait for root's approval** (190's mechanism).
+  - **New accounts wait for root's approval** (190's mechanism), only while email is set up
+    (Decision 8).
   - **Link existing accounts by verified email, in the allowed domains only** stays as 106 has it.
     It can't be turned on with *Any domain*: a provider could then claim any account on the
     instance. 192's authority rule is the only exception.
@@ -179,6 +180,12 @@ Also:
 7. **Throwaway domains blocked for every way in with *Any domain*** (owner, 2026-11-20). A
    provider that accepts any domain is as open as sign-up. A provider with an allow list is
    already narrower than the list.
+8. **A provider's approval needs email** (owner, 2026-11-22). A waiting person is told "We'll
+   email you", and a root's answer goes by email (190). *New accounts wait for root's approval*
+   can be turned on only while email is set up with an instance contact (189), as 190 asks of
+   sign-up's switch; the form says why it's unavailable. Once on, it stays on through other
+   edits. If email stops being set up later, the overview warns on that provider's row, and its
+   accounts still wait for a root.
 
 ## Open questions
 

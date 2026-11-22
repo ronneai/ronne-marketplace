@@ -42,7 +42,12 @@ const tokenPolicy = vi.hoisted(() => ({
 vi.mock("@/server/domains/identity/actions/token-policy", () => tokenPolicy);
 vi.mock("@/server/domains/identity/actions/identity-providers", () => ({
   providerRows: async () => [],
+  providerMailReady: async () => false,
 }));
+vi.mock("@/server/domains/settings/actions/account-rules", async () => {
+  const { DEFAULT_ACCOUNT_RULES } = await import("@/server/domains/settings/models/account-rules");
+  return { adminAccountRules: vi.fn(async () => DEFAULT_ACCOUNT_RULES) };
+});
 vi.mock("@/server/domains/identity/actions/password-policy", () => ({
   hasUsableProvider: async () => false,
   passwordUsersAffected: async () => 0,
@@ -427,6 +432,10 @@ describe("Sign-in methods with identity providers (106)", () => {
     presetLabel: "Okta",
     issuer: "https://idp.example",
     domains: enabled ? ["acme.com"] : [],
+    createsAccounts: true,
+    anyDomain: false,
+    needsApproval: false,
+    linkByEmail: true,
     status,
     enabled,
     lastSignedInAt: null,

@@ -77,6 +77,8 @@ describe("createUserFromForm", () => {
       password: undefined,
       // The box is part of the form: absent means unchecked (128).
       requireChange: false,
+      // Asked only for a blocked domain (191): absent means not confirmed.
+      confirmBlocked: false,
     });
     expect(state).toEqual({ oneTime: { email: "a@example.com", password: "Gen3rated" } });
     expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/users");

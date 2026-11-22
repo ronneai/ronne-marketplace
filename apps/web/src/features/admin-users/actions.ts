@@ -111,6 +111,7 @@ export const createUserFromForm = serverAction(
         role: text(form, "role"),
         password: chosenPassword(form),
         requireChange: form.get("requireChange") === "on",
+        confirmBlocked: form.get("confirmBlocked") === "on",
       });
       return { oneTime: { email: created.email, password: created.password } };
     }),

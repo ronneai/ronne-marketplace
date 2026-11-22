@@ -38,6 +38,10 @@ export type ProviderFormProps = {
   /** Add provider with this preset chosen (`&preset=`, from its card). */
   initialPreset?: string;
   steps: Record<string, InstructionStep[]>;
+  /** Email is set up: new accounts may then wait for approval (191, Decision 8). */
+  mailReady?: boolean;
+  /** The block list (191): a listed domain on it gets no accounts, which the form says. */
+  blockedDomains?: readonly string[];
 };
 
 const ROLES: readonly MappedRole[] = ["user", "moderator", "admin"];
@@ -120,6 +124,8 @@ export const ProviderForm = ({
   callbackBase,
   initialPreset,
   steps,
+  mailReady = false,
+  blockedDomains = [],
 }: ProviderFormProps) => {
   const t = useTranslations("admin.settings.providerForm");
   const roles = useTranslations("common.roles");
@@ -152,6 +158,27 @@ export const ProviderForm = ({
     })),
   );
   const fieldError = (key: string) => state.fields?.[key];
+  // Who it creates accounts for (191). A new provider creates accounts for its listed domains.
+  const [creates, setCreates] = useState(provider?.createsAccounts ?? true);
+  const [domainsMode, setDomainsMode] = useState<"any" | "list">(
+    provider?.anyDomain ? "any" : "list",
+  );
+  const [linkByEmail, setLinkByEmail] = useState(provider?.linkByEmail ?? true);
+  const [domainsText, setDomainsText] = useState(provider?.domains.join(", ") ?? "");
+  // The listed domains the block list keeps out (191): the block list always wins.
+  const blockedListed =
+    creates && domainsMode === "list"
+      ? [
+          ...new Set(
+            domainsText
+              .split(/[\s,]+/)
+              .map((d) => d.trim().toLowerCase().replace(/^@/, "").replace(/\.$/, ""))
+              .filter((d) => blockedDomains.includes(d)),
+          ),
+        ]
+      : [];
+  // Approval needs email (Decision 8): once on, it can stay on, so a save doesn't drop it.
+  const approvalLocked = !mailReady && !provider?.needsApproval;
 
   const setPiece = (key: string, value: string) => {
     const nextPieces = { ...pieces, [key]: value };
@@ -327,29 +354,93 @@ export const ProviderForm = ({
 
         <fieldset className="grid gap-3">
           <legend className="mb-1 text-sm font-semibold text-fg">{t("whoLegend")}</legend>
-          <div className="grid gap-1">
-            <Label htmlFor="provider-domains">{t("domains")}</Label>
+          <label className="flex items-start gap-2 text-sm text-fg">
+            <input
+              type="checkbox"
+              name="createsAccounts"
+              checked={creates}
+              onChange={(event) => setCreates(event.target.checked)}
+              className="mt-0.5 size-4 accent-(--accent)"
+            />
+            <span className="grid gap-0.5">
+              <span>{t("createsAccounts")}</span>
+              <span className="text-xs text-muted">{t("createsAccountsHint")}</span>
+            </span>
+          </label>
+          <div className="grid gap-2" role="radiogroup" aria-labelledby="provider-domains-legend">
+            <span id="provider-domains-legend" className="text-sm font-semibold text-fg">
+              {t("domains")}
+            </span>
+            {(["any", "list"] as const).map((value) => (
+              <label key={value} className="flex items-center gap-2 text-sm text-fg">
+                <input
+                  type="radio"
+                  name="domainsMode"
+                  value={value}
+                  checked={domainsMode === value}
+                  onChange={() => setDomainsMode(value)}
+                  className="size-4 accent-(--accent)"
+                />
+                {t(`domainsMode.${value}`)}
+              </label>
+            ))}
+          </div>
+          <div className="grid gap-1 pl-6">
+            <Label htmlFor="provider-domains">{t("domainsList")}</Label>
             <input
               id="provider-domains"
               name="domains"
               className={inputClasses}
               // biome-ignore lint/plugin: example domains, written the same in every language
               placeholder="example.com, example.org"
-              defaultValue={provider?.domains.join(", ") ?? ""}
+              value={domainsText}
+              onChange={(event) => setDomainsText(event.target.value)}
+              // Read-only, not disabled, with Any domain: the list is still posted and kept.
+              readOnly={domainsMode === "any"}
+              aria-disabled={domainsMode === "any" || undefined}
               aria-describedby="provider-domains-hint"
             />
             <p id="provider-domains-hint" className="text-xs text-muted">
-              {t("domainsHint")}
+              {domainsMode === "any" ? t("domainsAnyHint") : t("domainsHint")}
             </p>
+            {blockedListed.map((domain) => (
+              <Notice key={domain} kind="warn" title={t("blockedDomain", { domain })} />
+            ))}
           </div>
           <label className="flex items-start gap-2 text-sm text-fg">
             <input
               type="checkbox"
-              name="linkByEmail"
-              defaultChecked={provider?.linkByEmail ?? true}
+              name="needsApproval"
+              defaultChecked={provider?.needsApproval ?? false}
+              disabled={!creates || approvalLocked}
+              aria-describedby="provider-approval-hint"
               className="mt-0.5 size-4 accent-(--accent)"
             />
-            <span>{t("linkByEmail")}</span>
+            <span className="grid gap-0.5">
+              <span>{t("needsApproval")}</span>
+              <span id="provider-approval-hint" className="text-xs text-muted">
+                {approvalLocked ? t("needsApprovalNoMail") : t("needsApprovalHint")}
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-2 text-sm text-fg">
+            <input
+              type="checkbox"
+              name="linkByEmail"
+              checked={domainsMode === "list" && linkByEmail}
+              onChange={(event) => setLinkByEmail(event.target.checked)}
+              disabled={domainsMode === "any"}
+              aria-describedby="provider-link-hint"
+              className="mt-0.5 size-4 accent-(--accent)"
+            />
+            <span className="grid gap-0.5">
+              <span>{t("linkByEmail")}</span>
+              {domainsMode === "any" ? (
+                <span id="provider-link-hint" className="text-xs text-muted">
+                  {t("linkByEmailAny")}
+                </span>
+              ) : null}
+            </span>
           </label>
         </fieldset>
 

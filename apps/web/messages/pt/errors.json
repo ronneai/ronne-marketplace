@@ -180,5 +180,11 @@
   "MailTestLimitError": "No máximo {limit} e-mails de teste em 10 minutos: espere alguns minutos e tente de novo.",
   "InvalidSignUpSettingError": "{field, select, domains {Liste cada domínio de e-mail uma vez, como acme.com, até 100, separados por vírgulas, espaços ou linhas.} codeMinutes {A validade do código é um número inteiro de minutos de 5 a 60.} termsUrl {O link dos termos é um endereço https:// sem nome de usuário, com no máximo 500 caracteres, ou vazio.} termsVersion {A versão dos termos tem de 1 a 64 caracteres numa só linha, como 2026-11.} other {Não é possível salvar este campo como foi digitado.}}",
   "SignUpUnavailableError": "{reason, select, mail {Configure o e-mail primeiro: as pessoas recebem um código por e-mail para criar uma conta.} contact {Defina primeiro o contato da instância na aba E-mail: todo aviso diz a quem avisar.} password {Permita primeiro que todos entrem com senha: uma conta criada aqui entra com uma.} other {Ainda não é possível ativar o cadastro.}}",
-  "ApprovalAnsweredError": "{answer, select, approved {Esta conta já foi aprovada.} other {Esta conta já foi recusada e não existe mais.}}"
+  "ApprovalAnsweredError": "{answer, select, approved {Esta conta já foi aprovada.} other {Esta conta já foi recusada e não existe mais.}}",
+  "InvalidBlockedDomainError": "\"{domain}\" não é um domínio de e-mail. Escreva domínios como example.com, em ASCII simples (um internacionalizado como xn--…), separados por vírgulas ou linhas.",
+  "ProviderApprovalNeedsMailError": "Configure primeiro o e-mail com o contato da instância: o dono de uma conta aguardando aprovação recebe a resposta do root por e-mail.",
+  "ProviderDomainsRequiredError": "Liste pelo menos um domínio para o qual este provedor cria contas, ou escolha Qualquer domínio.",
+  "StaleAccountRulesError": "Alguém salvou estas regras depois que você as abriu. Recarregue para ver as dessa pessoa e salve de novo.",
+  "TooManyBlockedDomainsError": "A lista de bloqueio comporta no máximo {limit} domínios.",
+  "BlockedDomainNotConfirmedError": "{domain} está na lista de bloqueio. Marque Criar mesmo assim para criar a conta."
 }

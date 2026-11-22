@@ -304,3 +304,31 @@ export class SignUpUnavailableError extends SettingsError {
     );
   }
 }
+
+/** A block list entry that isn't a domain (191): it names the first, as typed. */
+export class InvalidBlockedDomainError extends SettingsError {
+  override readonly name: string = "InvalidBlockedDomainError";
+  constructor(readonly domain: string) {
+    super(
+      `"${domain}" isn't an email domain. Write domains like example.com, in plain ASCII (an internationalised one as xn--…), separated by commas or lines.`,
+    );
+  }
+}
+
+/** More domains on the block list than it keeps (191). */
+export class TooManyBlockedDomainsError extends SettingsError {
+  override readonly name: string = "TooManyBlockedDomainsError";
+  constructor(readonly limit: number) {
+    super(`The block list holds at most ${limit} domains.`);
+  }
+}
+
+/** The rules were saved by someone else since the form was opened (191): nothing is saved. */
+export class StaleAccountRulesError extends SettingsError {
+  override readonly name: string = "StaleAccountRulesError";
+  constructor() {
+    super(
+      "Someone saved these rules since you opened them. Reload to see theirs, then save again.",
+    );
+  }
+}

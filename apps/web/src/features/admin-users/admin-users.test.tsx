@@ -5,7 +5,10 @@ import type { UserSummary } from "@/server/domains/identity/models/user";
 import { checkedUsersState, USERS_LIST, usersQueryOf } from "./list";
 
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn(), PATH_HEADER: "x-ronne-path" }));
-const admin = vi.hoisted(() => ({ adminListUsers: vi.fn() }));
+const admin = vi.hoisted(() => ({
+  adminListUsers: vi.fn(),
+  blockedDomainsForCreate: vi.fn(async () => []),
+}));
 vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("@/server/domains/identity/actions/user-admin", () => admin);
 // The page lists every workspace for the Workspaces dialog (092).

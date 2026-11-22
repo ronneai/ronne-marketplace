@@ -6,7 +6,6 @@ export const signUpInputFrom = (form: FormData): SignUpInput => ({
   domainsMode: form.get("domainsMode"),
   domains: form.get("domains") ?? "",
   approval: form.get("approval") === "on",
-  blockThrowaway: form.get("blockThrowaway") === "on",
   codeMinutes: form.get("codeMinutes") ?? "",
   challenge: form.get("challenge") === "on",
   termsUrl: form.get("termsUrl") ?? "",

@@ -4,7 +4,10 @@ import { CreateUserDialog } from "@/features/admin-users/CreateUserDialog";
 import { checkedUsersState, USERS_LIST, usersQueryOf } from "@/features/admin-users/list";
 import { UsersPage } from "@/features/admin-users/UsersPage";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
-import { adminListUsers } from "@/server/domains/identity/actions/user-admin";
+import {
+  adminListUsers,
+  blockedDomainsForCreate,
+} from "@/server/domains/identity/actions/user-admin";
 import { can } from "@/server/domains/identity/models/permissions";
 import { requestHeaders } from "@/server/http/request-headers";
 import { holdPage } from "../../hold";
@@ -23,14 +26,17 @@ const Users = async ({ searchParams }: { searchParams: Promise<SearchParams> }) 
   if (!me || !can(me, "users.view")) notFound();
 
   const state = checkedUsersState(parseListQuery(USERS_LIST, await searchParams));
-  const { users, next, previous, total } = await adminListUsers(request, usersQueryOf(state));
+  const [{ users, next, previous, total }, blockedDomains] = await Promise.all([
+    adminListUsers(request, usersQueryOf(state)),
+    blockedDomainsForCreate(request),
+  ]);
   return (
     <UsersPage
       state={state}
       users={users}
       page={{ next, previous }}
       total={total}
-      toolbar={<CreateUserDialog />}
+      toolbar={<CreateUserDialog blockedDomains={blockedDomains} />}
     />
   );
 };

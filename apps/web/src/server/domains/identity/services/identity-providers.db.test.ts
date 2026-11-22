@@ -12,6 +12,8 @@ import {
   InvalidProviderDomainsError,
   InvalidProviderIdError,
   InvalidProviderNameError,
+  ProviderApprovalNeedsMailError,
+  ProviderDomainsRequiredError,
   ProviderIdTakenError,
   ProviderNotFoundError,
   ProviderNotTestedError,
@@ -656,5 +658,99 @@ describe("the client secret", () => {
       vi.restoreAllMocks();
       setLoggerForTests();
     }
+  });
+});
+
+describe("who a provider creates accounts for (191)", () => {
+  const rules = (overrides: Partial<ProviderInput> = {}) =>
+    input({ createsAccounts: true, domainsMode: "list", needsApproval: false, ...overrides });
+
+  it("saves creates accounts, any domain and approval, and names each change in the audit", async () => {
+    const withMail = { ...deps, mailReady: async () => true };
+    const created = await createProvider(withMail, actor(), "acme", rules());
+    expect(created).toMatchObject({
+      createsAccounts: true,
+      anyDomain: false,
+      needsApproval: false,
+    });
+    tick();
+    const updated = await updateProvider(
+      withMail,
+      actor(),
+      "acme",
+      rules({ domainsMode: "any", needsApproval: true, linkByEmail: false }),
+      created.updatedAt,
+    );
+    expect(updated).toMatchObject({
+      createsAccounts: true,
+      anyDomain: true,
+      needsApproval: true,
+      // The list is kept, unused while it takes any domain.
+      domains: ["acme.com", "example.org"],
+    });
+    expect((await events()).at(-1)).toMatchObject({
+      action: "instance.auth_provider_updated",
+      // The form's helper retypes the secret too.
+      changed: expect.arrayContaining(["link by email", "any domain", "approval"]),
+    });
+  });
+
+  it("never links by email with any domain, whatever the form sent (Decision 4)", async () => {
+    const created = await createProvider(
+      deps,
+      actor(),
+      "acme",
+      rules({ domainsMode: "any", linkByEmail: true }),
+    );
+    expect(created).toMatchObject({ anyDomain: true, linkByEmail: false });
+  });
+
+  it("creating for listed domains needs one listed; not creating needs none", async () => {
+    await expect(createProvider(deps, actor(), "acme", rules({ domains: "  " }))).rejects.toThrow(
+      ProviderDomainsRequiredError,
+    );
+    expect(
+      await createProvider(deps, actor(), "acme", rules({ createsAccounts: false, domains: "" })),
+    ).toMatchObject({ createsAccounts: false, needsApproval: false });
+  });
+
+  it("approval turns on only while email is set up; once on, other edits keep it (Decision 8)", async () => {
+    await expect(
+      createProvider(deps, actor(), "acme", rules({ needsApproval: true })),
+    ).rejects.toThrow(ProviderApprovalNeedsMailError);
+    await expect(
+      createProvider(
+        { ...deps, mailReady: async () => false },
+        actor(),
+        "acme",
+        rules({ needsApproval: true }),
+      ),
+    ).rejects.toThrow(ProviderApprovalNeedsMailError);
+    const created = await createProvider(
+      { ...deps, mailReady: async () => true },
+      actor(),
+      "acme",
+      rules({ needsApproval: true }),
+    );
+    tick();
+    // Email gone since: the name can still change, and approval stays on.
+    const renamed = await updateProvider(
+      deps,
+      actor(),
+      "acme",
+      rules({ name: "Acme", needsApproval: true }),
+      created.updatedAt,
+    );
+    expect(renamed).toMatchObject({ name: "Acme", needsApproval: true });
+  });
+
+  it("approval is off while it doesn't create accounts", async () => {
+    const created = await createProvider(
+      { ...deps, mailReady: async () => true },
+      actor(),
+      "acme",
+      rules({ createsAccounts: false, needsApproval: true }),
+    );
+    expect(created.needsApproval).toBe(false);
   });
 });

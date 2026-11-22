@@ -46,10 +46,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* db tests cover a blocked domain at request time and one blocked while a code is
     pending.
 
-- [ ] **5. The panel and the provider form.**
+- [x] **5. The panel and the provider form.**
   - The Who may create accounts panel: the block list with the stale check, the throwaway setting
     (moved from 190's panel), and the overview with its warnings.
-  - The provider form's step 3: the new fields, link by email disabled with *Any domain*.
+  - The provider form's step 3: the new fields, link by email disabled with *Any domain*, approval
+    only while email is set up (Decision 8).
   - Create user's warning for a blocked domain.
   - Audit events.
   - *Done when:* component tests cover the overview, the warnings and the form's rules, and action
@@ -77,7 +78,8 @@ goes into `SPEC.md` instead.
   whatever its stored `link_by_email` says, so no stored row can trust a provider for every account.
 - **Task 3:** a provider's waiting account is told "We'll email you" (190's words), and the approval
   and decline emails name the provider instead of a password. Those emails only leave while email
-  is set up (189): **task 5** should allow *New accounts wait for root's approval* on a provider only
-  while email is set up, as 190 does for sign-up, or say on the form that nobody will be told.
+  is set up (189): the owner chose (2026-11-22, SPEC Decision 8) that **task 5** allows *New
+  accounts wait for root's approval* on a provider only while email is set up, as 190 does for
+  sign-up.
 - **Task 3:** a `creates_accounts` never written (null: a row the migration hasn't reached, or one
   written outside the app) reads as 106's rule, creating while the provider lists domains.

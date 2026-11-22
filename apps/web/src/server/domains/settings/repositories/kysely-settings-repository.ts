@@ -1,5 +1,6 @@
 import type { Kysely } from "kysely";
 import { fromDbDate, toDbDate } from "../../../db/dates";
+import { isUniqueViolation } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import { upsert } from "../../../db/upsert";
 import type { DatabaseDialect } from "../../../db/url";
@@ -30,6 +31,30 @@ export const kyselySettingsRepository = (
       ["key"],
       ["value", "updated_by", "updated_at"],
     ).execute();
+  },
+
+  async compareAndSet(key, expected, value, updatedBy, at) {
+    const row = { value, updated_by: updatedBy, updated_at: toDbDate(at, dialect) };
+    if (expected === null) {
+      try {
+        await db
+          .insertInto("instance_settings")
+          .values({ key, ...row })
+          .execute();
+        return true;
+      } catch (error) {
+        // Another save made the row first: this one is stale.
+        if (isUniqueViolation(error)) return false;
+        throw error;
+      }
+    }
+    const result = await db
+      .updateTable("instance_settings")
+      .set(row)
+      .where("key", "=", key)
+      .where("value", "=", expected)
+      .executeTakeFirst();
+    return Number(result.numUpdatedRows) === 1;
   },
 
   async nameOf(userId) {

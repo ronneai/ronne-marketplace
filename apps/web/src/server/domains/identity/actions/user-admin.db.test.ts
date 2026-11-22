@@ -5,7 +5,9 @@ import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents, recordAudit } from "../../audit/actions/audit";
 import type { AuditMetadata } from "../../audit/models/audit-event";
+import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
 import {
+  BlockedDomainNotConfirmedError,
   CannotModifySelfError,
   EmailTakenError,
   ForbiddenError,
@@ -181,6 +183,31 @@ describe("createUser", () => {
       { email: "r@example.com", created_via: "root" },
       { email: "u@example.com", created_via: "root" },
     ]);
+  });
+
+  it("asks before an address in a blocked domain, then creates it, the audit saying so (191)", async () => {
+    await kyselySettingsRepository(t.db, t.dialect).set(
+      "blocked_domains",
+      '["acme.org"]',
+      null,
+      new Date(),
+    );
+    await expect(
+      adminCreateUser(asRoot, { email: "sam@ACME.org", name: "Sam", role: "user" }, app),
+    ).rejects.toThrow(new BlockedDomainNotConfirmedError("acme.org"));
+    expect(await events("user.created")).toHaveLength(0);
+    await adminCreateUser(
+      asRoot,
+      { email: "sam@acme.org", name: "Sam", role: "user", confirmBlocked: true },
+      app,
+    );
+    expect((await events("user.created"))[0]?.metadata).toMatchObject({
+      email: "sam@acme.org",
+      blockedDomain: true,
+    });
+    // Another domain asks nothing, nor one delivery can't read (root's to make, as before 191).
+    await adminCreateUser(asRoot, { email: "bo@acme.com", name: "Bo", role: "user" }, app);
+    await adminCreateUser(asRoot, { email: "ip@[1.2.3.4]", name: "Ip", role: "user" }, app);
   });
 
   it("refuses a duplicate email in any case, and unknown roles, recording nothing", async () => {

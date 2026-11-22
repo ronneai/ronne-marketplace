@@ -271,3 +271,60 @@ Witnessed: 2026-11-22 12:23 EST, by a fresh agent (adversarial). Commit: 7394237
 | 11 | `sign-up.db.test.ts` passes on all four databases | no | confirmed | 32 passed on each |
 
 **Overall:** met. Remark: no test covers either form action's cookie.
+
+## Task 5 — The panel and the provider form
+
+Witnessed: 2026-11-22 12:43 EST, by a fresh agent (blind). Commit: 5f8a1f0f + working-tree diff and the 4 untracked paths. Machine: macOS (Darwin 27.2), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The panel saves the block list, root only, entries normalised, at most 1,000 | no | confirmed | 15 task files → 286 passed; 3 db files → 92 passed on each server; `AuthenticationTab.tsx:110` |
+| 2 | Audited `settings.account_rules_changed` with before and after; no change, no audit; the sentence in en, pt, fr | no | confirmed | removing `recordAudit` → 4 db tests fail; probe `probe-191-t5.sentences.test.ts` |
+| 3 | Stale check (edge case 14): an older form refused, and of two saves at once one lands | no | confirmed | the stale mutation → 2 fail; probe `probe-191-t5.db.test.ts` on all four databases |
+| 4 | The db tests cover two saves at once past the first save | no | partly | only from version 0 (the insert path); removing `value = expected` passes every shipped test |
+| 5 | The throwaway setting moved; a sign-up save keeps it | no | confirmed | `SignUpForm.tsx`, `sign-up-input.ts`, `sign-up.ts:131`; probe `probe-191-t5-throwaway.db.test.ts` |
+| 6 | A test shows a sign-up save keeps the throwaway setting | no | partly | `on(input.blockThrowaway)` in `sign-up.ts` passes every test |
+| 7 | One row per way in, the columns, each row's link, the block list above the table | no | confirmed | `overview.ts:36-70`, `AccountRulesPanel.tsx`; `account-rules.test.tsx` 7 passed |
+| 8 | A listed domain on the block list warns in the overview | no | confirmed | the `includes` mutation → 2 component tests fail |
+| 9 | The overview warns about approval without email (Decision 8) | no | confirmed | `overview.ts:68`; component test |
+| 10 | Step 3's new fields, posted and saved, audited by field name | no | confirmed | `ProviderForm.tsx`, `providers/actions.ts:61-64`; providers.test 32 passed; the db test on all four |
+| 11 | No link by email with *Any domain* (edge case 11, Decision 4): disabled with why, forced off | no | confirmed | form and service mutations each fail a test |
+| 12 | Approval only while email is set up, with why; once on it stays (Decision 8) | no | confirmed | form and service mutations each fail a test |
+| 13 | The provider form warns about a listed domain on the block list (edge case 10) | no | not met | no block list on `ProviderPage`, no message for it |
+| 14 | Create user warns for a blocked domain and needs a confirm; the audit records it | no | partly | ASCII works; `sam@bücher.example` with `xn--bcher-kva.example` blocked: the server refuses it unconfirmed, the dialog shows no box |
+| 15 | Every new screen string in en, pt, fr | no | confirmed | 40 admin and 7 errors keys, none missing or an English copy |
+
+**Overall:** not met (rows 4, 6, 13, 14).
+
+Fixes after the pass:
+- The provider form gets the block list (`ProviderPage.blockedDomains`) and warns under the allowed domains, as typed, for each listed domain on it, while it creates accounts for its list ("acme.org is on the block list, so this provider can't create accounts for it.", in three languages). Test in `providers.test.tsx`.
+- Create user reads the typed domain through the URL parser's IDNA, as the server reads it (`typedDomain`), so `sam@bücher.example` shows *Create anyway*. Test in `create-user-blocked.test.tsx`.
+- `account-rules.db.test.ts`: three rounds of two saves at once after the first save; removing `value = expected` fails it on PostgreSQL.
+- `settings/services/sign-up.db.test.ts`: the panel saves throwaway off then on, and a sign-up save without the field keeps each; `on(input.blockThrowaway)` fails it.
+- The two settings db files: 19 passed on SQLite, PostgreSQL, MySQL and MariaDB.
+
+### Re-check 1
+
+Witnessed: 2026-11-22 12:55 EST, by a fresh agent (blind). Commit: 5f8a1f0f + working tree. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | The db tests catch a broken stale check for two saves at once past the first save | no | confirmed | dropping `value = expected` → "lets only one of two saves land after the first save too" fails on PostgreSQL, MySQL, MariaDB (SQLite runs the saves one after the other) |
+| 6 | A test catches a sign-up save switching the throwaway setting | no | confirmed | `on(input.blockThrowaway)` → the sign-up db test fails |
+| 13 | The provider form warns about a listed blocked domain, only while it creates for its list | no | confirmed | `ProviderForm.tsx` `blockedListed`; two mutations each fail the test |
+| 14 | *Create anyway* appears for an internationalised blocked domain; the server and the dialog read the domain alike | no | partly | IDNA forms agree (probe `probe-parity.test.tsx`); but `sam@[1.2.3.4]`, with nothing blocked, is refused by the server (an empty domain counts as blocked) and the dialog shows no box |
+| 15 | The touched files pass on SQLite and the three servers | no | confirmed | 2 db files 19 passed on each; 2 component files 35 passed |
+
+**Overall:** not met (row 14).
+
+Fix after the pass: Create user asks only for a domain that's on the list (`domain !== ""` and listed), not by the sign-ins' `isDomainBlocked`, which refuses an unreadable domain; an address like `ip@[1.2.3.4]` is root's to make, as before 191. `user-admin.db.test.ts` creates one with no confirmation; 54 passed on SQLite, PostgreSQL, MySQL and MariaDB.
+
+### Re-check 2
+
+Witnessed: 2026-11-22 12:57 EST, by a fresh agent (blind). Commit: 5f8a1f0f + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 14 | *Create anyway* appears whenever the server would ask, and the server asks only for a listed domain | yes | confirmed | `services/user-admin.ts:217-220`; probe `probe-ip-literal.db.test.ts`: `sam@[1.2.3.4]` created without asking; `sam@bücher.example`, `sam@XN--BCHER-KVA.example`, `sam@acme.org.` ask; probe `probe-parity.test.tsx`: 16 inputs, no case where the server asks and the dialog hides the box; restoring `isDomainBlocked` fails the test; `user-admin.db.test.ts` 53 passed (1 skipped) on SQLite, 54 on each server |
+
+**Overall:** met. Remark: for `sam@acme.org:80` with `acme.org` blocked, the dialog shows the box though the server can't read the domain and doesn't ask: the safe way round.

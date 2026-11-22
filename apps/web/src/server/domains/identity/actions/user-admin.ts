@@ -1,4 +1,7 @@
+import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
+import { readAccountRules } from "../../settings/services/account-rules";
 import { clientIp } from "../models/client-ip";
+import { requirePermission } from "../models/permissions";
 import { argon2PasswordHasher } from "../repositories/argon2-password-hasher";
 import { type AppAuth, getAppAuth } from "../repositories/auth-instance";
 import type { UserPageQuery } from "../repositories/identity-repository";
@@ -14,7 +17,21 @@ export type { NewUserInput, UserDetail, UsersPage } from "../services/user-admin
  * wire the dependencies. The services check the permission. `app` defaults to the running server.
  */
 const deps = ({ db, dialect }: AppAuth): service.UserAdminDeps => {
-  return { repo: kyselyIdentityRepository(db, dialect), hasher: argon2PasswordHasher };
+  return {
+    repo: kyselyIdentityRepository(db, dialect),
+    hasher: argon2PasswordHasher,
+    accountRules: () => readAccountRules(kyselySettingsRepository(db, dialect)),
+  };
+};
+
+/** The block list, for Create user's warning (191): root only. */
+export const blockedDomainsForCreate = async (
+  headers: Headers,
+  app: AppAuth = getAppAuth(),
+): Promise<string[]> => {
+  requirePermission(await getCurrentUser(headers, app), "users.manage");
+  const rules = await readAccountRules(kyselySettingsRepository(app.db, app.dialect));
+  return rules.damaged ? [] : rules.blockedDomains;
 };
 
 const actor = async (headers: Headers, app: AppAuth): Promise<service.Actor> => {

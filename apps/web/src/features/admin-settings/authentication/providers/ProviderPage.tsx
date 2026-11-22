@@ -87,6 +87,8 @@ export const ProviderPage = async ({
             callbackBase={data.callbackBase}
             initialPreset={preset}
             steps={data.steps}
+            mailReady={data.mailReady}
+            blockedDomains={data.blockedDomains}
           />
         </div>
       </Panel>

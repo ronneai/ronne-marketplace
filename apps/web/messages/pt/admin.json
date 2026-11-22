@@ -104,7 +104,10 @@
       "rootTitle": "O root pode tudo.",
       "rootBody": "Gerenciar usuários (inclusive outros roots), escopos, configurações e o registro de auditoria, e aprovar as próprias submissões.",
       "cancel": "Cancelar",
-      "done": "Concluir"
+      "done": "Concluir",
+      "blockedTitle": "{domain} está na lista de bloqueio. Criar mesmo assim?",
+      "blockedBody": "Ninguém nesse domínio pode se cadastrar ou ganhar uma conta por um provedor. As contas que você cria não seguem essas regras.",
+      "blockedConfirm": "Criar mesmo assim"
     },
     "password": {
       "legend": "Senha",
@@ -770,6 +773,13 @@
           "askAgain": "todos aceitam de novo a versão {version}",
           "nothing": "nada"
         },
+        "accountRules": {
+          "blocked": "bloqueou {list}",
+          "unblocked": "desbloqueou {list}",
+          "throwawayOn": "domínios descartáveis bloqueados",
+          "throwawayOff": "domínios descartáveis permitidos",
+          "nothing": "nada"
+        },
         "signUpOutcomes": {
           "sent": "um código foi enviado",
           "existing": "ele já tem conta, então o dono foi avisado",
@@ -931,7 +941,8 @@
           "update_check": "Alterou a verificação de atualizações: {state, select, on {ativada} off {desativada} other {alterada}}",
           "languages": "Alterou os idiomas: {changes}",
           "mail": "Alterou o envio de e-mail: {changes}",
-          "sign_up_changed": "Alterou o cadastro de contas: {changes}"
+          "sign_up_changed": "Alterou o cadastro de contas: {changes}",
+          "account_rules_changed": "Alterou quem pode criar contas: {changes}"
         },
         "mail": {
           "test_sent": "Enviou um e-mail de teste{result, select, sent {, aceito pelo provedor} retry {, que ainda não foi ({reason})} failed {, que falhou ({reason})} other {}}"
@@ -1098,9 +1109,22 @@
       "scopes": "Escopos",
       "scopesHint": "O openid é sempre pedido.{groupsScope, select, none {} other { Adicione {groupsScope} ao mapear grupos.}}",
       "whoLegend": "Quem pode entrar",
-      "domains": "Domínios de e-mail que este provedor deixa entrar",
-      "domainsHint": "Um endereço novo nesses domínios ganha uma conta no primeiro acesso; uma conta existente com um deles é vinculada se a caixa abaixo estiver marcada. Vazio: só entram as contas já vinculadas.",
-      "linkByEmail": "Vincular contas existentes por e-mail verificado, só nesses domínios",
+      "domains": "Domínios permitidos",
+      "domainsHint": "Um endereço novo nesses domínios ganha uma conta no primeiro acesso, e uma conta existente em um deles é vinculada se a caixa abaixo estiver marcada. Comparados exatamente.",
+      "domainsList": "Só estes domínios",
+      "domainsAnyHint": "Qualquer domínio que a lista de bloqueio permita. Domínios descartáveis são recusados enquanto Quem pode criar contas os bloqueia.",
+      "blockedDomain": "{domain} está na lista de bloqueio, então este provedor não pode criar contas nele.",
+      "domainsMode": {
+        "any": "Qualquer domínio",
+        "list": "Só estes domínios"
+      },
+      "createsAccounts": "Cria contas no primeiro acesso",
+      "createsAccountsHint": "Desligado, só entram contas já vinculadas, ou vinculadas por e-mail abaixo.",
+      "needsApproval": "Novas contas aguardam a aprovação de um root",
+      "needsApprovalHint": "A pessoa é avisada de que a conta aguarda e recebe a resposta do root por e-mail. Os grupos valem depois da aprovação.",
+      "needsApprovalNoMail": "Configure primeiro o e-mail com o contato da instância: o dono de uma conta aguardando aprovação recebe a resposta do root por e-mail.",
+      "linkByEmail": "Vincular contas existentes por e-mail verificado, só nos domínios permitidos",
+      "linkByEmailAny": "Desligado com Qualquer domínio: um provedor confiável para todo domínio poderia tomar qualquer conta, inclusive a do root.",
       "groupsLegend": "Grupos",
       "groupsClaim": "Claim de grupos",
       "warnTitle": "O espaço de trabalho de um grupo foi excluído.",
@@ -1531,6 +1555,43 @@
         "done": "Envio de e-mails parado. {count, plural, =0 {Nada aguardava.} one {# mensagem que aguardava foi descartada.} other {# mensagens que aguardavam foram descartadas.}}"
       }
     },
+    "accountRules": {
+      "title": "Quem pode criar contas",
+      "intro": "Toda forma de criar uma conta obedece primeiro à lista de bloqueio, depois às suas próprias configurações. Contas que já existem continuam entrando.",
+      "formLabel": "Lista de bloqueio",
+      "blockedLabel": "Domínios de e-mail bloqueados",
+      "blockedHint": "Um por linha ou separados por vírgulas, como example.com. Comparados exatamente: example.com não bloqueia eu.example.com. Escreva um domínio internacionalizado como xn--….",
+      "throwaway": "Bloquear também domínios de e-mail descartáveis",
+      "throwawayHint": "Para toda forma de entrar que aceita qualquer domínio: endereços de serviços de e-mail descartável da lista que acompanha o Ronne são recusados.",
+      "save": "Salvar",
+      "staleHint": "Recarregue a página para ver o que está salvo agora.",
+      "done": {
+        "saved": "Quem pode criar contas foi salvo.",
+        "unchanged": "Nada mudou."
+      },
+      "damaged": {
+        "title": "Não foi possível ler a lista de bloqueio salva",
+        "body": "Nenhuma conta pode ser criada até você salvar a lista de novo."
+      },
+      "overviewTitle": "Formas de entrar",
+      "columns": {
+        "way": "Forma de entrar",
+        "on": "Ativa",
+        "creates": "Cria contas",
+        "domains": "Domínios permitidos",
+        "approval": "Aprovação",
+        "link": "Vincula por e-mail"
+      },
+      "signUp": "Cadastro por e-mail",
+      "anyDomain": "Qualquer domínio",
+      "noDomains": "Nenhum",
+      "yes": "Sim",
+      "no": "Não",
+      "warnings": {
+        "blocked": "{domain} está bloqueado, então {way} não pode criar contas nele.",
+        "approvalWithoutMail": "{way} faz novas contas aguardarem aprovação, mas o e-mail não está configurado: ninguém receberá a resposta do root."
+      }
+    },
     "signUp": {
       "title": "Cadastro de contas",
       "intro": "Se as pessoas podem criar a própria conta aqui, com um código enviado para o endereço de e-mail delas. Fica desativado até você ativá-lo.",
@@ -1555,8 +1616,7 @@
         "listLabel": "Domínios",
         "listHint": "Separados por vírgulas, espaços ou linhas, como acme.com. Cada um corresponde exatamente: acme.com não inclui eu.acme.com."
       },
-      "throwaway": "Bloquear também domínios de e-mail descartáveis",
-      "throwawayHint": "Endereços de serviços de e-mail descartável da lista que acompanha o Ronne são recusados.",
+      "throwawayMoved": "Domínios de e-mail descartáveis são bloqueados ou permitidos em <link>Quem pode criar contas</link>, para todas as formas de entrar.",
       "approval": "Contas novas aguardam a aprovação de um root",
       "approvalHint": "Os roots são avisados, e a conta não consegue entrar até um deles aprová-la. Uma que fica aguardando por 30 dias é recusada.",
       "minutes": "Validade do código, em minutos",

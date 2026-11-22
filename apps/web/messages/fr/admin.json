@@ -104,7 +104,10 @@
       "rootTitle": "Root peut tout faire.",
       "rootBody": "Gérer les utilisateurs (les autres root aussi), les portées, les réglages et le journal d’audit, et approuver ses propres soumissions.",
       "cancel": "Annuler",
-      "done": "Terminé"
+      "done": "Terminé",
+      "blockedTitle": "{domain} est dans la liste de blocage. Créer quand même?",
+      "blockedBody": "Personne dans ce domaine ne peut s’inscrire ni obtenir un compte par un fournisseur. Les comptes que vous créez ne suivent pas ces règles.",
+      "blockedConfirm": "Créer quand même"
     },
     "password": {
       "legend": "Mot de passe",
@@ -770,6 +773,13 @@
           "askAgain": "tout le monde accepte de nouveau la version {version}",
           "nothing": "rien"
         },
+        "accountRules": {
+          "blocked": "a bloqué {list}",
+          "unblocked": "a débloqué {list}",
+          "throwawayOn": "domaines jetables bloqués",
+          "throwawayOff": "domaines jetables permis",
+          "nothing": "rien"
+        },
         "signUpOutcomes": {
           "sent": "un code a été envoyé",
           "existing": "elle a déjà un compte, donc son titulaire a été avisé",
@@ -931,7 +941,8 @@
           "update_check": "A modifié la vérification des mises à jour : {state, select, on {activée} off {désactivée} other {modifiée}}",
           "languages": "A modifié les langues : {changes}",
           "mail": "A modifié l’envoi de courriels : {changes}",
-          "sign_up_changed": "A modifié l’inscription : {changes}"
+          "sign_up_changed": "A modifié l’inscription : {changes}",
+          "account_rules_changed": "A modifié qui peut créer des comptes : {changes}"
         },
         "mail": {
           "test_sent": "A envoyé un courriel d’essai{result, select, sent {, accepté par le fournisseur} retry {, pas encore parti ({reason})} failed {, qui a échoué ({reason})} other {}}"
@@ -1098,9 +1109,22 @@
       "scopes": "Portées",
       "scopesHint": "openid est toujours demandé.{groupsScope, select, none {} other { Ajoutez {groupsScope} quand vous associez des groupes.}}",
       "whoLegend": "Qui peut se connecter",
-      "domains": "Domaines de courriel pris en charge par ce fournisseur",
-      "domainsHint": "Une nouvelle adresse de ces domaines obtient un compte à sa première connexion; un compte existant avec une telle adresse est lié si la case ci-dessous est cochée. Vide : seuls les comptes déjà liés se connectent.",
-      "linkByEmail": "Lier les comptes existants par courriel vérifié, dans ces domaines seulement",
+      "domains": "Domaines permis",
+      "domainsHint": "Une nouvelle adresse de ces domaines obtient un compte à sa première connexion, et un compte existant dans l’un d’eux est lié si la case ci-dessous est cochée. Comparés exactement.",
+      "domainsList": "Seulement ces domaines",
+      "domainsAnyHint": "N’importe quel domaine que la liste de blocage permet. Les domaines jetables sont refusés tant que Qui peut créer des comptes les bloque.",
+      "blockedDomain": "{domain} est dans la liste de blocage, donc ce fournisseur ne peut pas y créer de comptes.",
+      "domainsMode": {
+        "any": "N’importe quel domaine",
+        "list": "Seulement ces domaines"
+      },
+      "createsAccounts": "Crée des comptes à la première connexion",
+      "createsAccountsHint": "Désactivé, seuls les comptes déjà liés, ou liés par courriel ci-dessous, se connectent.",
+      "needsApproval": "Les nouveaux comptes attendent l’approbation d’un root",
+      "needsApprovalHint": "La personne est avisée que le compte attend et reçoit la réponse du root par courriel. Les groupes s’appliquent une fois le compte approuvé.",
+      "needsApprovalNoMail": "Configurez d’abord le courriel avec le contact de l’instance : le titulaire d’un compte en attente reçoit la réponse du root par courriel.",
+      "linkByEmail": "Lier les comptes existants par courriel vérifié, dans les domaines permis seulement",
+      "linkByEmailAny": "Désactivé avec N’importe quel domaine : un fournisseur fiable pour tous les domaines pourrait prendre n’importe quel compte, celui du root compris.",
       "groupsLegend": "Groupes",
       "groupsClaim": "Claim des groupes",
       "warnTitle": "L’espace de travail d’un groupe a été supprimé.",
@@ -1531,6 +1555,43 @@
         "done": "Envoi des courriels arrêté. {count, plural, =0 {Rien n’était en attente.} one {# message en attente a été abandonné.} other {# messages en attente ont été abandonnés.}}"
       }
     },
+    "accountRules": {
+      "title": "Qui peut créer des comptes",
+      "intro": "Chaque moyen de créer un compte obéit d’abord à la liste de blocage, puis à ses propres paramètres. Les comptes qui existent déjà continuent de se connecter.",
+      "formLabel": "Liste de blocage",
+      "blockedLabel": "Domaines de courriel bloqués",
+      "blockedHint": "Un par ligne ou séparés par des virgules, comme example.com. Comparés exactement : example.com ne bloque pas eu.example.com. Écrivez un domaine internationalisé sous la forme xn--….",
+      "throwaway": "Bloquer aussi les domaines de courriel jetables",
+      "throwawayHint": "Pour chaque moyen d’entrer qui accepte n’importe quel domaine : les adresses des services de courriel jetable de la liste fournie avec Ronne sont refusées.",
+      "save": "Enregistrer",
+      "staleHint": "Rechargez la page pour voir ce qui est enregistré maintenant.",
+      "done": {
+        "saved": "Qui peut créer des comptes est enregistré.",
+        "unchanged": "Rien n’a changé."
+      },
+      "damaged": {
+        "title": "La liste de blocage enregistrée n’a pas pu être lue",
+        "body": "Aucun compte ne peut être créé tant que vous n’enregistrez pas la liste de nouveau."
+      },
+      "overviewTitle": "Moyens d’entrer",
+      "columns": {
+        "way": "Moyen d’entrer",
+        "on": "Activé",
+        "creates": "Crée des comptes",
+        "domains": "Domaines permis",
+        "approval": "Approbation",
+        "link": "Lie par courriel"
+      },
+      "signUp": "Inscription par courriel",
+      "anyDomain": "N’importe quel domaine",
+      "noDomains": "Aucun",
+      "yes": "Oui",
+      "no": "Non",
+      "warnings": {
+        "blocked": "{domain} est bloqué, donc {way} ne peut pas y créer de comptes.",
+        "approvalWithoutMail": "{way} fait attendre l’approbation aux nouveaux comptes, mais le courriel n’est pas configuré : personne ne recevra la réponse du root."
+      }
+    },
     "signUp": {
       "title": "Inscription",
       "intro": "Si les gens peuvent créer leur propre compte ici, avec un code envoyé à leur adresse courriel. C’est désactivé jusqu’à ce que vous l’activiez.",
@@ -1555,8 +1616,7 @@
         "listLabel": "Domaines",
         "listHint": "Séparés par des virgules, des espaces ou des lignes, comme acme.com. Chacun correspond exactement : acme.com ne couvre pas eu.acme.com."
       },
-      "throwaway": "Bloquer aussi les domaines de courriel jetables",
-      "throwawayHint": "Les adresses des services de courriel jetable de la liste fournie avec Ronne sont refusées.",
+      "throwawayMoved": "Les domaines de courriel jetables sont bloqués ou permis dans <link>Qui peut créer des comptes</link>, pour tous les moyens d’entrer.",
       "approval": "Les nouveaux comptes attendent l’approbation d’un root",
       "approvalHint": "Les roots sont avisés, et le compte ne peut pas se connecter tant qu’un root ne l’a pas approuvé. Un compte qui attend 30 jours est refusé.",
       "minutes": "Validité du code, en minutes",
