@@ -10,7 +10,7 @@ describe("ciScope", () => {
       ciScope([
         "apps/web/src/features/catalogue/Catalogue.tsx",
         "apps/web/src/server/http/registry-api.ts",
-        "docs/features/095-workspaces-cli-api/PLAN.md",
+        "docs/features/cli-api/095-workspaces-cli-api/PLAN.md",
         "packages/repo-tools/src/witness.js",
       ]),
     ).toEqual(none);

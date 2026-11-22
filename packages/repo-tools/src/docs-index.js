@@ -1,9 +1,12 @@
 // Keeps the contributor documentation's lists complete (feature 187): CONTRIBUTING.md names every
 // script in the root package.json, every note in docs/knowledge/ is listed in its README, and every
 // file the README lists is a note. It reads only Markdown and package.json, so it runs like the
-// witness check, documentation-only changes included.
+// witness check, documentation-only changes included. The features' lists and the documentation's
+// links are checked in features-index.js (feature 199).
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { featureListProblems, linkProblems } from "./features-index.js";
 
 export const KNOWLEDGE_DIR = "docs/knowledge";
 
@@ -96,5 +99,19 @@ const contributingProblems = (root) => {
   return checkContributing(scripts, readFileSync(path, "utf8"));
 };
 
+/** The files git tracks or would track (not the ignored ones), that are still on disk. */
+const repositoryFiles = (root) =>
+  execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], {
+    cwd: root,
+    encoding: "utf8",
+  })
+    .split("\n")
+    .filter((file) => file !== "" && existsSync(join(root, file)));
+
 /** Every problem in the repository at `root`. */
-export const checkAll = (root) => [...contributingProblems(root), ...knowledgeProblems(root)];
+export const checkAll = (root) => [
+  ...contributingProblems(root),
+  ...knowledgeProblems(root),
+  ...featureListProblems(root),
+  ...linkProblems(root, repositoryFiles(root)),
+];

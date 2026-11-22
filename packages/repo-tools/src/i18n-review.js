@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Writes the messages for a native reader (feature 133): one Markdown file and one CSV per
-// namespace under docs/features/133-languages-signoff/review/ (git-ignored), English beside
+// namespace under docs/features/web-ui/133-languages-signoff/review/ (git-ignored), English beside
 // Portuguese and French, with the key and the screen it belongs to. Generated from the message
 // files, never edited by hand: a correction is made in the message file and this is run again.
 //
@@ -91,7 +91,7 @@ export const websitePages = (topics) =>
 const main = () => {
   const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
   const messages = join(root, "apps/web/messages");
-  const out = join(root, "docs/features/133-languages-signoff/review");
+  const out = join(root, "docs/features/web-ui/133-languages-signoff/review");
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
   const namespaces = readdirSync(join(messages, "en"))

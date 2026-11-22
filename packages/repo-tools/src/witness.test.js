@@ -33,7 +33,7 @@ const witness = (...sections) => `# 098 — Witness\n\n${sections.join("\n")}`;
 const plan = (...tasks) => `# 098 — Plan\n\n## Tasks\n\n${tasks.join("\n\n")}\n`;
 
 const feature = (planText, witnessText) =>
-  checkFeature({ id: 98, dir: "docs/features/098-x", plan: planText, witness: witnessText });
+  checkFeature({ id: 98, dir: "docs/features/review/098-x", plan: planText, witness: witnessText });
 
 describe("isChecked", () => {
   it.each([
@@ -125,7 +125,7 @@ describe("checkFeature", () => {
 
   it("fails a ticked task with no WITNESS.md", () => {
     expect(feature(plan("- [x] **1. One.**"), null)).toEqual([
-      "docs/features/098-x/PLAN.md:5: task 1 is ticked but there's no WITNESS.md",
+      "docs/features/review/098-x/PLAN.md:5: task 1 is ticked but there's no WITNESS.md",
     ]);
   });
 
@@ -136,7 +136,7 @@ describe("checkFeature", () => {
         witness(`## Task 1 — One\n\n${pass()}`),
       ),
     ).toEqual([
-      "docs/features/098-x/PLAN.md:7: task 2 is ticked but WITNESS.md has no pass for it",
+      "docs/features/review/098-x/PLAN.md:7: task 2 is ticked but WITNESS.md has no pass for it",
     ]);
   });
 
@@ -175,14 +175,44 @@ describe("checkFeature", () => {
 });
 
 describe("checkAll", () => {
-  it("checks features in scope and skips the legacy ones", () => {
+  const feature = (root, path, planText) => {
+    mkdirSync(join(root, "docs", "features", ...path.split("/")), { recursive: true });
+    writeFileSync(join(root, "docs", "features", ...path.split("/"), "PLAN.md"), planText);
+  };
+
+  it("checks features in scope under their domain and skips the legacy ones (199)", () => {
     const root = mkdtempSync(join(tmpdir(), "witness-"));
-    for (const name of ["097-old", "098-new"]) {
-      mkdirSync(join(root, "docs", "features", name), { recursive: true });
-      writeFileSync(join(root, "docs", "features", name, "PLAN.md"), plan("- [x] **1. One.**"));
-    }
+    feature(root, "items/097-old", plan("- [x] **1. One.**"));
+    feature(root, "review/098-new", plan("- [x] **1. One.**"));
+    mkdirSync(join(root, "docs", "features", "milestones"), { recursive: true });
+    mkdirSync(join(root, "docs", "features", "_template"), { recursive: true });
     expect(checkAll(root)).toEqual([
-      "docs/features/098-new/PLAN.md:5: task 1 is ticked but there's no WITNESS.md",
+      "docs/features/review/098-new/PLAN.md:5: task 1 is ticked but there's no WITNESS.md",
+    ]);
+  });
+
+  it("reads a domain whose name has digits (199)", () => {
+    const root = mkdtempSync(join(tmpdir(), "witness-"));
+    feature(root, "web2/098-new", plan("- [x] **1. One.**"));
+    expect(checkAll(root)).toEqual([
+      "docs/features/web2/098-new/PLAN.md:5: task 1 is ticked but there's no WITNESS.md",
+    ]);
+  });
+
+  it("refuses a feature folder left at the top of docs/features (199)", () => {
+    const root = mkdtempSync(join(tmpdir(), "witness-"));
+    feature(root, "098-loose", plan("- [ ] **1. One.**"));
+    expect(checkAll(root)).toEqual([
+      "docs/features/098-loose: a feature folder goes under its domain (docs/features/domains.json)",
+    ]);
+  });
+
+  it("refuses one ID in two folders (199)", () => {
+    const root = mkdtempSync(join(tmpdir(), "witness-"));
+    feature(root, "items/098-a", plan("- [ ] **1. One.**"));
+    feature(root, "review/098-b", plan("- [ ] **1. One.**"));
+    expect(checkAll(root)).toEqual([
+      "feature 098 has more than one folder: docs/features/items/098-a, docs/features/review/098-b",
     ]);
   });
 

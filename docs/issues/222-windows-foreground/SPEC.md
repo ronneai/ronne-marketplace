@@ -1,8 +1,8 @@
 # #222 — `rmk-server` runs on Windows again, in a terminal, without a service
 
 > GitHub: [#222](https://github.com/ronneai/ronne-marketplace/issues/222) · Feature:
-> [121](../../features/121-no-windows-server/SPEC.md) (partly reversed), with
-> [082](../../features/082-server-npm-package/SPEC.md)'s `rmk-server` · Reported on: 0.5.0
+> [121](../../features/install/121-no-windows-server/SPEC.md) (partly reversed), with
+> [082](../../features/install/082-server-npm-package/SPEC.md)'s `rmk-server` · Reported on: 0.5.0
 
 ## Report
 

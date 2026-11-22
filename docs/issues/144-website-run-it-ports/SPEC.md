@@ -1,6 +1,6 @@
 # #144 — The website's "Run it" uses port 7650 and gives the `npx` start
 
-> GitHub: [#144](https://github.com/ronneai/ronne-marketplace/issues/144) · Feature: [088](../../features/088-docs-on-website/SPEC.md) (the website, `../ronne-web`) · Reported on: 0.3.2 · The changes land in `../ronne-web`; this repository changes nothing.
+> GitHub: [#144](https://github.com/ronneai/ronne-marketplace/issues/144) · Feature: [088](../../features/web-ui/088-docs-on-website/SPEC.md) (the website, `../ronne-web`) · Reported on: 0.3.2 · The changes land in `../ronne-web`; this repository changes nothing.
 
 ## Report
 

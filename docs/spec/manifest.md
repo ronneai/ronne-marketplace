@@ -42,7 +42,7 @@ skill:
 - `agent: @scope/name` (or `@workspace/scope/name`, 118) in the frontmatter names the agent that runs the skill, in Claude Code; it
   must be listed under `dependencies` (saving a draft adds it) and be an agent. Unquoted is read as
   quoted. A name without a scope (`agent: Explore`, `agent: reviewer`) isn't an item, so it isn't a dependency
-  ([097](../features/097-frontmatter-references/SPEC.md)).
+  ([097](../features/items/097-frontmatter-references/SPEC.md)).
 - Scripts and resources next to `SKILL.md` are copied as they are. Executable scripts raise a risk
   flag in review.
 
@@ -168,11 +168,11 @@ No type block. A bundle is a `name`, `description` and `dependencies`. The visua
 
 ## 3. Dependencies
 
-Any item may depend on any item, of any type ([096](../features/096-any-dependency/SPEC.md),
+Any item may depend on any item, of any type ([096](../features/items/096-any-dependency/SPEC.md),
 owner 2026-10-05): a skill on the agent it works with, a rule on an MCP server, an agent on another
 agent. A `bundle` must list at least one dependency. An item can't depend on itself. Items may
 need each other (a cycle): they're submitted, released and installed together (MVP §4.1, §4.3,
-[112](../features/112-dependency-cycles/SPEC.md)). Until 096, the type decided: a bundle on
+[112](../features/items/112-dependency-cycles/SPEC.md)). Until 096, the type decided: a bundle on
 anything, an agent on skills, MCP servers, hooks, rules and commands, a skill or command on MCP
 servers, and the other types on nothing.
 

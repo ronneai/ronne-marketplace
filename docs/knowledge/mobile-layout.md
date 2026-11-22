@@ -1,9 +1,9 @@
 # Mobile layout
 
 The web app works on phones and tablets (M10). The rules are in
-[032's spec, "Phones and tablets"](../features/032-design-system/SPEC.md); this note is how to
+[032's spec, "Phones and tablets"](../features/web-ui/032-design-system/SPEC.md); this note is how to
 follow them and how to check them. The work is planned in
-[065](../features/065-mobile-foundations/SPEC.md)–[075](../features/075-mobile-sign-off/SPEC.md).
+[065](../features/web-ui/065-mobile-foundations/SPEC.md)–[075](../features/web-ui/075-mobile-sign-off/SPEC.md).
 
 ## The rules, in short
 

@@ -6,7 +6,7 @@ import type { AppMigration } from "./types";
  * Better Auth's tables (user, session, account, verification) with our snake_case columns, plus
  * our own access_tokens. Foreign keys are table-level constraints: MySQL 8.4 silently ignores
  * inline column REFERENCES (see migrations.guard.test.ts). Checked against Better Auth in 0001_identity.db.test.ts; the field
- * mapping lives in domains/identity/models/auth-schema.ts. See docs/features/002-db-layer/SPEC.md.
+ * mapping lives in domains/identity/models/auth-schema.ts. See docs/features/platform/002-db-layer/SPEC.md.
  */
 export const identity: AppMigration = (dialect) => ({
   async up(db: Kysely<unknown>) {

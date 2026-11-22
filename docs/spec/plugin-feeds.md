@@ -2,8 +2,8 @@
 
 The contract for **native plugin feeds**: how a Ronne instance offers its released items as plugin
 marketplaces that Claude Code, Codex and Cursor can add as a source (M11:
-[076](../features/076-plugin-builders/SPEC.md), [077](../features/077-claude-code-marketplace/SPEC.md),
-[078](../features/078-plugin-feed-mirror/SPEC.md); design in [MVP §3.3](../MVP/MVP.md#33-platform-renderers)).
+[076](../features/plugin-feeds/076-plugin-builders/SPEC.md), [077](../features/plugin-feeds/077-claude-code-marketplace/SPEC.md),
+[078](../features/plugin-feeds/078-plugin-feed-mirror/SPEC.md); design in [MVP §3.3](../MVP/MVP.md#33-platform-renderers)).
 
 Vendor formats were checked on 2026-10-03, again for 076 the same day, Claude Code again for 077,
 and Codex and Cursor again for 078, both the same day (sources:
@@ -98,7 +98,7 @@ Ronne serves:
 - Every **installable** item (it has a version that isn't yanked) at the version `latest` points to:
   the catalogue's listed version (`items.listed_version_id`).
 - An item appears in a tool's feed when `installsIn(supportFor(type, disabled)[tool])` is true
-  ([026](../features/026-support-matrix/SPEC.md)), **and** its plugin has at least one file once
+  ([026](../features/renderers/026-support-matrix/SPEC.md)), **and** its plugin has at least one file once
   built. Types that have no plugin form for that tool (table below) leave the item out of that
   tool's feed.
 - A deprecated version appears, with `Deprecated: <message>` at the start of its description.
@@ -107,7 +107,7 @@ Ronne serves:
   the old one is gone from the marketplace.
 - A tool that refuses a plugin's name (above) leaves it out of that tool's feed; the instance logs
   it once, when the plugin is first built.
-- Only items the caller can see appear ([093](../features/093-private-workspaces/SPEC.md)): the
+- Only items the caller can see appear ([093](../features/workspaces/093-private-workspaces/SPEC.md)): the
   public workspaces' items, and a private workspace's for its members and root. Everyone else gets
   the feed as if those items didn't exist.
 - A **bundle** is a plugin that contains its resolved members. Any other item's plugin contains the

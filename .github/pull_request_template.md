@@ -13,7 +13,7 @@ Don't write "closes #N" or "fixes #N": issues are closed by hand when the fix is
 
 ## Feature or issue
 
-<!-- The folder in docs/features or docs/issues, such as docs/features/187-contributor-docs, and the tasks of its PLAN.md this pull request does. Leave the tasks unticked: the maintainer runs the state witness and ticks them before merging. -->
+<!-- The folder in docs/features or docs/issues, such as docs/features/platform/187-contributor-docs, and the tasks of its PLAN.md this pull request does. Leave the tasks unticked: the maintainer runs the state witness and ticks them before merging. -->
 
 ## Checks
 

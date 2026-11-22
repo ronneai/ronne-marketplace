@@ -1,6 +1,6 @@
 # #141 — The resolver tries an older version when the newest one in range conflicts
 
-> GitHub: [#141](https://github.com/ronneai/ronne-marketplace/issues/141) · Feature: [020](../../features/020-resolver/SPEC.md) · Reported on: 0.3.2 · Design: [MVP §4.3](../../MVP/MVP.md#43-install--update), [§15](../../MVP/MVP.md#15-decision-log)
+> GitHub: [#141](https://github.com/ronneai/ronne-marketplace/issues/141) · Feature: [020](../../features/cli-api/020-resolver/SPEC.md) · Reported on: 0.3.2 · Design: [MVP §4.3](../../MVP/MVP.md#43-install--update), [§15](../../MVP/MVP.md#15-decision-log)
 
 ## Report
 

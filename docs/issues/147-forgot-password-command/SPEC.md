@@ -1,6 +1,6 @@
 # #147 — The sign-in page names the reset command for how the instance was installed
 
-> GitHub: [#147](https://github.com/ronneai/ronne-marketplace/issues/147) · Feature: [006](../../features/006-web-sign-in/SPEC.md) (with [082](../../features/082-server-npm-package/SPEC.md)'s runtime) · Reported on: 0.3.2
+> GitHub: [#147](https://github.com/ronneai/ronne-marketplace/issues/147) · Feature: [006](../../features/identity/006-web-sign-in/SPEC.md) (with [082](../../features/install/082-server-npm-package/SPEC.md)'s runtime) · Reported on: 0.3.2
 
 ## Report
 

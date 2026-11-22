@@ -1,7 +1,7 @@
 # #307 — Two attempts at once at the second step get the true answer on MySQL
 
 > GitHub: [#307](https://github.com/ronneai/ronne-marketplace/issues/307) · Feature:
-> [105](../../features/105-two-factor-sign-in/SPEC.md) · Reported on: the Dependabot updates of
+> [105](../../features/identity/105-two-factor-sign-in/SPEC.md) · Reported on: the Dependabot updates of
 > better-auth 1.7.22 (#303) and 1.7.25 (#306), never released
 
 ## Report

@@ -1,6 +1,6 @@
 # Dependency policy
 
-> Status: active · Applies to every change · Enforced in CI by [feature 001](../features/001-monorepo-scaffold/SPEC.md) and [005](../features/005-docker/SPEC.md)
+> Status: active · Applies to every change · Enforced in CI by [feature 001](../features/platform/001-monorepo-scaffold/SPEC.md) and [005](../features/install/005-docker/SPEC.md)
 
 Ronne is MIT-licensed, self-hosted and installs code on developers' machines. Everything it depends
 on must be **free to use and to redistribute**, on a **current stable (LTS where one exists)**
@@ -14,7 +14,7 @@ install process runs.
 
 | Status | Licenses | Rule |
 |---|---|---|
-| ✅ **Allowed** | MIT, MIT-0, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0, 0BSD, Unlicense, CC0-1.0, BlueOak-1.0.0, Zlib, Python-2.0 | Use freely. MIT-0 is MIT without the attribution clause (owner, 2026-11-20, for nodemailer in [189](../features/189-outgoing-email/SPEC.md)). |
+| ✅ **Allowed** | MIT, MIT-0, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0, 0BSD, Unlicense, CC0-1.0, BlueOak-1.0.0, Zlib, Python-2.0 | Use freely. MIT-0 is MIT without the attribution clause (owner, 2026-11-20, for nodemailer in [189](../features/operations/189-outgoing-email/SPEC.md)). |
 | ✅ **Allowed for font files only** | OFL-1.1 (SIL Open Font License) | Only for font files shipped with the web app (Inter, IBM Plex Mono), self-hosted, with each font's license text next to it. Not for code packages. |
 | ✅ **Allowed for data only** | CC-BY-4.0 | Only for data packages that ship no code (for example `caniuse-lite`). Credited in `THIRD_PARTY_NOTICES`. |
 | ⚠️ **Exception needed** | MPL-2.0, LGPL (any version), EPL-2.0, anything else not listed | Only with a recorded exception (§5): why it's needed, why no permissive option works, and how its terms are met. |
@@ -37,11 +37,11 @@ install process runs.
 
   | Component | Target | Minimum supported |
   |---|---|---|
-  | Node.js | Newest **Active LTS**: 26 today (development, CI, Docker image, bundles; since 2026-11-20, [188](../features/188-node-26-target/SPEC.md)) | Oldest LTS still receiving security fixes: 22 until its end of life in April 2027, from 22.14.0, the first 22.x with N-API 10, which `better-sqlite3` needs ([#315](../issues/315-node-22-14-minimum/SPEC.md); on the odd line 23, 23.6.0). `MIN_NODE` and `engines` say the same. Then the minimum moves to 24. |
-  | Databases | The versions in [feature 004](../features/004-ci-db-matrix/SPEC.md), all still maintained upstream | — |
+  | Node.js | Newest **Active LTS**: 26 today (development, CI, Docker image, bundles; since 2026-11-20, [188](../features/platform/188-node-26-target/SPEC.md)) | Oldest LTS still receiving security fixes: 22 until its end of life in April 2027, from 22.14.0, the first 22.x with N-API 10, which `better-sqlite3` needs ([#315](../issues/315-node-22-14-minimum/SPEC.md); on the odd line 23, 23.6.0). `MIN_NODE` and `engines` say the same. Then the minimum moves to 24. |
+  | Databases | The versions in [feature 004](../features/platform/004-ci-db-matrix/SPEC.md), all still maintained upstream | — |
   | Docker base | `node:<target LTS>-slim` on the current Debian stable | — |
   | pnpm | Latest stable, pinned in `packageManager` | — |
-  | Proxy (`compose.yaml`) | Latest stable Caddy 2.x, the official `caddy` image (Apache-2.0), pinned by tag and digest ([080](../features/080-docker-https/SPEC.md)) | — |
+  | Proxy (`compose.yaml`) | Latest stable Caddy 2.x, the official `caddy` image (Apache-2.0), pinned by tag and digest ([080](../features/install/080-docker-https/SPEC.md)) | — |
 
 - **When a new Node.js LTS arrives** (every October), the target moves in its own pull request once CI passes on it.
   CI tests the minimum and the target only, never the versions between, as long as every native
@@ -116,7 +116,7 @@ its whole tree, advisories, health). How to install and harden each one is in it
 
 | Tool | License | Used for | Pinned as |
 |---|---|---|---|
-| SkillSpector (NVIDIA) | Apache-2.0; the Python packages it installs are listed in its knowledge note, and five are covered by E-11 | The security scan of submissions (135), run as `RONNE_SKILL_SCANNER`, static (`--no-llm`) unless root chose semantic analysis with a provider the operator set up ([skill-scanner.md](../knowledge/skill-scanner.md)). Python 3.12+, 65 packages installed (160 in its `uv.lock`), alpha | v2.13.4, commit `54824463814a0be01360792523ec7245a69190fc`, installed from its `uv.lock` (`uv sync --frozen`), directly or with [`scripts/skill-scanner/Dockerfile`](../../scripts/skill-scanner/Dockerfile) (uv 0.13.8 and the Python base pinned by digest), which compose builds on the server for the scanner container ([156](../features/156-scanner-container/SPEC.md), planned): built there, never published, so Ronne still doesn't ship it |
+| SkillSpector (NVIDIA) | Apache-2.0; the Python packages it installs are listed in its knowledge note, and five are covered by E-11 | The security scan of submissions (135), run as `RONNE_SKILL_SCANNER`, static (`--no-llm`) unless root chose semantic analysis with a provider the operator set up ([skill-scanner.md](../knowledge/skill-scanner.md)). Python 3.12+, 65 packages installed (160 in its `uv.lock`), alpha | v2.13.4, commit `54824463814a0be01360792523ec7245a69190fc`, installed from its `uv.lock` (`uv sync --frozen`), directly or with [`scripts/skill-scanner/Dockerfile`](../../scripts/skill-scanner/Dockerfile) (uv 0.13.8 and the Python base pinned by digest), which compose builds on the server for the scanner container ([156](../features/security-ai/156-scanner-container/SPEC.md), planned): built there, never published, so Ronne still doesn't ship it |
 
 **Not ShellCheck:** it's GPL-3.0, which §1 forbids even in CI. `shfmt -p` catches what isn't POSIX
 `sh`, and the install script's tests run it under both `dash` and `bash`.

@@ -1,11 +1,11 @@
 # Installing Ronne AI Marketplace
 
 > **Draft for the website** (2026-10-03). This guide describes the install experience planned in
-> milestone M12 (features [080](../features/080-docker-https/SPEC.md)–087). Each section names the
+> milestone M12 (features [080](../features/install/080-docker-https/SPEC.md)–087). Each section names the
 > feature it needs; publish a section only once that feature is released, and recheck the commands
 > then. Built so far: Docker (080, 081), npm and its service (082, 083), the bundles (084), the
 > `.deb` and `.rpm` (085). On hold: the Homebrew tap. Withdrawn by
-> [121](../features/121-no-windows-server/SPEC.md): the Windows service (086), the Windows installer
+> [121](../features/install/121-no-windows-server/SPEC.md): the Windows service (086), the Windows installer
 > and winget (087), and `install.ps1`. Since [#222](../issues/222-windows-foreground/SPEC.md),
 > `rmk-server` runs on Windows again, in a terminal only.
 

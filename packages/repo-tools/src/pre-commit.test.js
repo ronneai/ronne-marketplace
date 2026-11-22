@@ -10,7 +10,7 @@ const CORE = [
 
 describe("isDocumentation", () => {
   it.each([
-    ["docs/features/002-db-layer/SPEC.md", true],
+    ["docs/features/platform/002-db-layer/SPEC.md", true],
     ["docs/spec/ronne.schema.json", false],
     ["README.md", true],
     ["CLAUDE.md", true],

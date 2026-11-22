@@ -1,15 +1,23 @@
 # Features
 
-Each feature has its own folder, `NNN-slug/`, which is the unit of work:
+Each feature has its own folder, `<domain>/NNN-slug/`, which is the unit of work:
 
 - **`SPEC.md`**: what the feature does and why. Scope, behaviour, edge cases and acceptance
   criteria. It is kept up to date for as long as the feature exists.
 - **`PLAN.md`**: how it gets built. Ordered tasks, each small enough for one working session and
   each with the check that proves it's done. Tasks are ticked off as they land.
+- **`WITNESS.md`**: the [state witness](../knowledge/state-witness.md)'s passes, one section per
+  task.
 
-This page is the index, and it replaces a separate milestone plan: a milestone is the set of
-features listed under it. Specs don't repeat the shared contracts in [`docs/spec/`](../spec/) or
-the design in [`MVP.md`](../MVP/MVP.md). They link to them.
+The features are filed by their main [domain](#domains), and grouped into
+[milestones](./milestones/README.md): a milestone is the set of features listed in its file, with
+what each does and what it depends on. This page is the index: one row per feature, to find it by
+number. Specs don't repeat the shared contracts in [`docs/spec/`](../spec/) or the design in
+[`MVP.md`](../MVP/MVP.md). They link to them.
+
+**What to read.** For a feature: its `SPEC.md`, then its `PLAN.md`; open `WITNESS.md` only to add a
+pass or check one, since it's the largest file and records what was checked, not what to build.
+For a milestone: its file in [`milestones/`](./milestones/README.md), not this whole page.
 
 ## How to use it
 
@@ -25,536 +33,296 @@ the design in [`MVP.md`](../MVP/MVP.md). They link to them.
 4. **Keep the docs honest.** If the work changes the behaviour, update `SPEC.md` in the same
    change. If it changes a decision, also update MVP.md and its decision log (§15).
 5. **Keep the Documentation current.** Every feature that changes what people see or do
-   updates the inline helpers ([033](./033-in-app-help/SPEC.md)) in the same pull request, and the
-   Documentation on the website ([088](./088-docs-on-website/SPEC.md): `../ronne-web`, in a branch
+   updates the inline helpers ([033](./web-ui/033-in-app-help/SPEC.md)) in the same pull request, and the
+   Documentation on the website ([088](./web-ui/088-docs-on-website/SPEC.md): `../ronne-web`, in a branch
    that goes live with the release), as its spec's Documentation section lists. A spec with nothing
    to add says "None" and why. The website's source is private, so for an outside contributor's
    pull request the owner writes it, from what the pull request says it should say.
-6. **Finish** by setting the status here to `done`.
+6. **Finish** by setting the status to `done`, here and in the milestone's file.
 
 **Numbering.** IDs are three digits, given in order of creation, and never reused or renamed. The
-slug is short and lowercase. The milestone and status live only in this table.
+slug is short and lowercase.
 
 **Status:** `planned` (listed here, no folder yet) → `specified` (`SPEC.md` and `PLAN.md` written)
 → `in progress` → `done`. `dropped` features keep their row and folder, with the reason in `SPEC.md`.
 `on hold` features keep their row, folder and spec but aren't picked until the owner takes them off
 hold; their `SPEC.md` says since when and why. A spec on hold is re-checked against what was built
-since (and, for renderers, the vendors' current docs) before work starts.
+since (and, for renderers, the vendors' current docs) before work starts. The milestone's file
+gives the status in full (with a note in brackets, such as where the Documentation is); this
+index gives it without the note.
 
 **When to write a spec.** Only for the current milestone and the next one. Later features stay
 `planned` until then, so their specs are based on what has actually been built.
 
-New folders start from [`_template/`](./_template/) (`SPEC.md`, `PLAN.md`, `WITNESS.md`).
+**A new feature** takes the next free ID and a domain from [`domains.json`](./domains.json) (a new
+domain goes in that file and in the list below). Its folder starts from
+[`_template/`](./_template/) (`SPEC.md`, `PLAN.md`, `WITNESS.md`) as `<domain>/NNN-slug/`, and it
+gets a row here and one in its milestone's file in the same change. A planned feature has its rows
+before it has a folder, with its ID unlinked and `—` as its domain. `pnpm docs:check` fails when a
+folder, its domain, its two rows and their status don't agree, or a link in the docs lands nowhere.
+
+## Domains
+
+| Domain | What it holds |
+|---|---|
+| [`platform`](./platform/) | The repository itself: the monorepo, the database layer, CI, the Node.js target and contributor tooling |
+| [`install`](./install/) | Getting Ronne running: setup, Docker, npm and OS packages, bundles, services and upgrades |
+| [`identity`](./identity/) | Who someone is and how they sign in: accounts, sessions, tokens, two-factor, SSO, SCIM, sign-up and passwords |
+| [`items`](./items/) | What an item is and how authors write it: the manifest, the editor, dependencies, versions and change proposals |
+| [`review`](./review/) | Review and release: the queue, approvals, decisions, bulk actions and overrides |
+| [`catalogue`](./catalogue/) | Finding items: the catalogue, item pages, the home page, pins and search |
+| [`cli-api`](./cli-api/) | The rmk CLI, the resolver, the registry API and the registry MCP server |
+| [`renderers`](./renderers/) | Turning a manifest into each AI tool's native files |
+| [`export-import`](./export-import/) | Bringing items in from people's tools, git and other marketplaces |
+| [`plugin-feeds`](./plugin-feeds/) | Native plugin marketplaces and feeds for Claude Code, Codex and Cursor |
+| [`workspaces`](./workspaces/) | Scopes and workspaces: roles, members, access and moving things between them |
+| [`web-ui`](./web-ui/) | The web app across every screen: design system, help, navigation, tables, mobile, languages, notifications |
+| [`operations`](./operations/) | Running it safely: audit, logs, metrics, backups, retention, privacy, email, shared limits |
+| [`security-ai`](./security-ai/) | The security scan and the AI providers and triage |
+| [`usage`](./usage/) | Usage insights: what gets installed and used, on the item pages and for root |
+| [`feedback`](./feedback/) | Feedback from people to the instance's maintainers, in the app |
+
+## Milestones
+
+One file each in [`milestones/`](./milestones/README.md), which also says when and why each group
+was planned:
+
+- [M0 — Scaffolding & install](./milestones/M00-scaffolding-install.md)
+- [M1 — Auth & users](./milestones/M01-auth-users.md)
+- [M2 — Items & submissions](./milestones/M02-items-submissions.md)
+- [M3 — Review & release](./milestones/M03-review-release.md)
+- [M4 — `rmk` + Claude Code](./milestones/M04-rmk-claude-code.md)
+- [M5 — Codex, Cursor, MCP](./milestones/M05-codex-cursor-mcp.md)
+- [M5b — Tier-2 platforms (on hold)](./milestones/M05b-tier-2-platforms.md)
+- [M6 — Visual composer and npm](./milestones/M06-visual-composer-and-npm.md)
+- [M7 — Export from your tools](./milestones/M07-export-from-your-tools.md)
+- [M8 — Catalogue improvements](./milestones/M08-catalogue-improvements.md)
+- [M9 — Usage insights](./milestones/M09-usage-insights.md)
+- [M10 — Mobile friendly](./milestones/M10-mobile-friendly.md)
+- [M11 — Native plugin feeds](./milestones/M11-native-plugin-feeds.md)
+- [Across the app](./milestones/across-the-app.md)
+- [M12 — Easy install](./milestones/M12-easy-install.md)
+- [M13 — Workspaces](./milestones/M13-workspaces.md)
+- [M14 — Run it safely](./milestones/M14-run-it-safely.md)
+- [M15 — Privacy and data lifecycle](./milestones/M15-privacy-and-data-lifecycle.md)
+- [M16 — Company sign-in](./milestones/M16-company-sign-in.md)
+- [M17 — More than one replica](./milestones/M17-more-than-one-replica.md)
+- [M18 — Home, onboarding and feedback](./milestones/M18-home-onboarding-and-feedback.md)
+- [M19 — Languages](./milestones/M19-languages.md)
+- [M20 — Security scan](./milestones/M20-security-scan.md)
+- [M21 — Feedback in the app](./milestones/M21-feedback-in-the-app.md)
+- [M22 — Global search](./milestones/M22-global-search.md)
+- [M23 — MCP servers in items](./milestones/M23-mcp-servers-in-items.md)
+- [M24 — AI providers and triage](./milestones/M24-ai-providers-and-triage.md)
+- [M25 — Git export](./milestones/M25-git-export.md)
+- [M26 — Import](./milestones/M26-import.md)
+- [M27 — Sign-in screens](./milestones/M27-sign-in-screens.md)
+- [M28 — Governance foundations](./milestones/M28-governance-foundations.md)
+- [M29 — Evidence and least privilege](./milestones/M29-evidence-and-least-privilege.md)
+- [M30 — Trust and hardening](./milestones/M30-trust-and-hardening.md)
+- [M31 — Configurable governance](./milestones/M31-configurable-governance.md)
+- [M32 — Open sign-up and email](./milestones/M32-open-sign-up-and-email.md)
+- [M33 — Model and effort per AI tool](./milestones/M33-model-and-effort-per-ai-tool.md)
+- [Outside the milestones](./milestones/repository.md)
 
 ## Index
 
-### M0 — Scaffolding & install
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [001](./001-monorepo-scaffold/SPEC.md) | Monorepo scaffold, tooling and CI | — | done |
-| [002](./002-db-layer/SPEC.md) | Database layer and first migration | 001 | done |
-| [003](./003-setup-installer/SPEC.md) | `pnpm run setup` installer and root account | 002 | done |
-| [004](./004-ci-db-matrix/SPEC.md) | CI against SQLite, MySQL and PostgreSQL | 002, 003 | done |
-| [005](./005-docker/SPEC.md) | Docker image and compose | 003 | done |
-
-### M1 — Auth & users
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [032](./032-design-system/SPEC.md) | Design system and app shell (brand, fonts, light and dark themes, `components/ui`) | 001 | done |
-| [006](./006-web-sign-in/SPEC.md) | Web sign-in, sign-out, change password; Playwright end-to-end tests | 003, 032 | done |
-| [007](./007-audit-log/SPEC.md) | Audit log | 002 | done |
-| [008](./008-user-admin/SPEC.md) | User admin: create, disable, change role, reset password | 006, 007, 032 | done |
-| [009](./009-access-tokens/SPEC.md) | Personal access tokens: UI, `POST/DELETE /api/v1/auth/token`, `GET /api/v1/me`, bearer guard | 006, 007, 032 | done |
-| [059](./059-multiple-roots/SPEC.md) | More than one root: root makes other accounts root and changes any role but their own; roots manage each other; at least one active root always remains; `reset-root-password --email` | 003, 006, 007, 008 | done |
-
-### M2 — Items & submissions
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [010](./010-scopes/SPEC.md) | Scopes (root creates and lists) | 008 | done |
-| [011](./011-manifest-core/SPEC.md) | Manifest core: schema, package checks and packer in `packages/core` | 001 | done |
-| [012](./012-submission-editor/SPEC.md) | Submission editor: drafts of any type, form + file editor | 010, 011 | done |
-| [013](./013-submit-withdraw/SPEC.md) | Submit and withdraw, with registry checks | 012 | done |
-
-### M3 — Review & release
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [014](./014-review-queue/SPEC.md) | Review queue: diff, comments, decisions, root override, risk flags | 013, 007 | done |
-| [015](./015-release/SPEC.md) | Release: semver bump, pack, `StorageAdapter`, dist-tags | 014 | done |
-| [016](./016-version-management/SPEC.md) | Version management: move tags, deprecate, yank | 015 | done |
-| [017](./017-change-proposals/SPEC.md) | Change proposals: diff against base, stale and rebase | 015, 018 | done |
-| [018](./018-catalogue/SPEC.md) | Catalogue: search, filters, item page, home page | 015 | done |
-| [033](./033-in-app-help/SPEC.md) | In-app help: a Documentation page (how the registry works and is organised: scopes, items and types, the submission lifecycle, versions and dist-tags, `rmk`) and inline helpers in each feature (explanations and examples where people need them) | 012, 013 | done |
-
-### M4 — `rmk` + Claude Code
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [019](./019-registry-read-api/SPEC.md) | Registry read API (`/api/v1` items, versions, tarball with download count, errors, pagination) | 009, 015, 018 | done |
-| [020](./020-resolver/SPEC.md) | Resolver in `packages/core`, and `POST /api/v1/resolve` | 011, 019 | done |
-| [021](./021-renderer-harness/SPEC.md) | Renderer interface and golden-file test harness | 011 | done |
-| [022](./022-rmk-cli/SPEC.md) | `rmk` CLI: login, search, info, install, update, remove, outdated; lockfile and state file | 019, 020, 021 | done |
-| [023](./023-claude-code-renderer/SPEC.md) | Claude Code renderer, every item type | 021 | done |
-
-### M5 — Codex, Cursor, MCP
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [024](./024-codex-renderer/SPEC.md) | Codex renderer, and TOML keys in the applier | 021, 022 | done |
-| [025](./025-cursor-renderer/SPEC.md) | Cursor renderer | 021, 022 | done |
-| [026](./026-support-matrix/SPEC.md) | Per-item support matrix in the web UI, the API and the catalogue filter | 018, 023 | done |
-| [027](./027-registry-mcp-server/SPEC.md) | Registry MCP server (`rmk-mcp`) and `rmk mcp-setup` | 022 | done |
-
-### M5b — Tier-2 platforms (on hold)
-
-On hold since 2026-09-30 (owner): not implemented now.
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [028](./028-copilot-renderer/SPEC.md) | GitHub Copilot renderer (the CLI and VS Code) | 021, 022, 025 | on hold |
-| [029](./029-gemini-antigravity-renderers/SPEC.md) | Antigravity CLI and Gemini CLI renderers | 021, 022, 025 | on hold |
-| [030](./030-devin-renderer/SPEC.md) | Devin renderer (Devin Desktop and the Devin CLI) | 021, 022, 025 | on hold |
-
-### M6 — Visual composer and npm
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [031](./031-visual-composer/SPEC.md) | Visual composer (React Flow over `dependencies`) | 012, 013, 018 | done |
-| [034](./034-npm-packages/SPEC.md) | Publishing `rmk` and the MCP server to npm (`@ronneai/core`, `rmk`, `mcp`) | 022, 027 | done |
-| [035](./035-docker-hub-image/SPEC.md) | Publishing the web app's Docker image to Docker Hub (`ronneai/marketplace`) | 005, 034 | done |
-| [036](./036-web-setup/SPEC.md) | Web setup wizard: the first run is set up from the browser, with the installation progress, then sign-in | 003, 005, 006, 032 | done |
-
-### M7 — Export from your tools
-
-An item a person wrote in their AI tool goes to the marketplace as a draft, from `rmk` or from
-inside the tool (owner, 2026-09-30). The mapping from a tool's files back to an item is the
-contract [`docs/spec/native-readers.md`](../spec/native-readers.md).
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [037](./037-draft-upload-api/SPEC.md) | Draft upload API: `GET /api/v1/scopes`, `POST /api/v1/drafts` (a draft with its files, as the token's user), the audit event, and limits for writes by token | 007, 009, 010, 012, 013, 019 | done |
-| [038](./038-rmk-export/SPEC.md) | `rmk export` for skills: the reader in `packages/core`, finding local skills, choosing the scope, the preview, the upload | 037, 011, 022 | done |
-| [039](./039-mcp-export-tools/SPEC.md) | MCP export tools: `list_local_items`, `plan_export`, `export_items` | 038, 027 | done |
-| [040](./040-export-more-types/SPEC.md) | Export more types: agents, commands, rules and MCP servers from Claude Code's files | 038, 039, 023 | done |
-| [041](./041-export-dependencies/SPEC.md) | Dependencies on export: detect what an item uses, ask, recommend exporting it too, upload in order | 040 | done |
-| [042](./042-export-change-proposal/SPEC.md) | Export a change as a proposal: an edited install, or a published item of the person's own, merged onto its base version; `POST /api/v1/drafts` with `base` | 041, 017 | done |
-| [043](./043-codex-cursor-readers/SPEC.md) | Export from Codex's and Cursor's files: agents, rules, commands and MCP servers, `--from` | 040 | done |
-| [051](./051-update-drafts-on-export/SPEC.md) | Update your own drafts on export: exporting an item again updates your draft (or one sent back for changes) instead of making another; one in review is left alone; `GET /api/v1/drafts`, `PUT /api/v1/drafts/{id}`, `--new-draft` | 037, 038, 039, 042 | done |
-| [052](./052-bulk-submit/SPEC.md) | Submit drafts in bulk: `rmk submit` (names, ids, `--all`), `check_drafts` / `submit_drafts`, and multi-select on My submissions; only ready drafts go, the others say what's missing; `POST /api/v1/drafts/check` and `/submit` | 013, 014, 037, 038, 039, 051 | done |
-| [053](./053-export-descriptions/SPEC.md) | Every exported item has a description: written by the AI tool from the item's content (MCP), or asked in `rmk`, shown before upload, kept when exporting again | 038, 039, 040, 043, 051 | done |
-| [054](./054-bulk-approve/SPEC.md) | Approve in bulk: the approval message is optional (the override's too), and the review queue approves several at once with one optional message for all; risk flags listed first, each approved on its own | 014, 017, 052 | done |
-| [055](./055-bulk-release/SPEC.md) | Release in bulk: My submissions and the review queue's To release tab release several approved submissions at once, dependencies first, with one set of settings (stable or pre-release, suggested bump for each, tag, notes) | 015, 017, 052, 054, 056 | done |
-| [056](./056-pending-dependencies/SPEC.md) | Dependencies on their way: a dependency in review counts at submit (range checked at release); bulk submit and release include dependencies; rejecting a dependency offers to request changes on its dependents; request changes from approved | 013, 014, 015, 041, 052, 054 | done |
-| [057](./057-withdraw-archive-delete/SPEC.md) | Withdraw: archive or delete. Withdrawing asks: archive (out of the list, private, restorable as a draft) or delete for good (only if nobody has reviewed it); `submission.deleted` and `submission.restored` | 012, 013, 014, 052, 056 | done |
-| [058](./058-review-decisions-everywhere/SPEC.md) | Reject and request changes from the queue and the page: per-row actions with a required reason, the decisions always visible on the review page (disabled with the reason on your own), and the reviewer's message at the top of the author's page | 014, 054, 055, 056 | done |
-
-### M8 — Catalogue improvements
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [044](./044-item-contents/SPEC.md) | Item contents on the item page: an Overview tab (settings, body file, read-only dependency canvas) and a Files viewer, read from the checked artifact | 018, 026, 031 | done |
-| [045](./045-item-overview-dashboard/SPEC.md) | Item overview dashboard from the owner's mockup: stat cards, Install with quick flags, capabilities and guardrails, Used by, maintainers and review, package verification; only what the registry knows | 044 | done |
-| [048](./048-runtime-requirements/SPEC.md) | Runtime requirements in the manifest (`requires`: Node.js, git, the `rmk` version…), checked by `rmk install` and shown on the Overview | 011, 022, 045 | dropped |
-
-### M9 — Usage insights
-
-What the item overview mockup shows about usage needs data the registry doesn't collect yet. The
-design notes are [MVP §14.6](../MVP/MVP.md#146-usage-telemetry--post-mvp): a policy root sets per
-instance (off by default), aggregated, kept on the instance.
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [046](./046-usage-telemetry/SPEC.md) | Usage telemetry: root's usage policy (Admin › Settings), `rmk telemetry`, install and remove events, run events from `rmk`-managed hooks where each tool allows, `POST /api/v1/usage`, daily aggregates, an instance switch | 022, 023, 024, 025, 045 | done |
-| [047](./047-usage-on-item-page/SPEC.md) | Usage on the item page: installs, harness distribution, invocations and success rate, the daily volume chart, the harness and trigger breakdowns; runs and installs per version | 046 | done |
-
-### M10 — Mobile friendly
-
-Every page works on a phone and a tablet (owner, 2026-10-02): reading and finding items, writing
-and submitting drafts, reviewing and releasing, tokens and admin. The rules (widths from 360px, no
-sideways page scroll, 44px touch targets and 16px fields on a coarse pointer, nothing only on
-hover) are set by 065 and kept in [032's spec](./032-design-system/SPEC.md). A phone sweep in the
-end-to-end tests checks every page for every role. Build order follows the dependencies: 065,
-then 067, then the rest.
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [065](./065-mobile-foundations/SPEC.md) | Mobile foundations and phone tests: the mobile rules, viewport and theme colour, safe areas, `dvh`; Playwright `phone` (Pixel 7), `phone-webkit` (iPhone 15) and `tablet` projects; a sweep of every page per role that fails on sideways scroll; a tap-target report | 032, 006 | done |
-| [066](./066-mobile-navigation/SPEC.md) | Navigation on phones: a Menu side sheet below `lg` (links with counts, account, appearance, sign out; `/menu` without JavaScript); the account menu closes on an outside click; a shared `ScrollStrip` for tab strips (active tab in view, edge fades) | 065, 067, 032, 033 | done |
-| [067](./067-touch-primitives/SPEC.md) | Touch-ready primitives: 16px fields on a coarse pointer (no iOS zoom), 44px tap areas, full-screen dialogs below `sm` with fixed title and footer, a side sheet, `BottomBar`, wrapping copy commands, copy that works over plain http | 065, 032 | done |
-| [068](./068-no-hover-only/SPEC.md) | Nothing behind hover: disabled buttons' reasons, UTC times, full hashes, truncated text and badge explanations reachable by tap and keyboard; a scan that fails on new `title=` | 065, 067, 049, 050 | specified |
-| [069](./069-mobile-data-tables/SPEC.md) | Tables on phones: `DataTable` rows stack into cards below `sm` (primary heading, meta line, labelled lines, actions), the main column never starves from `sm` up, a Sort select; versions, tokens and bulk lists too | 065, 067, 068, 060, 061, 062, 063 | specified |
-| [070](./070-mobile-files-diffs/SPEC.md) | Files, code and diffs on phones: the file tree behind a Files bar, no nested scroll, the tree sticky below the header from `md`, compact diffs, wrapping paths | 065, 067, 068, 044, 014 | specified |
-| [071](./071-mobile-catalogue-item/SPEC.md) | Catalogue, item page and Documentation on phones: the Filters panel and Sort menu checked on a phone, wrapping install commands and risk flags, the dependency canvas as a list plus "View as graph" on phones and without a scroll trap on touch and trackpads, "On this page" in long topics | 066, 067, 068, 069, 070, 018, 044, 045, 047 | specified |
-| [072](./072-mobile-authoring/SPEC.md) | Writing items on a phone: Create draft and Save/Submit in a bottom bar, Form view first, stacking form and dependency rows, the composer as a list with Add (graph read-only), a local recovery copy of unsaved changes | 067, 068, 070, 071, 012, 031, 052, 057 | specified |
-| [073](./073-mobile-review-release/SPEC.md) | Reviewing and releasing on a phone: a bottom decision bar, comments and decision dialogs with the keyboard open, bulk approve and bulk release with their settings collapsed so the list has room | 067, 068, 069, 070, 014, 015, 054, 055, 058 | specified |
-| [074](./074-mobile-account-admin/SPEC.md) | Account, Admin, sign-in and setup on phones: autocomplete and input modes, the setup wizard on a phone, whole tokens, Users and Scopes as cards, the audit log's Filters disclosure | 066, 067, 068, 069, 006, 008, 009, 036, 046, 060 | specified |
-| [075](./075-mobile-sign-off/SPEC.md) | Mobile sign-off: the sweep and tap-target checks become permanent CI failures, a pass on real iPhone, Android and iPad, screen readers and text size, Lighthouse mobile, "Using Ronne on a phone" in the Documentation, the decision log | 065–074 | specified |
-
-### M11 — Native plugin feeds
-
-A Ronne instance offers its released items as plugin marketplaces that Claude Code, Codex and
-Cursor add as a source (owner, 2026-10-03). Claude Code reads one live from the instance with a
-token; Codex and Cursor only add git repositories, so `rmk` builds a mirror. The contract is
-[`docs/spec/plugin-feeds.md`](../spec/plugin-feeds.md).
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [076](./076-plugin-builders/SPEC.md) | Plugin builders in `@ronneai/core/plugins`: an item and its dependencies (a bundle and its members) as a Claude Code, Codex or Cursor plugin through the renderers; deterministic zips; each tool's marketplace file | 020, 021, 023, 024, 025, 026 | done |
-| [077](./077-claude-code-marketplace/SPEC.md) | Claude Code marketplace from the instance: `GET /api/v1/feeds/claude-code/marketplace.json` and plugin zips behind a token, built once per version and cached; `rmk plugin-setup claude-code` with `headersHelper: rmk auth headers`; the Plugin marketplaces topic | 076, 009, 019, 022, 027 | done |
-| [078](./078-plugin-feed-mirror/SPEC.md) | Git mirror for Codex and Cursor: the feeds for both tools, `rmk feed build --out <dir>` (deterministic, touches only what it wrote), a scheduled CI workflow to keep the repository current | 076, 077 | in progress (tasks 1–5 built; task 6, the check by hand, is done in 153) |
-| [079](./079-plugin-feeds-at-scale/SPEC.md) | Plugin feeds at scale: a benchmark of the marketplaces at 1,000–10,000 items, a catalogue revision and an in-memory marketplace cache, build stats with warnings past 80% of Claude Code's limits (log and Admin › Settings), the 5 MiB cap only for Claude Code with the git mirror as the fallback; per-scope marketplaces wait for a measured trigger | 077, 078 | done |
-
-### Across the app
-
-Work that changes every part of the web app rather than one milestone's features.
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [049](./049-local-time/SPEC.md) | Local time: every timestamp in the reader's time zone, UTC on hover; storage, the API and `rmk` stay UTC | 032 | done |
-| [050](./050-help-popovers/SPEC.md) | Helpers as popovers: an inline helper's answer floats next to its question (Floating UI) instead of opening inside the page | 033, 032 | done |
-| [060](./060-server-data-table/SPEC.md) | Server data table, first on the audit log: a shared `DataTable` with sorting, keyset pagination and filters on the server, all in the URL; the audit log as one line per event, a summary per action, and the details in a dialog (`?event=`) | 007, 032, 049, 050 | done |
-| [061](./061-users-scopes-data-table/SPEC.md) | Users and Scopes on the server data table: `/admin/users` (sort by email, name, created) and both scope pages (sort by name, created) move to `DataTable`; `GET /api/v1/scopes` unchanged | 008, 010, 059, 060 | done |
-| [062](./062-review-queue-data-table/SPEC.md) | The review queue on the server data table: every tab paged (no more 200-row cut-off), sorted by time or name, searched and filtered by type; bulk approve and release on the page; `fixed` list parameters, date sort keys and `srHeader` added to the shared table | 014, 054, 055, 056, 058, 060 | done |
-| [063](./063-my-submissions-data-table/SPEC.md) | My submissions on the server data table: paged instead of loading everything, status links counted by one query, sorted by last change or name, searched and filtered by type | 012, 013, 052, 055, 056, 057, 058, 060, 062 | done |
-| [064](./064-remove-scopes-page/SPEC.md) | Remove the Scopes page: `/scopes` and its nav entry go (404), links point to the Documentation; Admin › Scopes and `GET /api/v1/scopes` stay | 010, 061 | done |
-| [088](./088-docs-on-website/SPEC.md) | Documentation on the website: Docs and every helper's Learn more open `www.ronne.ai/marketplace/docs` in a new tab; the app's `/docs` pages go (their addresses redirect); the install scripts move to `www.ronne.ai/marketplace/install.sh` and `.ps1` | 033, 050 | done |
-| [089](./089-dependency-picker-rule/SPEC.md) | Who can be picked as a dependency: your own items in any state (draft, in review, approved, published), others' only once published, in the form, `@` and the canvas alike; another author's unreleased item no longer counts at submit | 031, 056 | done |
-| [096](./096-any-dependency/SPEC.md) | Any item may depend on any other: no type rule on dependencies (the schema, the checks, the pickers, export), the form, `@` and the Canvas view on every type; cycles and self-dependencies still refused, a bundle lists at least one (`bundle_empty`) | 011, 013, 031, 041, 056, 089 | done |
-| [097](./097-frontmatter-references/SPEC.md) | Agents and skills named in frontmatter: `agent: @scope/name` in a skill's `SKILL.md` sets the dependency (unquoted accepted, saved quoted; real YAML errors); Claude Code gets the installed name and `context: fork`, its agents `skills:` from their skill dependencies; the `.agents/skills/` copy drops both; export finds a skill's `agent:` | 011, 021, 023, 024, 025, 038, 040, 056, 076, 096 | done |
-| [112](./112-dependency-cycles/SPEC.md) | Submitted and released together: Submit on an item submits it with the author's own dependency drafts, Release releases it with its unreleased dependencies, in one transaction, all or none (bulk too); cycles allowed, the resolver installs them, keeping only what the requests reach; `dependency_draft` and a cycle warning instead of errors | 013, 015, 020, 052, 055, 056, 089, 096, #142 | done |
-| [119](./119-sidebar-navigation/SPEC.md) | Sidebar navigation: the header's links move to a left sidebar in three groups (Discover, Governance & reviews, Tools), with a workspace switcher that opens a workspace, + Propose item, the person and appearance at its foot; it folds into an icon rail (a cookie keeps it); root's Admin pages as three links (their tabs removed); the Menu sheet below `lg` lists the same | 032, 065, 066, 088, 094, 114, 115 | done |
-| [120](./120-workspace-filter/SPEC.md) | Working in one workspace: the sidebar's switcher sets a current workspace (a cookie; `?workspace=` in the URL is the truth) that filters the Catalogue, Reviews and My submissions and preselects New item's scope, with a "Showing … only · Show all" line; members' workspaces only; never a permission boundary; counts unfiltered; web only | 119, 090, 091, 093, 094, 113, 114, 062, 063, 018 | done |
-
-### M12 — Easy install
-
-Ronne installs in one command, with Docker or without it, on a laptop or on a server with a domain
-and HTTPS, on macOS and Linux (owner, 2026-10-03; Windows through WSL 2 or a Linux VM since 121, 2026-10-14, and in a terminal with `npx` since #222, 2026-10-22). The user's guide is
-[`docs/runbooks/install.md`](../runbooks/install.md), a draft for the website that each feature
-makes true. Build order: 080 → 081 (Docker path done); 082 → 083 → 084 → 085 (macOS and Linux
-without Docker); 086 → 087 (Windows without Docker; both withdrawn by 121).
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [080](./080-docker-https/SPEC.md) | Docker with a domain and HTTPS: a Caddy proxy in `compose.yaml` on ports 80/443 inside, published on 7650/7651 by default (80/443 for a public domain); `RONNE_DOMAIN` for automatic certificates, own certificate files or an internal CA; the app's port no longer published | 005, 035, 036 | in progress |
-| [081](./081-install-script/SPEC.md) | Install script: `curl … \| sh` and `irm … \| iex` from each release; checks Docker, asks "this computer or a server with a domain", writes `~/ronne-marketplace`, starts, opens the browser; rerun to upgrade; `--yes` for scripts | 080, 035 | in progress |
-| [082](./082-server-npm-package/SPEC.md) | The server as an npm package: `npx @ronneai/marketplace`, command `rmk-server` (`start`, `setup`, `migrate`, `reset-root-password`), a data folder per system, `127.0.0.1:7650` by default | 034, 035, 036 | done |
-| [083](./083-service-unix/SPEC.md) | Service on Linux and macOS: `rmk-server service install \| status \| logs \| uninstall …` with systemd and launchd, a system user, `--domain` with Caddy from the same Caddyfile as 080 | 082, 080 | done |
-| [084](./084-bundles/SPEC.md) | Self-contained bundles: six archives per release (Linux, macOS, Windows × x64, arm64) with Node.js inside, smoke-tested per platform | 082 | done |
-| [085](./085-unix-packages/SPEC.md) | Homebrew tap, `.deb` and `.rpm`: `brew install ronneai/tap/rmk-server`, packages that install the service; the install script's no-Docker path on macOS and Linux | 083, 084, 081 | done (Homebrew tap: later work) |
-| [086](./086-service-windows/SPEC.md) | Service on Windows: the same `service` subcommands through WinSW, `C:\ProgramData`, a virtual account, firewall rules, Caddy for `--domain` | 083, 084 | withdrawn (121) |
-| [087](./087-windows-package/SPEC.md) | Windows installer and winget: `winget install RonneAI.Marketplace`, Inno Setup installer per architecture, the install script's no-Docker path on Windows; unsigned until SignPath Foundation signs it | 086, 084, 081 | withdrawn (121) |
-| [121](./121-no-windows-server/SPEC.md) | No Windows server: `rmk-server` runs on Linux and macOS only (npm's `os` field and a one-line refusal), Windows people use WSL 2 or a Linux VM; the Windows service (086), bundles, `install.ps1` and their CI go; `rmk` and `rmk-mcp` stay on Windows, with a Windows CI job of their own; in the next release, with 099 (nobody installs the server on Windows: no migration) | 081, 082, 084, 086 | done (partly reversed by [#222](../issues/222-windows-foreground/SPEC.md): `rmk-server` runs in a Windows terminal again) |
-
-### M13 — Workspaces
-
-A level above scopes: **workspace › scope › item** (owner, 2026-10-05). A workspace has members,
-roles per workspace (moderator, user; root stays instance-wide) and a visibility, public or private.
-Every instance has `global` (public, reserved, can't be edited or removed), and every user is in it.
-Item names stay `@scope/name`: scope names stay unique across the instance, so `rmk`, lockfiles and
-plugin feeds don't change (until 118: scope names unique per workspace, items named
-`@workspace/scope/name`, `@scope/name` for `global`; owner, 2026-10-09). Build order: 090 → 091 → 092 → 093 → 094 → 095, then 118 → 113 → 114 → 115
-(owner, 2026-10-09). 116 and 117 stay planned; 134 moves single items between scopes (owner, 2026-10-27). Inviting people by email isn't planned (owner,
-2026-10-09).
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [090](./090-workspaces/SPEC.md) | Workspaces and the global workspace: `workspaces`, `scopes.workspace_id` (every scope in `global`), Admin › Workspaces, the workspace when creating a scope, the catalogue's Workspace filter | 010, 059, 061 | done |
-| [091](./091-workspace-roles/SPEC.md) | Roles per workspace: `workspace_members`; moderator and user per workspace, root instance-wide; today's moderators become `global` moderators; every check made in the item's workspace; the review queue per workspace; submitting needs membership | 090, 014, 016, 059 | done |
-| [092](./092-workspace-members/SPEC.md) | Workspace members and the admin role: admin per workspace (a moderator's permissions plus its members, scopes and description), new users in `global` as users, a user's Workspaces dialog, a workspace's Members tab (for root and its admins); nobody leaves `global`; audited | 090, 091, 008, 061 | done |
-| [093](./093-private-workspaces/SPEC.md) | Private workspaces: seen only by members and root everywhere (not found to others), dependable only inside their workspace, turning private refused while outside items depend on it, plugin feeds per visibility key, `rmk feed build --workspace` | 090, 091, 092, 089, 018, 019, 020, 027, 077, 079 | done |
-| [094](./094-workspace-access-requests/SPEC.md) | Asking to join: the Workspaces page, a join link for private ones, requests answered by root or the workspace's moderators and admins, a Requests page and a nav count, audited | 090, 091, 092, 093, 007 | done |
-| [095](./095-workspaces-cli-api/SPEC.md) | Workspaces in `rmk`, MCP and the API: `GET /api/v1/workspaces`, `workspace` on items and `me`, `rmk workspaces`, `search --workspace`, export grouped by workspace, MCP `list_workspaces` | 090, 091, 093, 094, 019, 022, 027, 038 | done |
-| [113](./113-rename-workspaces/SPEC.md) | Renaming a workspace: root and the workspace's admins; `global` can't be; its items take the new name, old names kept as aliases; the workspace's old name answers as unknown (no redirect); audited | 090, 092, 093, 094, 095, 118 | done |
-| [114](./114-personal-workspaces/SPEC.md) | Personal workspaces: one per user (roots too), private always, only its owner (as admin) and root; submitted items approved at once and marked not reviewed; left out of root's lists unless named; `personal` in the API, `rmk` and MCP | 090–095, 118, 113, 008, 059, 077, 079 | done |
-| [115](./115-move-scopes/SPEC.md) | Moving a scope to another workspace: asked by the source's admins (a personal workspace's owner) or root; at once for root and `global`'s admins (two confirmations) and admins of the target, otherwise a request to its admins or root (root only for `global`); items renamed, old names kept as aliases; a scope-name clash renames the scope; not-reviewed versions need someone else; refused while a dependency would break; audited | 090–094, 118, 113, 114, 014, 015, 077, 079 | done |
-| [118](./118-workspace-in-names/SPEC.md) | The workspace in item names: scope names unique per workspace; `@workspace/scope/name`, `@scope/name` meaning `global`; old names kept as aliases that reserve their name; the manifest, API, resolver, `rmk` (lockfile rewritten to the new name), MCP, feeds and URLs; `client_too_old` for older `rmk` | 090–095, 011, 015, 019, 020, 022, 027, 037, 077, 097 | done |
-| 116 | Per-workspace tokens: a personal access token limited to some of its user's workspaces, for `rmk`, MCP and the feeds | 009, 093, 095 | planned |
-| 117 | Asking for a role: a member asks to be a workspace's moderator (or admin), answered by its admins or root, like a request to join | 092, 094 | planned |
-| [134](./134-move-items/SPEC.md) | Moving an item to another scope in the same workspace: any member asks, the workspace's moderators, admins or root move at once or answer; versions unchanged, the old name kept as an alias; a History tab with every name change (134, 115, 113, 118) | 091, 092, 094, 113, 115, 118, 017, 044 | done (the Documentation in ronne-web `feat/134-move-items`) |
-
-### M14 — Run it safely
-
-What a company checks before it runs Ronne (owner, 2026-10-06, from an evaluator's feedback): how
-to back it up and restore it, what it logs, what threats it faces and what to do in an incident.
-After M13. Build order: 098 → 099 → 100 → 101.
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [098](./098-threat-model/SPEC.md) | Threat model and incident response: the threat model (items run on developers' machines, review as the boundary, tokens, plugin feeds, export, our supply chain) and an incident runbook (yank a version, revoke tokens in bulk, rotate `AUTH_SECRET`, read the audit log, tell users); `rmk-server revoke-access` and `rotate-secret`; `SECURITY.md` links both | 007, 016, 009 | done (the yank wording's fix in ronne-web `fix/marketplace-098-yank-locks`) |
-| [099](./099-backup-restore/SPEC.md) | Backup and restore: `rmk-server backup` and `restore` (the database, storage and the settings file in one portable archive, made while running, restorable into any of the three database kinds; native dumps left to operators), the Docker volumes, encrypted backups, a backup runbook and a restore test in CI; encryption at rest is the disk's or the database's, documented | 082, 005 | done |
-| [100](./100-structured-logs/SPEC.md) | Structured logs: JSON lines with a level, time and request ID, `LOG_LEVEL`, the same fields in every domain, no secrets or tokens in any line | 001 | done |
-| [101](./101-metrics-traces/SPEC.md) | Metrics and traces: OpenTelemetry, off unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set (requests, database time, sign-ins, releases, feed builds); the health endpoint reports the database and storage | 100 | done |
-
-### M15 — Privacy and data lifecycle
-
-Personal data (emails, names, IP addresses) is kept only as long as needed, and a person can see
-it and have it erased, as Quebec's Law 25, PIPEDA and the GDPR expect (owner, 2026-10-06). The
-audit log stays whole: an erased person becomes a pseudonym, never a gap. Build order: 102 → 103 →
-104.
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [102](./102-retention/SPEC.md) | Retention: root sets how long IP addresses (audit log, sessions, device grants) and expired sessions are kept, 90 days by default, on a Privacy tab of Settings; a scheduled purge in the server under a lease in a `jobs` table, and `rmk-server purge` for cron; the Privacy topic in the Documentation | 007, 006, 099 | done (the Documentation in ronne-web `docs/marketplace-102-retention`) |
-| [103](./103-erase-user/SPEC.md) | Erase a user: root anonymises an account (email and name become `deleted-user-<id>`; sessions, accounts and tokens deleted; SCIM links (108) deleted, tombstones included, so no `externalId` links it again; IPs cleared), published items and audit events kept under the pseudonym; the last root can't be erased; audited | 008, 059, 102 | done |
-| [104](./104-your-data/SPEC.md) | Your data: a person downloads what the instance holds about them (account, tokens' names, submissions, comments, audit events) as JSON, and root can do it for them | 102, 103 | done (the Documentation in ronne-web `docs/marketplace-104-your-data`) |
-
-### M16 — Company sign-in
-
-SSO, MFA and SCIM (owner, 2026-10-06; design in [MVP §14.3](../MVP/MVP.md#143-sso--planned-as-m16)).
-Through Better Auth's plugins, checked against its current docs before each spec. Email and
-password stay, at least for root, so a broken identity provider can't lock everyone out. Root
-manages it all on a new Authentication tab in Admin › Settings, with setup instructions for each
-provider (owner, 2026-10-15). Build order: 122 → 105 → 106 → 107 → 108.
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [122](./122-settings-tabs/SPEC.md) | Settings in tabs (`?tab=`): Usage, Plugin feeds and a new Authentication tab with its Sign-in methods panel; a shared link-tab strip the workspace page uses too | 046, 079, 006 | done (the Documentation in ronne-web `docs/marketplace-122-settings-tabs`) |
-| [105](./105-two-factor-sign-in/SPEC.md) | Two-factor sign-in: TOTP and backup codes on Account, root can require it for everyone or for roots and moderators; `reset-root-password` also resets it; audited | 122, 006, 008, 059 | done (the Documentation in ronne-web `docs/105-two-factor`) |
-| [106](./106-oidc-sign-in/SPEC.md) | Identity providers and OIDC sign-in: an abstract provider type (OpenID Connect first) with presets and setup instructions, set up by root on the Authentication tab; accounts linked by verified email, or created on first sign-in for chosen domains with the role `user`; IdP groups mapped to workspace roles; a password policy and `rmk-server disable-sso` so nobody is locked out | 122, 006, 008, 091, 092, 105, 114 | done (the Documentation in ronne-web `docs/106-oidc-sign-in`) |
-| [107](./107-rmk-login-device-flow/SPEC.md) | `rmk login --web` for SSO and two-factor users: the OAuth device flow (a code and a URL, approved in the browser, a personal access token back); the MCP setup uses it too | 106, 009, 022, 027 | in progress |
-| [108](./108-scim-provisioning/SPEC.md) | SCIM provisioning: `/api/v1/scim/v2` Users and Groups, a token per identity provider; deprovisioning disables the account and revokes its tokens and sessions; groups set workspace membership | 106, 092, 103 | done (the Documentation in ronne-web `docs/108-scim-provisioning`) |
-| [123](./123-user-profile-page/SPEC.md) | A page for each user, `/admin/users/<id>` (root only), holding every action the Users list's rows carry today (role, password, two-factor, disable, download, erase) and the account's state; the list loses its buttons and gains a Last sign-in column, which overprint the Status and Created columns | 008, 059, 092, 103, 104, 105, 108 | done (the Documentation in ronne-web `docs/marketplace-123-user-page`) |
-
-### M17 — More than one replica
-
-Ronne runs behind a load balancer on several replicas (owner, 2026-10-06). Nothing that has to be
-shared lives in one process's memory or on one machine's disk. Build order: 109 → 110 → 111.
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [109](./109-shared-rate-limits/SPEC.md) | Shared rate limits: every limit the set-up app keeps (sign-in, provider sign-in, `rmk login --web`, SCIM, uploads, submits, usage, feedback, the gap between new backup codes) counted in one database table instead of in memory, as keyed hashes, each attempt in one locking transaction; expired rows purged; the same limits and messages; the setup code's and Better Auth's limiters stay in memory | 006, 037, 046 | done (the Documentation in ronne-web `docs/marketplace-109-rate-limits`) |
-| 110 | S3-compatible storage: a `StorageAdapter` for S3 (AWS, MinIO, R2 and the like), chosen in setup or by environment; server-side encryption; tests against MinIO; a command that copies local storage into a bucket | 015, 099 | planned |
-| 111 | Replicas checked: every remaining in-memory state found and made shared or safe to repeat (the marketplace cache by catalogue revision, scheduled jobs under a lock, the per-person two-factor queue of 105); a compose example with two replicas, and an end-to-end run against it | 109, 110, 079, 102 | planned |
-
-### M18 — Home, onboarding and feedback
-
-Everyone lands on Home, so it gets an order, an instance notice root can set, shelves of pinned items
-(root's for the instance, a workspace admin's for the workspace) and each person's favorites, and a
-getting-started checklist; people can send feedback to the instance's administrators, and accounts
-root creates ask for a new password at first sign-in (owner, 2026-10-20). Written for any instance,
-a demo being one use. Build order: 129 first (M19), so these are written with messages from the
-start; then 124 → 125 → 126; 127 and 128 are independent of those.
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [124](./124-home-page-rework/SPEC.md) | Home page rework and the instance notice: the page's order with empty sections hidden, a first screen for an empty instance, type links beside the search, and a notice root sets in Admin › Settings (one message with links written inline, tone, dismissible with an icon, returns when changed) | 018, 119, 120, 122, 129 | done |
-| [125](./125-pins-and-favorites/SPEC.md) | Pinned items and favorites: root pins for the instance (Start here), a workspace's admins pin for the workspace, anyone keeps private favorites (a star, Home shelf, catalogue filter); visibility checked at read, audited pins, in the data download and erased with the account | 018, 090, 091, 093, 120, 124, 129 | done (the Documentation in ronne-web `docs/marketplace-pins-favorites`) |
-| [126](./126-getting-started/SPEC.md) | Getting started checklist on Home: create a token, connect `rmk`, install a first item, start a draft; ticks itself from existing data, can be hidden and brought back | 009, 107, 124, 129 | done |
-| [127](./127-send-feedback/SPEC.md) | Send feedback to this instance's administrators from the sidebar, and Admin › Feedback for root (server data table, handled, bulk, count, retention, erased with the account) | 060, 007, 103, 104, 119, 129 | done (the Documentation in ronne-web `docs/marketplace-feedback`) |
-| [128](./128-change-password-first-sign-in/SPEC.md) | Change the password at first sign-in: root can require it when creating a user or resetting a password; a hold on every page and the API until it's changed | 006, 008, 105, 129 | done |
-
-### M19 — Languages
-
-The screens speak the person's language: English (the default), Portuguese and French, chosen on
-the profile (owner, 2026-10-20). Platform labels only: item content, what people write, `rmk`, the
-MCP server and the API stay as they are. 129 builds the machinery and translates what every page
-shares; 130–133 move the rest, area by area, and stay `planned` until 129 is built, so their specs
-use what it taught. From 129 on every new screen is written with messages.
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [129](./129-languages-foundation/SPEC.md) | Languages, the foundation: `user.locale`, how the language is chosen (profile, cookie, browser, English), message files with parity and raw-text tests, the shell, Account, sign-in and shared UI in three languages | 006, 032, 049, 088, 104, 123 | done |
-| [130](./130-languages-browse/SPEC.md) | Languages: browse. Catalogue, item page, workspaces pages (members, requests, moves), the words they share (item types, roles), what their actions say, and the inline helpers that sit on them | 129 | done (the Documentation in ronne-web `docs/marketplace-languages-browse`) |
-| [131](./131-languages-author/SPEC.md) | Languages: author and review. Draft editor, composer, submissions, reviews, versions, releases and their error messages | 129, 130 | done |
-| [132](./132-languages-admin/SPEC.md) | Languages: admin and setup. Admin pages, settings tabs, audit log labels, the setup wizard, SSO and SCIM screens; an instance default language if wanted | 129 | done (the Documentation in ronne-web `feat/132-languages-admin`; the instance default language was not built) |
-| [133](./133-languages-signoff/SPEC.md) | Languages: sign-off. The raw-text scan covers the whole app, a language review of Portuguese and French (by agents, owner 2026-10-27) (with 131's follow-up: « revue » and "proposta de mudança" on the website), the phone sweep in each language, Documentation links checked | 130, 131, 132 | done (reviewed by agents; the Documentation in ronne-web `feat/133-languages-signoff`) |
-| [141](./141-language-settings/SPEC.md) | Languages on and off, and the instance default: Admin › Settings › Languages sets the default, whether people may choose and which languages are offered; with choosing off everyone sees the default and the switches hide; the default replaces English as the last fallback; people's choices are kept; audited | 129, 132, 122, 007 | done (the Documentation in ronne-web `docs/marketplace-141-language-settings`) |
-
-### M20 — Security scan
-
-Moderators get a second opinion on what an item says and does (owner, 2026-10-28): NVIDIA's
-SkillSpector, installed by the operator, scans each submission revision, statically by default and
-with semantic (LLM) analysis when a provider is set up (by the operator; by root too once 136
-lands) and root chooses it, and its
-findings show on the review page. Advisory by default: it never blocks a submit or a release, and
-once 137 lands, blocks an approval only when root sets a threshold score.
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [135](./135-skill-scanner/SPEC.md) | Security scan of submissions: the operator installs SkillSpector at a pinned version (`RONNE_SKILL_SCANNER`), root turns it on and picks the item types; each revision is scanned statically (`--no-llm`) by default, or with semantic analysis when the operator sets up a provider (`RONNE_SKILL_SCANNER_ENV_*`) and root chooses it, in a private folder with a short environment allowlist and a timeout; a Security scan panel on the review page | 013, 014, 015, 060, 129 | done (the Documentation in ronne-web `feat/135-skill-scanner`) |
-| [136](./136-scanner-settings-in-web/SPEC.md) | Scanner settings in Admin › Settings: root sets the provider, model, endpoint, timeout and a write-only API key (encrypted at rest as identity providers' secrets, re-keyed by `rotate-secret`, never shown or logged); endpoints `https://` and not internal unless the operator allows the host; root picks the command from the operator's `RONNE_SKILL_SCANNERS` list; environment variables still win | 135, 106, 098, 099 | done (the Documentation in ronne-web `feat/136-scanner-settings-in-web`) |
-| [137](./137-scan-gate-and-panel/SPEC.md) | Security scan redesign and gate: a summary card with the score, recommendation and findings by category, and a dialog with every finding (category tabs, jump to code, remediation, mark false positive, JSON export); authors see their own scan; root sets a threshold score that blocks approval, failing closed on a pending, failed or missing scan, with root's audited override | 135, 136, 014, 054, 058 | done (the Documentation in ronne-web `feat/137-scan-gate-and-panel`) |
-| [156](./156-scanner-container/SPEC.md) | The security scanner as a ready-to-run container: a small scan service in the scanner image, built on the server by compose behind the `scanner` profile (static, no outbound network) and `scanner-semantic` (semantic, with internet); Ronne reaches them through the proxy on internal networks they never share with Ronne, by address and a scan key (`RONNE_SKILL_SCANNER_URL`, `RONNE_SKILL_SCANNER_SEMANTIC_URL` and `RONNE_SCAN_KEY`, written by the installer), so no Docker socket and no `.env` editing; `install.sh` asks, on a fresh install or a rerun; a host install runs the same container with `scanner.compose.yaml` | 135, 136, 137, 005, 081 | done, two acceptance checks left for after the merge (a fresh install from GitHub, a semantic scan with a provider) (the Documentation in ronne-web `feat/156-scanner-container`) |
-
-## Planned on 2026-10-29
-
-The owner's next features (owner, 2026-10-29), built in this order: M21, then 141 (in M19), M22,
-M23, M24, M25 and M26, after 137 (M20, in progress on its own branch). Each row's "Depends on"
-names what must be `done` first. They were all specified at once, ahead of the usual "current
-and next milestone" rule, at the owner's request: a spec is re-checked against what was built
-since (and the vendors' current docs) before its work starts, as for one on hold.
-
-### M21 — Feedback in the app
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [138](./138-toasts/SPEC.md) | Toasts for the results of actions, with Sonner unstyled behind our own wrapper (our own component if it can't be translated or placed): bottom right from `sm`, across the bottom above `BottomBar` on phones; ok and info go after 5 s (paused on hover, focus and a hidden tab), warnings and errors stay until closed; `status`/`alert` regions that never take focus; `flashToast` after a redirect (a cookie with a message key, never text); field errors and one-time secrets stay inline | 032, 065, 067, 129 | done |
-| [139](./139-notification-center/SPEC.md) | Notification center in the app: a bell with the unread count in a top bar over the content area (and in the phone header), the ten latest in a popover, `/notifications` on the server data table; written with the audit event in the same transaction (decisions, comments and releases on your submission, answers to your requests, requests you must answer, root's feedback), never to the actor; in the reader's language; hidden once you can't see the subject; polled every minute; kept 90 days; email and webhooks out | 007, 060, 102, 103, 104, 119, 129 | done (the Documentation in ronne-web `docs/marketplace-139-notifications`) |
-| [140](./140-upgrade-check/SPEC.md) | Upgrade check for root: a daily request for the latest GitHub release, sending nothing about the instance, under the scheduler's lease; one notification per new version to each active root; Settings › Updates with the versions, Check now and this instance's update commands; "Update available" at the sidebar's foot; a switch and `RONNE_UPDATE_CHECK=off`; quiet when offline | 139, 122, 102, 005, 035, 082, 085 | done (the Documentation in ronne-web `docs/marketplace-140-update-check`) |
-
-### M22 — Global search
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [142](./142-search-index/SPEC.md) | Search index in the server: Orama inside the web app's process (no new image or service) over each item's listed version (full name, old names, type, description, keywords); rebuilt in the background per catalogue revision, by each replica; filtered by the workspaces the reader sees and every hit checked again; today's `LIKE` until the first build; `GET /api/v1/search` and `searchEverywhere` | 018, 019, 079, 093, 114, 118 | specified |
-| [143](./143-search-everywhere/SPEC.md) | Search on every page: Search in the sidebar and an icon in the phone header, ⌘K/Ctrl+K; a dialog with items as you type, limited to the current workspace if wanted, and Go to entries for the pages the reader can open; a `/search` results page that works without JavaScript | 142, 119, 120, 066, 067, 129 | specified |
-| [144](./144-search-file-contents/SPEC.md) | File contents in search, at scale: `search_texts` holds each version's text files (64 KiB each), written at publish and backfilled; snippets with the file path; `rmk search` and MCP `search_items` move to `/api/v1/search` (older servers fall back); `RONNE_SEARCH_CONTENTS`; `bench:search` at 1k, 5k and 10k items | 142, 143, 044, 015, 022, 027 | specified |
-
-### M23 — MCP servers in items
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [145](./145-mcp-server-references/SPEC.md) | Reference MCP servers from items: an MCP servers field on skills, agents and commands (a picker of `mcp-server` items that adds the dependency), `mcp:<server>` in agents' tools; checks that tool references match a dependency and that two servers don't share a short name; Claude Code agents get `mcpServers`; the Overview lists "Uses MCP servers" | 096, 097, 089, 012, 031, 023, 024, 025 | specified |
-| [146](./146-mcp-server-setup/SPEC.md) | Install referenced MCP servers, with set-up steps: an optional `mcp-server.setup` file in the manifest; after install or update `rmk` lists each server's variables as set or not (never a value); `rmk mcp check` and MCP `check_mcp_servers`; "Set up on your machine" on the item page, per tool and system; the Documentation topic MCP servers | 145, 022, 027, 044, 045, 076, 077 | specified |
-
-### M24 — AI providers and triage
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [147](./147-ai-providers/SPEC.md) | AI providers, set up once and shared: Admin › Settings › AI providers lists named providers (135's six kinds, keys sealed and write-only, 136's endpoint checks, Test connection), the environment's read-only and winning; the security scan and triage each pick one and a model; 136's settings move over at start-up; Ronne's own model client (no tools, no SDK); one Allow AI providers switch per private or personal workspace, for the semantic scan and triage alike (without it the scan runs static) | 136, 122, 106, 098, 099, 092, 093, 114, 164 | specified |
-| [148](./148-ai-triage/SPEC.md) | AI triage of submissions: advice on improving each submitted revision, and a draft on request; advisory, never a gate; root turns it on and picks types; private workspaces need their admins' consent, personal ones the owner's; files sent as untrusted data, fixed-shape answers shown as text; a Triage tab and card on the review page, the submission page and the editor; daily limits | 147, 135, 137, 014, 093, 114 | specified |
-| [149](./149-triage-overlap/SPEC.md) | Triage overlap: candidates from the search index, the model judging duplicate, overlaps or related, and recommending depend on it, propose a change, keep both or merge; compared only with what the revision's workspace may see | 148, 142, 144 | specified |
-| [150](./150-triage-guidance/SPEC.md) | Triage guidance, scanned before it's used: root for the instance and a workspace's admins for theirs, by item type and topic; each entry scanned by SkillSpector when the scan is on and used only under 137's threshold (fails closed, root may override); the last passing text stays in use while an edit is scanned | 148, 137, 135, 092 | specified |
-| [151](./151-triage-report/SPEC.md) | Triage report for a workspace and the instance: duplicates, items to retire, items to improve and gaps; on request once a day and an optional weekly instance report; six kept; private workspaces only with their consent | 149, 150, 090 | specified |
-
-### M25 — Git export
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [152](./152-git-repositories/SPEC.md) | Git repositories in Admin › Settings (root): an HTTPS URL, a branch, a use (push, read or both) and a write-only token encrypted and bound to the URL's origin, re-keyed by `rotate-secret`; 136's URL checks plus `RONNE_GIT_HOSTS`; Test connection; `isomorphic-git` | 136, 122, 090, 093, 098, 099 | specified |
-| [153](./153-git-push-feeds/SPEC.md) | Push the plugin marketplaces to git on every catalogue change: 078's tree (from `@ronneai/core/plugins`, as `rmk feed build` writes it) plus a `skills/` tree for other tools, in an optional folder; never a force push, a conflict stops it; a private workspace only when its admins turn it on, personal ones never; 078's check by hand in each tool | 152, 076, 077, 079, 093, 114 | specified |
-
-### M26 — Import
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [154](./154-import-from-marketplaces/SPEC.md) | Import from other marketplaces: skills, agents, commands, rules and MCP servers from a git repository, with skills.sh (Vercel's directory) search as a finder; drafts, reviewed and scanned like any other, with an Imported risk flag; source, commit and licence recorded, the licence file kept, nothing without a licence on root's list unless root records a permission note (flagged, kept out of git pushes until root allows); off by default, root says who and which hosts | 152, 037, 038, 040, 043, 051, 010, 135, 137, 014 | specified |
-| [155](./155-follow-upstream/SPEC.md) | Follow an imported item's source: a daily check and Check now bring changes in as an updated draft or a change proposal onto `latest` and notify its maintainers; never submits or releases on its own; the licence checked again; stopped states shown with reasons | 154, 017, 042, 051, 102, 139 | specified |
-
-### M27 — Sign-in screens
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [157](./157-sign-in-redesign/SPEC.md) | Sign-in screens redesign: a reusable auth shell with the brand panel, sign-in and the `rmk` guide as tabs, vendor marks on the company sign-in buttons, the second step as six code boxes, and a language menu | 006, 022, 032, 105, 106, 129 | done |
-| [158](./158-typography-refinement/SPEC.md) | Typography refinement: Inter replaces Manrope, a type scale of utilities, IBM Plex Mono only for machine values, the catalogue card's date out of the badge row, a `99+` nav count, "/ marketplace" beside the sidebar logo, icon-only copy buttons | 032, 129 | done |
-
-## Planned on 2026-11-01
-
-What an organisation needs to run Ronne under its own rules, and to show that it does (owner,
-2026-11-01, from a governance review of the code): only its operator sets a new server up; tokens
-that don't outlive their purpose; reasons on the record; workspaces deciding what leaves the
-server; backups that are safe to keep; an audit log that can be traced, filtered, exported and
-trusted; least privilege for machines; trust signals on developers' machines; and policies that a
-workspace can make stricter. Built in this order: M28, M29, M30, M31. M28 is specified; M29 to M31
-are planned rows, specified when each milestone starts (the usual "current and next milestone"
-rule). Numbers missing from the sequence are reserved.
-
-### M28 — Governance foundations
-
-Small changes that close the cheapest governance gaps, with no new concepts.
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [161](./161-setup-code/SPEC.md) | Setup code: a one-time code made when the server starts and isn't set up, kept in the data folder (0600) and printed in the server's log and by the install script (which, on this computer, opens `/setup#code=…`), asked for by every step of the web setup, rate-limited; `setup-code` prints it again; the terminal setup doesn't ask; deleted once root exists | 036, 003, 005, 080, 081, 082, 083, 100 | done (the Documentation in ronne-web `docs/marketplace-161-setup-code`) |
-| [162](./162-token-lifetime-policy/SPEC.md) | Token lifetime policy: root sets the longest lifetime on the Authentication tab (shorter for reviewers and root; defaults 365 and 90 days), every way of making a token honours it, Shorten applies it to older tokens; a person's tokens listed on their page with Revoke; changing your password (a box, checked) and root's two-factor reset revoke tokens | 009, 105, 107, 122, 123, 128 | done (the Documentation in ronne-web `docs/marketplace-162-token-lifetime-policy`) |
-| [163](./163-override-reasons/SPEC.md) | Overrides need a reason: root's approval of their own submission requires one again (optional since 054), on the review page and in Approve many when the selection has overrides; shown on the review page and the Overview | 014, 054, 058, 137 | done (the Documentation in ronne-web `docs/marketplace-163-override-reasons`) |
-| [164](./164-workspace-ai-consent/SPEC.md) | Workspaces consent before an AI provider sees their items: 147's Allow AI providers switch, built first for the security scan; private workspaces (admins or root) and personal ones (their owner) are scanned statically until they allow it; the switch names the provider's host; audited | 093, 114, 092, 135, 136, 137 | specified |
-| [165](./165-encrypted-backups/SPEC.md) | Backups encrypted by default: `backup` seals the archive with a passphrase (file, variable or asked; 12 characters at least for new ones), `--plain` by name with a warning, a schedule without a passphrase stops instead of writing plain; the runbook's schedules use a passphrase file | 099, 083 | specified |
-| [166](./166-audit-context/SPEC.md) | Audit context: `audit_log` gains the request ID, the channel (web, API, SCIM, terminal, job), the client, the workspace and the outcome, filled in `recordAudit` from the request context; the audit page filters by workspace and request ID; user agents cleared with addresses by retention and erasure; `audit.read` checked in the audit's own actions; people shown by name; the sidebar gains an Admin group, and its groups open and close | 007, 060, 100, 102, 103, 104 | done |
-
-### M29 — Evidence and least privilege
-
-Auditors get evidence they can take away, machines get only the access they need, and developers
-see what they're installing before it's written. With it, the two `rmk` lockfile gaps in the threat
-model's known gaps (§5: a yanked version a lockfile pins installs without the promised warning; a
-dependency on a tag doesn't stay on `rmk.lock`) are filed as issues against 022 and fixed in
-`docs/issues`.
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| 167 | Audit events for what isn't recorded yet: authorization refusals (`authz.denied`, at most one per person, action and minute), root's Scan now, retention purges (with counts), viewing and exporting the audit log; a guard test that every service changing a governed table records an event | 166 | planned |
-| 168 | Audit export: the audit log's filtered view as CSV or JSON Lines, and `GET /api/v1/audit` (keyset pages, a token with the audit scope), for root and auditors; each export audited | 166, 167, 169, 170 | planned |
-| 169 | Auditor role: instance-wide read-only access to the audit log, users and roles, settings and governance reports, without changing anything or reading private items' content; Admin pages gated by permission instead of by root | 166, 123 | planned |
-| 170 | Token scopes: read, feeds, drafts and usage (and audit, for auditors) chosen per token, `rmk login` and the device flow asking only for what they need, existing tokens keeping every scope; built with 116's workspaces | 116, 162 | planned |
-| 171 | Review provenance for installers: each version's review in the API, `rmk info`, the MCP server and the feeds (reviewed or not, how it was approved, when, the scan's score); `rmk install --reviewed-only` and a project setting that refuses unreviewed versions | 019, 022, 027, 137 | planned |
-| 172 | `rmk install` shows risk before it writes: hooks, MCP servers, widening permission rules and network hosts, dependencies included, listed and confirmed; `--yes` for scripts; a project policy in `rmk.config.json` that refuses or asks by item type | 022, 041, 171 | planned |
-| 173 | MCP writes tied to what the person saw: `submit_drafts` takes the id of the `check_drafts` the person was shown, as `apply_plan` takes a plan; item text returned framed as content, never instructions; a prompt-injection section in the threat model | 027, 052 | planned |
-| 174 | Secrets found anywhere in an item: the secret check runs over every text file and hook command at submit, not only MCP fields; known formats refused, likely ones warned | 011, 013 | planned |
-
-### M30 — Trust and hardening
-
-What a developer installs can be traced to this instance's release, and the server ships with fewer
-privileges. Shared rate limits stay 109 (M17).
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| 175 | Release signing with an instance key (MVP §14.2): an ed25519 key made at setup and sealed like the other secrets, each version's manifest and checksum signed at release (older versions on first read), `rmk login` pinning the key and every install and feed build verifying it | 015, 022, 078, 099 | planned |
-| 176 | Signed release files: `checksums.txt` and the bundles signed in the release workflow, GitHub build attestations for bundles and packages, and the install script verifying the signature when it can | 081, 084, 085 | planned |
-| 177 | Container hardening: `web` and `proxy` with no capabilities they don't need and no new privileges, read-only where they can be; the optional database images by digest; no default database password (the install script makes one) | 005, 080, 081 | planned |
-
-### M31 — Configurable governance
-
-A workspace can make the instance's rules stricter for itself, every decision says which rule made
-it, and exceptions end on a date.
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| 178 | Governance policies: one policy module every decision goes through (approvals, the scan gate, moves, item types allowed), instance policies with workspace policies that can only make them stricter, and "why was this refused" on every refusal | 091, 137, 169 | planned |
-| 179 | Approvals by risk: the instance or a workspace asks for two approvals, or one from a security reviewer, for hooks, MCP servers, widening permission rules or network access | 178 | planned |
-| 180 | Exceptions with an owner and an end date: a scan override, a policy exception or an accepted risk recorded with its reason and expiry, listed, reminded before it ends, audited | 178, 139 | planned |
-| 181 | Settings history: every instance and workspace setting kept with who, when and why (secrets redacted), compared, and restored from Admin › Settings | 166 | planned |
-| 182 | Access report and inactive accounts: who holds which role where, with last sign-in and last token use, as a page and CSV; root's policy flags or disables accounts unused for a number of days | 166, 169 | planned |
-| 183 | Session policy: the longest session, an idle timeout, and "remember me" for reviewers and root, set on the Authentication tab | 006, 122 | planned |
-| 184 | Service accounts: workspace-owned accounts that sign in only with tokens, made by the workspace's admins, with an owner, scopes and an end date | 170 | planned |
-| 185 | Tamper-evident audit log: each event chained to the one before by a hash, `rmk-server audit verify`, and retention's and erasure's rewrites recorded in the chain | 166 | planned |
-| 186 | Alerts and scheduled backups: example alert rules for the metrics already sent (health, sign-in failures, rate limits, failing jobs, backup age), a failing-jobs metric, and `service install` adding an encrypted backup timer | 101, 165, 083 | planned |
-
-## Planned on 2026-11-20
-
-People can create their own accounts on an instance that root opens to the public, and Ronne can
-send email (owner, 2026-11-20). Root decides who may sign up, by email domain and by the way they
-come in (a password, Google, LinkedIn, Apple or a company provider), and whether new accounts wait
-for approval. Forgotten passwords are reset by an emailed code. The user's safety comes first,
-following OWASP's cheat sheets and NIST SP 800-63B-4: nothing tells whether an account exists, codes
-are short-lived and limited, an email alone never signs anyone in, and every change to how someone
-signs in is told to them by email. Personal data is kept only as long as it's needed. Built in this
-order: 109 (M17's shared rate limits, so every limit holds across replicas and restarts) first, then
-189 → 190 → 191 → 194 → 196 → 197 → 192 → 193.
-
-### M32 — Open sign-up and email
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [189](./189-outgoing-email/SPEC.md) | Outgoing email: SMTP, or the web APIs of Amazon SES, Mailgun, Postmark and Resend, set by root on an Email tab of Admin › Settings with the credentials sealed and a test email; an outbox sent by a job with retries, its messages sealed and deleted once sent; emails in three languages; security notices for password and two-factor changes | 122, 136, 102, 105, 106, 103, 104, 129 | done (the Documentation in ronne-web `docs/marketplace-189-outgoing-email`) |
-| [190](./190-self-registration/SPEC.md) | Self-registration: root turns on sign-up with a password, for any domain or listed ones; a 6-digit code by email (its lifetime set by root, 15 minutes by default), typed in six boxes; the account exists only once the code is checked, and waits for root's approval when root asks; the same answer whether or not the address has an account; rate limits, a honeypot and an invisible proof-of-work challenge; an optional terms and privacy link, its acceptance recorded | 109, 189, 106, 105, 102, 103, 104, 122, 129, 139, 157 | done |
-| [191](./191-account-creation-rules/SPEC.md) | Who may create accounts: an instance-wide block list of email domains that every way in obeys, and for each way in (password sign-up, Google, LinkedIn, Apple, each company provider) whether it may create accounts, for which domains, and whether they wait for approval; 106's domain lists migrated as they are | 109, 190, 106, 108, 139 | done (the Documentation in ronne-web `feat/191-account-creation-rules`) |
-| [192](./192-google-linkedin-sign-in/SPEC.md) | Google and LinkedIn sign-in: presets for personal Google accounts and for LinkedIn on 106's providers, shown as each brand's standard button; linked to an existing account by email only where the provider is the address's authority, otherwise from Account › Sign-in methods; a notice on every link and unlink | 191, 106, 157, 189, 105 | specified |
-| [193](./193-sign-in-with-apple/SPEC.md) | Sign in with Apple: its own provider type (a client secret signed from root's `.p8` key and renewed by Ronne, the form post callback, the name kept from the first sign-in, private relay addresses and sending to them through Apple's relay) and Apple's standard button | 192, 191, 189, 106 | specified |
-| [194](./194-forgot-password-email/SPEC.md) | Forgot password by email: the same answer for every address, a code, the account's two-factor, then a new password on a page that works once for 10 minutes; every session ended, access tokens revoked unless unticked, a notice email, and no automatic sign-in; roots still reset on the server | 109, 189, 190, 162, 105, 128 | specified |
-| [196](./196-breached-passwords/SPEC.md) | Breached passwords refused: a bundled list of known breached and common passwords, and words from the instance and the address, checked wherever a password is set; optionally Have I Been Pwned's anonymous range check, off by default | 194, 128, 189, 122 | specified |
-| [197](./197-verified-email-change/SPEC.md) | Verified email changes: a person changes their email with their password and two-factor, a code to the new address and a notice to the old one; addresses a company provider or SCIM manages stay theirs; root's changes notify both addresses | 109, 189, 190, 191, 105, 106, 108, 123 | specified |
-
-## Planned on 2026-11-21
-
-Skills, agents and commands say which model and effort they expect in each AI tool, so cheap work
-runs on a cheap model and token use stays balanced (owner, 2026-11-21). Root decides which models
-the instance allows and what each tier means, and a project can adjust the tiers for itself.
-
-### M33 — Model and effort per AI tool
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [198](./198-model-effort/SPEC.md) | Model and effort per AI tool: a portable `model` block (tier `fast`/`default`/`strong`, effort `low`/`medium`/`high`) on skills, agents and commands, with a pin per tool in `targets.<tool>.overrides`; root's allowed models, tier map and tier efforts per tool on a Models tab of Admin › Settings, read by `rmk` from `GET /api/v1/model-policy`; `rmk.config.json` replacing tiers or turning pins off within root's list; Claude Code writes them on all three types, Codex and Cursor on agents only, and every other case warns and installs | 023, 024, 025, 026, 076, 078, 097, 122, 129, 166 | specified |
-
-## Outside the milestones
-
-Work on the repository itself rather than the product.
-
-| ID | Feature | Depends on | Status |
-|---|---|---|---|
-| [187](./187-contributor-docs/SPEC.md) | Documentation for new contributors: `CONTRIBUTING.md` for people, with the one commands table (a test keeps it complete); outside pull requests leave tasks unticked and the owner witnesses them; the owner updates the private website; the README for people using Ronne; issue forms, a pull request template and a code of conduct; an index of `docs/knowledge/` | — | done |
-| [188](./188-node-26-target/SPEC.md) | Node.js 26 as the target LTS (`.nvmrc`, the Docker image, the bundles, the feed workflow `rmk` writes), the minimum 22.14.0 after #315; each version tested once per risk: the target runs everything, the minimum (`MIN_NODE` exactly) `pnpm test:runtime` (shipped code, no component tests or repo tooling), 24 nothing (the native modules are N-API, and a guard keeps them so); role-named CI jobs and a guard against the target drifting | 001, 005, 034, 082, 084, 112 | done (the Documentation in ronne-web `docs/marketplace-315-188-node`) |
-| [195](./195-fork-friendly-ci/SPEC.md) | Forks and private copies: publishing and version-bump jobs run only in `ronneai/ronne-marketplace`, CodeQL skips private copies, a check refuses `pull_request_target`; `CONTRIBUTING.md` explains running Ronne privately and contributing back from a public fork, with a DCO sign-off on outside pull requests; outside contributors' workflows wait for approval | 187 | specified |
+| ID | Feature | Domain | Milestone | Status |
+|---|---|---|---|---|
+| [001](platform/001-monorepo-scaffold/SPEC.md) | Monorepo scaffold, tooling and CI | platform | M0 | done |
+| [002](platform/002-db-layer/SPEC.md) | Database layer and first migration | platform | M0 | done |
+| [003](install/003-setup-installer/SPEC.md) | `pnpm run setup` installer and root account | install | M0 | done |
+| [004](platform/004-ci-db-matrix/SPEC.md) | CI against SQLite, MySQL and PostgreSQL | platform | M0 | done |
+| [005](install/005-docker/SPEC.md) | Docker image and compose | install | M0 | done |
+| [006](identity/006-web-sign-in/SPEC.md) | Web sign-in, sign-out and change password | identity | M1 | done |
+| [007](operations/007-audit-log/SPEC.md) | Audit log | operations | M1 | done |
+| [008](identity/008-user-admin/SPEC.md) | User admin | identity | M1 | done |
+| [009](identity/009-access-tokens/SPEC.md) | Personal access tokens | identity | M1 | done |
+| [010](workspaces/010-scopes/SPEC.md) | Scopes | workspaces | M2 | done |
+| [011](items/011-manifest-core/SPEC.md) | Manifest core | items | M2 | done |
+| [012](items/012-submission-editor/SPEC.md) | Submission editor | items | M2 | done |
+| [013](items/013-submit-withdraw/SPEC.md) | Submit and withdraw | items | M2 | done |
+| [014](review/014-review-queue/SPEC.md) | Review queue | review | M3 | done |
+| [015](review/015-release/SPEC.md) | Release | review | M3 | done |
+| [016](items/016-version-management/SPEC.md) | Version management | items | M3 | done |
+| [017](items/017-change-proposals/SPEC.md) | Change proposals | items | M3 | done |
+| [018](catalogue/018-catalogue/SPEC.md) | Catalogue | catalogue | M3 | done |
+| [019](cli-api/019-registry-read-api/SPEC.md) | Registry read API | cli-api | M4 | done |
+| [020](cli-api/020-resolver/SPEC.md) | Resolver | cli-api | M4 | done |
+| [021](renderers/021-renderer-harness/SPEC.md) | Renderer interface and golden-file harness | renderers | M4 | done |
+| [022](cli-api/022-rmk-cli/SPEC.md) | `rmk` CLI | cli-api | M4 | done |
+| [023](renderers/023-claude-code-renderer/SPEC.md) | Claude Code renderer | renderers | M4 | done |
+| [024](renderers/024-codex-renderer/SPEC.md) | Codex renderer | renderers | M5 | done |
+| [025](renderers/025-cursor-renderer/SPEC.md) | Cursor renderer | renderers | M5 | done |
+| [026](renderers/026-support-matrix/SPEC.md) | Per-item support matrix | renderers | M5 | done |
+| [027](cli-api/027-registry-mcp-server/SPEC.md) | Registry MCP server and `rmk mcp-setup` | cli-api | M5 | done |
+| [028](renderers/028-copilot-renderer/SPEC.md) | GitHub Copilot renderer | renderers | M5b | on hold |
+| [029](renderers/029-gemini-antigravity-renderers/SPEC.md) | Antigravity CLI and Gemini CLI renderers | renderers | M5b | on hold |
+| [030](renderers/030-devin-renderer/SPEC.md) | Devin renderer | renderers | M5b | on hold |
+| [031](items/031-visual-composer/SPEC.md) | Visual composer | items | M6 | done |
+| [032](web-ui/032-design-system/SPEC.md) | Design system and app shell | web-ui | M1 | done |
+| [033](web-ui/033-in-app-help/SPEC.md) | In-app help | web-ui | M3 | done |
+| [034](install/034-npm-packages/SPEC.md) | Publishing `rmk` and the MCP server to npm | install | M6 | done |
+| [035](install/035-docker-hub-image/SPEC.md) | Publishing the web app's Docker image to Docker Hub | install | M6 | done |
+| [036](install/036-web-setup/SPEC.md) | Web setup wizard | install | M6 | done |
+| [037](cli-api/037-draft-upload-api/SPEC.md) | Draft upload API | cli-api | M7 | done |
+| [038](export-import/038-rmk-export/SPEC.md) | `rmk export` for skills | export-import | M7 | done |
+| [039](export-import/039-mcp-export-tools/SPEC.md) | MCP export tools | export-import | M7 | done |
+| [040](export-import/040-export-more-types/SPEC.md) | Export more types | export-import | M7 | done |
+| [041](export-import/041-export-dependencies/SPEC.md) | Dependencies on export | export-import | M7 | done |
+| [042](export-import/042-export-change-proposal/SPEC.md) | Export a change as a proposal | export-import | M7 | done |
+| [043](export-import/043-codex-cursor-readers/SPEC.md) | Export from Codex's and Cursor's files | export-import | M7 | done |
+| [044](items/044-item-contents/SPEC.md) | See an item's contents on its page | items | M8 | done |
+| [045](catalogue/045-item-overview-dashboard/SPEC.md) | Item overview dashboard | catalogue | M8 | done |
+| [046](usage/046-usage-telemetry/SPEC.md) | Usage telemetry | usage | M9 | done |
+| [047](usage/047-usage-on-item-page/SPEC.md) | Usage on the item page | usage | M9 | done |
+| [048](items/048-runtime-requirements/SPEC.md) | Runtime requirements | items | M8 | dropped |
+| [049](web-ui/049-local-time/SPEC.md) | Local time | web-ui | Across the app | done |
+| [050](web-ui/050-help-popovers/SPEC.md) | Helpers as popovers | web-ui | Across the app | done |
+| [051](export-import/051-update-drafts-on-export/SPEC.md) | Update your own drafts on export | export-import | M7 | done |
+| [052](items/052-bulk-submit/SPEC.md) | Submit drafts in bulk | items | M7 | done |
+| [053](export-import/053-export-descriptions/SPEC.md) | Every exported item has a description | export-import | M7 | done |
+| [054](review/054-bulk-approve/SPEC.md) | Approve in bulk, with an optional message | review | M7 | done |
+| [055](review/055-bulk-release/SPEC.md) | Release in bulk | review | M7 | done |
+| [056](items/056-pending-dependencies/SPEC.md) | Dependencies on their way | items | M7 | done |
+| [057](items/057-withdraw-archive-delete/SPEC.md) | Withdraw: archive or delete | items | M7 | done |
+| [058](review/058-review-decisions-everywhere/SPEC.md) | Reject and request changes, from the queue and the page | review | M7 | done |
+| [059](identity/059-multiple-roots/SPEC.md) | More than one root | identity | M1 | done |
+| [060](web-ui/060-server-data-table/SPEC.md) | Server data table, first on the audit log | web-ui | Across the app | done |
+| [061](web-ui/061-users-scopes-data-table/SPEC.md) | Users and Scopes on the server data table | web-ui | Across the app | done |
+| [062](review/062-review-queue-data-table/SPEC.md) | The review queue on the server data table | review | Across the app | done |
+| [063](web-ui/063-my-submissions-data-table/SPEC.md) | My submissions on the server data table | web-ui | Across the app | done |
+| [064](catalogue/064-remove-scopes-page/SPEC.md) | Remove the Scopes page | catalogue | Across the app | done |
+| [065](web-ui/065-mobile-foundations/SPEC.md) | Mobile foundations and phone tests | web-ui | M10 | done |
+| [066](web-ui/066-mobile-navigation/SPEC.md) | Navigation on phones | web-ui | M10 | done |
+| [067](web-ui/067-touch-primitives/SPEC.md) | Touch-ready primitives | web-ui | M10 | done |
+| [068](web-ui/068-no-hover-only/SPEC.md) | Nothing behind hover | web-ui | M10 | specified |
+| [069](web-ui/069-mobile-data-tables/SPEC.md) | Tables on phones | web-ui | M10 | specified |
+| [070](web-ui/070-mobile-files-diffs/SPEC.md) | Files, code and diffs on phones | web-ui | M10 | specified |
+| [071](web-ui/071-mobile-catalogue-item/SPEC.md) | Catalogue, item page and Documentation on phones | web-ui | M10 | specified |
+| [072](web-ui/072-mobile-authoring/SPEC.md) | Writing items on a phone | web-ui | M10 | specified |
+| [073](web-ui/073-mobile-review-release/SPEC.md) | Reviewing and releasing on a phone | web-ui | M10 | specified |
+| [074](web-ui/074-mobile-account-admin/SPEC.md) | Account, Admin, sign-in and setup on phones | web-ui | M10 | specified |
+| [075](web-ui/075-mobile-sign-off/SPEC.md) | Mobile sign-off | web-ui | M10 | specified |
+| [076](plugin-feeds/076-plugin-builders/SPEC.md) | Plugin builders | plugin-feeds | M11 | done |
+| [077](plugin-feeds/077-claude-code-marketplace/SPEC.md) | Claude Code marketplace from the instance | plugin-feeds | M11 | done |
+| [078](plugin-feeds/078-plugin-feed-mirror/SPEC.md) | Plugin feed git mirror for Codex and Cursor | plugin-feeds | M11 | in progress |
+| [079](plugin-feeds/079-plugin-feeds-at-scale/SPEC.md) | Plugin feeds at scale | plugin-feeds | M11 | done |
+| [080](install/080-docker-https/SPEC.md) | Docker with a domain and HTTPS | install | M12 | in progress |
+| [081](install/081-install-script/SPEC.md) | Install script | install | M12 | in progress |
+| [082](install/082-server-npm-package/SPEC.md) | The server as an npm package | install | M12 | done |
+| [083](install/083-service-unix/SPEC.md) | Running as a service on Linux and macOS | install | M12 | done |
+| [084](install/084-bundles/SPEC.md) | Self-contained bundles | install | M12 | done |
+| [085](install/085-unix-packages/SPEC.md) | Homebrew, .deb and .rpm packages | install | M12 | done |
+| [086](install/086-service-windows/SPEC.md) | Running as a service on Windows | install | M12 | withdrawn |
+| [087](install/087-windows-package/SPEC.md) | Windows installer and winget | install | M12 | withdrawn |
+| [088](web-ui/088-docs-on-website/SPEC.md) | Documentation on the website | web-ui | Across the app | done |
+| [089](items/089-dependency-picker-rule/SPEC.md) | Who can be picked as a dependency | items | Across the app | done |
+| [090](workspaces/090-workspaces/SPEC.md) | Workspaces and the global workspace | workspaces | M13 | done |
+| [091](workspaces/091-workspace-roles/SPEC.md) | Roles per workspace | workspaces | M13 | done |
+| [092](workspaces/092-workspace-members/SPEC.md) | Workspace members | workspaces | M13 | done |
+| [093](workspaces/093-private-workspaces/SPEC.md) | Private workspaces | workspaces | M13 | done |
+| [094](workspaces/094-workspace-access-requests/SPEC.md) | Asking to join a workspace | workspaces | M13 | done |
+| [095](cli-api/095-workspaces-cli-api/SPEC.md) | Workspaces in `rmk`, the MCP server and the API | cli-api | M13 | done |
+| [096](items/096-any-dependency/SPEC.md) | Any item may depend on any other | items | Across the app | done |
+| [097](items/097-frontmatter-references/SPEC.md) | Agents and skills named in frontmatter | items | Across the app | done |
+| [098](operations/098-threat-model/SPEC.md) | Threat model and incident response | operations | M14 | done |
+| [099](operations/099-backup-restore/SPEC.md) | Backup and restore | operations | M14 | done |
+| [100](operations/100-structured-logs/SPEC.md) | Structured logs | operations | M14 | done |
+| [101](operations/101-metrics-traces/SPEC.md) | Metrics, traces and health | operations | M14 | done |
+| [102](operations/102-retention/SPEC.md) | Retention | operations | M15 | done |
+| [103](operations/103-erase-user/SPEC.md) | Erase a user | operations | M15 | done |
+| [104](operations/104-your-data/SPEC.md) | Your data | operations | M15 | done |
+| [105](identity/105-two-factor-sign-in/SPEC.md) | Two-factor sign-in | identity | M16 | done |
+| [106](identity/106-oidc-sign-in/SPEC.md) | Identity providers and OIDC sign-in | identity | M16 | done |
+| [107](identity/107-rmk-login-device-flow/SPEC.md) | `rmk login --web`: the device flow | identity | M16 | in progress |
+| [108](identity/108-scim-provisioning/SPEC.md) | SCIM provisioning | identity | M16 | done |
+| [109](operations/109-shared-rate-limits/SPEC.md) | Shared rate limits | operations | M17 | done |
+| 110 | S3-compatible storage | — | M17 | planned |
+| 111 | Replicas checked | — | M17 | planned |
+| [112](items/112-dependency-cycles/SPEC.md) | Submitted and released together, cycles included | items | Across the app | done |
+| [113](workspaces/113-rename-workspaces/SPEC.md) | Renaming a workspace | workspaces | M13 | done |
+| [114](workspaces/114-personal-workspaces/SPEC.md) | Personal workspaces | workspaces | M13 | done |
+| [115](workspaces/115-move-scopes/SPEC.md) | Moving a scope to another workspace | workspaces | M13 | done |
+| 116 | Per-workspace tokens | — | M13 | planned |
+| 117 | Asking for a role | — | M13 | planned |
+| [118](workspaces/118-workspace-in-names/SPEC.md) | The workspace in item names | workspaces | M13 | done |
+| [119](web-ui/119-sidebar-navigation/SPEC.md) | Sidebar navigation | web-ui | Across the app | done |
+| [120](workspaces/120-workspace-filter/SPEC.md) | Working in one workspace | workspaces | Across the app | done |
+| [121](install/121-no-windows-server/SPEC.md) | No Windows server: WSL or a virtual machine instead | install | M12 | done |
+| [122](web-ui/122-settings-tabs/SPEC.md) | Settings in tabs, and the Authentication tab | web-ui | M16 | done |
+| [123](identity/123-user-profile-page/SPEC.md) | A page for each user, with the actions | identity | M16 | done |
+| [124](catalogue/124-home-page-rework/SPEC.md) | Home page rework and the instance notice | catalogue | M18 | done |
+| [125](catalogue/125-pins-and-favorites/SPEC.md) | Pinned items and favorites | catalogue | M18 | done |
+| [126](web-ui/126-getting-started/SPEC.md) | Getting started checklist | web-ui | M18 | done |
+| [127](feedback/127-send-feedback/SPEC.md) | Send feedback | feedback | M18 | done |
+| [128](identity/128-change-password-first-sign-in/SPEC.md) | Change the password at first sign-in | identity | M18 | done |
+| [129](web-ui/129-languages-foundation/SPEC.md) | Languages: the foundation | web-ui | M19 | done |
+| [130](web-ui/130-languages-browse/SPEC.md) | Languages: browse | web-ui | M19 | done |
+| [131](web-ui/131-languages-author/SPEC.md) | Languages: author and review | web-ui | M19 | done |
+| [132](web-ui/132-languages-admin/SPEC.md) | Languages: admin and setup | web-ui | M19 | done |
+| [133](web-ui/133-languages-signoff/SPEC.md) | Languages: sign-off | web-ui | M19 | done |
+| [134](items/134-move-items/SPEC.md) | Moving an item to another scope | items | M13 | done |
+| [135](security-ai/135-skill-scanner/SPEC.md) | Security scan of submissions (SkillSpector) | security-ai | M20 | done |
+| [136](security-ai/136-scanner-settings-in-web/SPEC.md) | Scanner settings in Admin › Settings | security-ai | M20 | done |
+| [137](security-ai/137-scan-gate-and-panel/SPEC.md) | Security scan: a summary, the details, and a score that blocks approval | security-ai | M20 | done |
+| [138](web-ui/138-toasts/SPEC.md) | Toasts for the results of actions | web-ui | M21 | done |
+| [139](web-ui/139-notification-center/SPEC.md) | Notification center | web-ui | M21 | done |
+| [140](install/140-upgrade-check/SPEC.md) | Upgrade check: root learns a new version is out | install | M21 | done |
+| [141](web-ui/141-language-settings/SPEC.md) | Languages on and off, and the instance's default | web-ui | M19 | done |
+| [142](catalogue/142-search-index/SPEC.md) | Search index in the server | catalogue | M22 | specified |
+| [143](catalogue/143-search-everywhere/SPEC.md) | Search on every page | catalogue | M22 | specified |
+| [144](catalogue/144-search-file-contents/SPEC.md) | File contents in search, at scale | catalogue | M22 | specified |
+| [145](cli-api/145-mcp-server-references/SPEC.md) | Reference MCP servers from items | cli-api | M23 | specified |
+| [146](cli-api/146-mcp-server-setup/SPEC.md) | Install referenced MCP servers, with set-up steps | cli-api | M23 | specified |
+| [147](security-ai/147-ai-providers/SPEC.md) | AI providers, set up once and shared | security-ai | M24 | specified |
+| [148](security-ai/148-ai-triage/SPEC.md) | AI triage of submissions | security-ai | M24 | specified |
+| [149](security-ai/149-triage-overlap/SPEC.md) | Triage: overlap with existing items | security-ai | M24 | specified |
+| [150](security-ai/150-triage-guidance/SPEC.md) | Triage guidance, scanned before it's used | security-ai | M24 | specified |
+| [151](security-ai/151-triage-report/SPEC.md) | Triage report for a workspace and the instance | security-ai | M24 | specified |
+| [152](export-import/152-git-repositories/SPEC.md) | Git repositories and their credentials | export-import | M25 | specified |
+| [153](plugin-feeds/153-git-push-feeds/SPEC.md) | Push the plugin marketplaces to git on every release | plugin-feeds | M25 | specified |
+| [154](export-import/154-import-from-marketplaces/SPEC.md) | Import items from other marketplaces | export-import | M26 | specified |
+| [155](export-import/155-follow-upstream/SPEC.md) | Following an imported item's source | export-import | M26 | specified |
+| [156](security-ai/156-scanner-container/SPEC.md) | The security scanner as a ready-to-run container | security-ai | M20 | done, two acceptance checks left for after the merge |
+| [157](identity/157-sign-in-redesign/SPEC.md) | Sign-in screens redesign | identity | M27 | done |
+| [158](web-ui/158-typography-refinement/SPEC.md) | Typography refinement | web-ui | M27 | done |
+| [161](install/161-setup-code/SPEC.md) | Setup code: only whoever started the server sets it up | install | M28 | done |
+| [162](identity/162-token-lifetime-policy/SPEC.md) | Token lifetime policy, and tokens revoked when an account is recovered | identity | M28 | done |
+| [163](review/163-override-reasons/SPEC.md) | Overrides need a reason | review | M28 | done |
+| [164](workspaces/164-workspace-ai-consent/SPEC.md) | Workspaces consent before an AI provider sees their items | workspaces | M28 | specified |
+| [165](operations/165-encrypted-backups/SPEC.md) | Backups encrypted by default | operations | M28 | specified |
+| [166](operations/166-audit-context/SPEC.md) | Audit context: request, channel, client, workspace and outcome | operations | M28 | done |
+| 167 | Audit events for what isn't recorded yet | — | M29 | planned |
+| 168 | Audit export | — | M29 | planned |
+| 169 | Auditor role | — | M29 | planned |
+| 170 | Token scopes | — | M29 | planned |
+| 171 | Review provenance for installers | — | M29 | planned |
+| 172 | `rmk install` shows risk before it writes | — | M29 | planned |
+| 173 | MCP writes tied to what the person saw | — | M29 | planned |
+| 174 | Secrets found anywhere in an item | — | M29 | planned |
+| 175 | Release signing with an instance key (MVP §14.2) | — | M30 | planned |
+| 176 | Signed release files | — | M30 | planned |
+| 177 | Container hardening | — | M30 | planned |
+| 178 | Governance policies | — | M31 | planned |
+| 179 | Approvals by risk | — | M31 | planned |
+| 180 | Exceptions with an owner and an end date | — | M31 | planned |
+| 181 | Settings history | — | M31 | planned |
+| 182 | Access report and inactive accounts | — | M31 | planned |
+| 183 | Session policy | — | M31 | planned |
+| 184 | Service accounts | — | M31 | planned |
+| 185 | Tamper-evident audit log | — | M31 | planned |
+| 186 | Alerts and scheduled backups | — | M31 | planned |
+| [187](platform/187-contributor-docs/SPEC.md) | Documentation for new contributors | platform | Repository | done |
+| [188](platform/188-node-26-target/SPEC.md) | Node.js 26 as the target, each version tested once per risk | platform | Repository | done |
+| [189](operations/189-outgoing-email/SPEC.md) | Outgoing email | operations | M32 | done |
+| [190](identity/190-self-registration/SPEC.md) | Self-registration | identity | M32 | done |
+| [191](identity/191-account-creation-rules/SPEC.md) | Who may create accounts | identity | M32 | done |
+| [192](identity/192-google-linkedin-sign-in/SPEC.md) | Google and LinkedIn sign-in | identity | M32 | specified |
+| [193](identity/193-sign-in-with-apple/SPEC.md) | Sign in with Apple | identity | M32 | specified |
+| [194](identity/194-forgot-password-email/SPEC.md) | Forgot password by email | identity | M32 | specified |
+| [195](platform/195-fork-friendly-ci/SPEC.md) | Fork-friendly CI and contributing from a private copy | platform | Repository | specified |
+| [196](identity/196-breached-passwords/SPEC.md) | Breached-password check | identity | M32 | specified |
+| [197](identity/197-verified-email-change/SPEC.md) | Verified email change | identity | M32 | specified |
+| [198](items/198-model-effort/SPEC.md) | Model and effort per AI tool | items | M33 | specified |
+| [199](platform/199-features-by-domain/SPEC.md) | Features by domain, one file per milestone | platform | Repository | done |

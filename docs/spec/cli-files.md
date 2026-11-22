@@ -132,7 +132,7 @@ What rmk wrote, so it can update or remove it without touching anything else (MV
 | `dir` | A whole folder rmk created (skills) | a hash of the sorted file paths and their hashes |
 | `json-key` | One key path inside a JSON file | the canonical JSON of the value at `key` |
 | `toml-key` | One key path inside a TOML file | the canonical JSON of the value at `key` |
-| `json-array-item` | One element of the array at `key` in a JSON file, such as a Claude Code hook or permission rule ([023](../features/023-claude-code-renderer/SPEC.md)) | the canonical JSON of the element, which is how rmk finds it again |
+| `json-array-item` | One element of the array at `key` in a JSON file, such as a Claude Code hook or permission rule ([023](../features/renderers/023-claude-code-renderer/SPEC.md)) | the canonical JSON of the element, which is how rmk finds it again |
 | `section` | A fenced `rmk:begin` / `rmk:end` block in a Markdown file | the text between the fences |
 
 - Paths are relative to the project root (or the home folder for user scope) and always use `/`.
@@ -177,7 +177,7 @@ What rmk wrote, so it can update or remove it without touching anything else (MV
 - The `RMK_TOKEN` and `RMK_REGISTRY` env vars override the file, for CI.
 - The file holds only rmk's own token. Secrets for MCP servers are never stored (MVP §4.3).
 - `telemetry` is the person's `rmk telemetry on|off`. It only counts where a registry's usage policy
-  lets people choose; absent means on there ([046](../features/046-usage-telemetry/SPEC.md)).
+  lets people choose; absent means on there ([046](../features/usage/046-usage-telemetry/SPEC.md)).
 
 ## Which registry
 

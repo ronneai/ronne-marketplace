@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Checks the contributor documentation's lists (see docs-index.js). Run by the pre-commit hook,
+// Checks the contributor documentation's lists and links (see docs-index.js). Run by the pre-commit hook,
 // even for documentation-only commits, and by CI.
 import { execFileSync } from "node:child_process";
 import { checkAll } from "./docs-index.js";

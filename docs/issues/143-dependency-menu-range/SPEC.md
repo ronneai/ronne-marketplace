@@ -1,6 +1,6 @@
 # #143 — The dependency menu shows the range it writes, and offers an exact pin
 
-> GitHub: [#143](https://github.com/ronneai/ronne-marketplace/issues/143) · Feature: [089](../../features/089-dependency-picker-rule/SPEC.md) (the picker of [056](../../features/056-pending-dependencies/SPEC.md)) · Reported on: 0.3.2
+> GitHub: [#143](https://github.com/ronneai/ronne-marketplace/issues/143) · Feature: [089](../../features/items/089-dependency-picker-rule/SPEC.md) (the picker of [056](../../features/items/056-pending-dependencies/SPEC.md)) · Reported on: 0.3.2
 
 ## Report
 
