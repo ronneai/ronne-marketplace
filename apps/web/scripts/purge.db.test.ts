@@ -87,7 +87,7 @@ describe("pnpm run purge (102)", () => {
     expect(dry.stdout).toContain(
       "IP addresses cleared: 1 (audit log 1, sessions 0, device grants 0)",
     );
-    expect(dry.stdout).toContain("Failed sign-ins' emails cleared: 0");
+    expect(dry.stdout).toContain("Emails typed at failed sign-ins and sign-ups cleared: 0");
     expect(dry.stdout).toContain("Expired sessions deleted: 0");
     expect(dry.stdout).toContain("Finished device grants deleted: 0");
     expect(dry.stdout).toContain("A dry run: nothing was changed.");

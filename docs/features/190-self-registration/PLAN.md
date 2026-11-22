@@ -90,7 +90,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     approve, decline, a race between two roots, and the 30-day decline; component tests cover the
     filter and the buttons.
 
-- [ ] **8. Data protection.** [risky]
+- [x] **8. Data protection.** [risky]
   - The retention job purges pending sign-ups, codes and used challenges a day after they expire,
     and the sign-up audit emails with `ipDays`.
   - Erase (103) deletes pending rows, codes and terms acceptances.
@@ -133,3 +133,4 @@ goes into `SPEC.md` instead.
 - **Follow-up, from task 6's witnesses: sign-up records the version at the request, not the one the form showed.** If root asks everyone to accept a new version while someone has the sign-up form open, their acceptance is recorded for the new version, whose link they didn't see. Built: the form posts the version it showed, and sign-up refuses a different one, or terms a form drawn before them didn't show, with `terms_changed` and the new link and version, which the form keeps showing ("the terms changed, read them again").
 - **Task 7: a waiting account may get a session from Better Auth, never a signed-in person.** Better Auth's session hook (`mayHaveSession`) refuses only disabled and erased accounts, so password sign-in can open one for a waiting account and then end it at once, saying "waiting for approval" only after the right password. `findActiveUser` refuses a waiting account, so no session of one is a signed-in person (pages, actions, the device flow's approval), and a company sign-in refuses one as disabled. Decline deletes the rows a new account has (credential, terms, memberships, personal workspace); a foreign key that still points at it rolls the decline back. The 30-day decline runs in the retention job (`signUpsDeclined` in its counts); the Privacy tab's sentence and the `purge` command's lines don't name it yet (task 8).
 - **For task 8, from task 7's witnesses: a declined person's email outlives the decline.** It stays in the audit log (`user.signed_up` and `user.declined` metadata, kept like any audit row) and, for 90 days, in the roots' `user.awaiting_approval` notifications (`params.email`). Decision 11 wants nothing kept for ever: task 8 should clear or shorten them, as 102 clears failed sign-ins' emails after `ipDays`.
+- **For task 10, from task 8: the purge's lines changed.** `rmk-server purge` now prints "Emails typed at failed sign-ins and sign-ups cleared", "Ended sign-ups, codes and challenges deleted" and, when there were some, "Sign-ups declined after 30 days waiting". The website quotes the old line in `www/src/content/screenshots.ts`, and the Privacy tab's last-run sentence changed too.

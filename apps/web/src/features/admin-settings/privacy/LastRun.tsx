@@ -38,6 +38,9 @@ export const LastRun = ({ status }: { status: RetentionJobView }) => {
       rateLimits: n(c.rateLimitsDeleted ?? 0),
       // Nor, before 189, this one.
       mail: n(c.mailDeleted ?? 0),
+      // Nor, before 190, these.
+      signUps: n(c.signUpsDeleted ?? 0),
+      declined: n(c.signUpsDeclined ?? 0),
     });
   }
   return (

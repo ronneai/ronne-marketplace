@@ -150,7 +150,12 @@ and standards".
 - **Data protection**:
   - pending sign-ups and email codes are purged a day after they expire, by the retention job (102);
   - the email typed in a sign-up attempt is kept in the audit log only as long as IP addresses
-    (`ipDays`), as 102 already does for failed sign-ins;
+    (`ipDays`), as 102 already does for failed sign-ins: `auth.sign_up_requested`,
+    `auth.sign_up_code_failed`, `user.signed_up` and `user.declined`. The Privacy tab's last run
+    counts them with failed sign-ins' ("emails typed at failed sign-ins or sign-ups"), then the
+    ended sign-up rows, and the accounts declined after 30 days when there were some;
+  - a declined account's notifications to roots go with it, so its address isn't kept for their 90
+    days;
   - erase (103) and your data (104) cover the new columns and tables, the terms acceptances
     included.
 

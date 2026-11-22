@@ -740,3 +740,66 @@ Witnessed: 2026-11-22 00:43 EST, by a fresh agent (adversarial). Commit: d3a879c
 **Overall:** met. With re-check 1 (blind) met, both latest passes are met.
 
 Fix after re-check 1, test only, from the blind remark: "skips an account the job can't decline, and still declines the others". Making the job rethrow there → it fails (rerun by the implementer, file restored and matched with `cmp`); 11/11 on four databases.
+
+## Task 8 — Data protection [risky]
+
+### Blind pass
+
+Witnessed: 2026-11-22 00:58 EST, by a fresh agent (blind). Commit: 0d2be8e7 + working-tree diff. Machine: macOS (Darwin 27.2.0), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1–3 | The purge deletes pending sign-ups, codes and used challenges a day past their end, no sooner; a dry run counts the same; the sign-up audit emails are cleared at `ipDays` | no | confirmed | `retention-purge.db.test.ts`; mutations (rule to 0, cutoff `now`, `user.declined` dropped) → fail |
+| 4 | Erase deletes the person's terms, codes, pending rows at their address, and leaves others' | no | confirmed | `erase-user.db.test.ts`; mutations → fail |
+| 5 | Erase leaves nothing of the address in 190's data | no | not met | probe: a root's `user.awaiting_approval` notice keeps `params.email` after erasing |
+| 6 | Your data lists `signed_up_at`, `approval_pending_at` and every terms acceptance, oldest first | no | confirmed | export test; mutations → fail |
+| 7–8 | A decline deletes the roots' notices; the task 7 finding handled | no | confirmed | approval test; mutation → fails |
+| 9 | The Privacy tab's sentence in three languages | no | confirmed | same ICU arguments in all three; tests at 0, 1, 2 |
+| 10 | `rmk-server purge` prints the new counts | no | partly | the 30-day declines not printed |
+| 11 | Four databases, typecheck | no | confirmed | 69 on each server; `tsc` clean |
+
+**Overall:** not met (rows 5, 10).
+
+### Adversarial pass
+
+Witnessed: 2026-11-22 00:57 EST, by a fresh agent (adversarial). Commit: 0d2be8e7 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1–5, 8, 9, 11 | Cutoff edges to the millisecond on four databases, nothing still needed deleted, 2,345 rows a table in batches, the emails cleared, a decline's notices, the export, the Privacy sentence, the tests | no | confirmed | probes `PROBE edges`, `PROBE batching`, `PROBE prints` |
+| 6 | Erase deletes only the person's rows | no | partly | deleting every person's codes passes the test |
+| 7 | Erase leaves no personal data 190 writes | no | not met | the roots' awaiting-approval notices keep the address |
+| 10 | The `purge` command prints the new counts | no | partly | no line for the 30-day declines |
+
+**Overall:** not met. Also: the cutoff is tested at ±1 s only, so `<=` passes.
+
+Fixes after the first passes: erase also deletes notifications whose subject is the user; the erase test keeps another person's codes; `purgeLines` prints the 30-day declines when there were some (`runPurge` passes them); the purge test keeps a code ending exactly a day before now.
+
+### Re-check 1 (blind)
+
+Witnessed: 2026-11-22 01:00 EST, by a fresh agent (blind). Commit: 0d2be8e7 + working-tree diff. Machine: macOS (Darwin 27.2.0), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | Erase leaves nothing of the address; others' codes stay | no | confirmed | the probe passes; subject filter aimed elsewhere → fails |
+| 10 | `purge` prints the declines only when there were some | no | confirmed | `purge.test.ts`; `> 99` → fails |
+| 12 | A code ending exactly a day before now is kept | no | confirmed | `<=` → fails |
+| 11 | Four databases, typecheck | no | confirmed | 69 on each server; `tsc` exit 0 |
+
+**Overall:** met.
+
+### Re-check 1 (adversarial)
+
+Witnessed: 2026-11-22 01:01 EST, by a fresh agent (adversarial). Commit: 0d2be8e7 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The exact edge of the cutoff | no | confirmed | `<=` on both cutoffs → fails |
+| 6 | Erase deletes only the person's rows | no | confirmed | no `where` → fails; probe on four databases (`böb@` kept on MySQL) |
+| 7 | No address left in the roots' notices | no | confirmed | probe on four databases; another account's notice kept |
+| 10 | `purge` prints the declines | no | confirmed | `purge.test.ts` |
+| 11 | Four databases | no | confirmed | 69 on each server |
+
+**Overall:** met. With re-check 1 (blind) met, both latest passes are met.
+
+Fix after re-check 1, test only, from the pre-commit run: `scripts/purge.db.test.ts` expected the purge's old line "Failed sign-ins' emails cleared"; it now expects "Emails typed at failed sign-ins and sign-ups cleared". `vitest run scripts/purge.db.test.ts` → 3 passed (rerun by the implementer). No code the witnesses checked changed.

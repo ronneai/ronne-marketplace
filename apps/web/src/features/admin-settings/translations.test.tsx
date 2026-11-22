@@ -390,6 +390,8 @@ const counts = (n: number) => ({
   notificationsDeleted: n,
   rateLimitsDeleted: n,
   mailDeleted: n,
+  signUpsDeleted: n,
+  signUpsDeclined: n,
 });
 const lastRun = (locale: L, n: number) =>
   render(
@@ -517,13 +519,26 @@ describe("Settings › Usage, Plugin feeds and Privacy in three languages (132)"
   });
 
   it("the purge's last run counts what it cleared by each language's rule (0, 1 and 2)", () => {
-    expect(lastRun("en", 0)).toContain("cleared 0 IP addresses and 0 failed sign-ins’ emails");
+    expect(lastRun("en", 0)).toContain(
+      "cleared 0 IP addresses and 0 emails typed at failed sign-ins or sign-ups",
+    );
     // Zero is singular in Portuguese and French.
-    expect(lastRun("pt", 0)).toContain("apagou 0 endereço IP e 0 e-mail de acesso que falhou");
+    expect(lastRun("pt", 0)).toContain(
+      "apagou 0 endereço IP e 0 e-mail digitado num acesso que falhou ou num cadastro",
+    );
     expect(lastRun("fr", 0)).toContain("0 adresse IP effacée");
-    expect(lastRun("en", 1)).toContain("cleared 1 IP address and 1 failed sign-in’s email");
-    expect(lastRun("en", 2)).toContain("cleared 2 IP addresses and 2 failed sign-ins’ emails");
-    expect(lastRun("pt", 1)).toContain("apagou 1 endereço IP e 1 e-mail de acesso que falhou");
+    expect(lastRun("en", 1)).toContain(
+      "cleared 1 IP address and 1 email typed at a failed sign-in or a sign-up",
+    );
+    expect(lastRun("en", 2)).toContain(
+      "cleared 2 IP addresses and 2 emails typed at failed sign-ins or sign-ups",
+    );
+    // Accounts declined after 30 days are said only when there were some (190).
+    expect(lastRun("en", 0)).not.toContain("declined");
+    expect(lastRun("en", 2)).toContain("declined 2 accounts that waited 30 days for approval");
+    expect(lastRun("pt", 1)).toContain(
+      "apagou 1 endereço IP e 1 e-mail digitado num acesso que falhou ou num cadastro",
+    );
     expect(lastRun("pt", 2)).toContain("apagou 2 endereços IP");
     expect(lastRun("fr", 1)).toContain("1 adresse IP effacée");
     expect(lastRun("fr", 2)).toContain("2 adresses IP effacées");

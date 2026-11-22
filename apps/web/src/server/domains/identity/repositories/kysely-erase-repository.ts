@@ -1,5 +1,6 @@
 import type { Kysely } from "kysely";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
+import { exactEquals } from "../../../db/exact";
 import { decodeJson, encodeJson } from "../../../db/json";
 import { forUpdate, readCommittedTransaction } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
@@ -106,8 +107,18 @@ export const kyselyEraseRepository = (
     },
 
     async deleteNotifications(userId) {
-      return count(
-        await db.deleteFrom("notifications").where("user_id", "=", userId).executeTakeFirst(),
+      // Theirs, and the roots' notices that they waited for approval, which hold their address
+      // (190): a notice about an erased account has nothing left to say.
+      const about = await db
+        .deleteFrom("notifications")
+        .where("subject_type", "=", "user")
+        .where("subject_id", "=", userId)
+        .where("user_id", "!=", userId)
+        .executeTakeFirst();
+      return (
+        count(
+          await db.deleteFrom("notifications").where("user_id", "=", userId).executeTakeFirst(),
+        ) + count(about)
       );
     },
 
@@ -115,6 +126,25 @@ export const kyselyEraseRepository = (
       return count(
         await db.deleteFrom("mail_outbox").where("user_id", "=", userId).executeTakeFirst(),
       );
+    },
+
+    async deleteSignUpData(userId, email) {
+      const pending = (
+        await db
+          .selectFrom("pending_sign_ups")
+          .select("id")
+          .where(exactEquals(dialect, "email", email))
+          .execute()
+      ).map((row) => row.id);
+      const subjects = [userId, ...pending];
+      const counts = [
+        await db.deleteFrom("terms_acceptances").where("user_id", "=", userId).executeTakeFirst(),
+        await db.deleteFrom("email_codes").where("subject_id", "in", subjects).executeTakeFirst(),
+        ...(pending.length
+          ? [await db.deleteFrom("pending_sign_ups").where("id", "in", pending).executeTakeFirst()]
+          : []),
+      ];
+      return counts.reduce((n, result) => n + Number(result.numDeletedRows), 0);
     },
 
     async deleteOnboarding(userId) {

@@ -211,6 +211,7 @@ describe("the retention purge (102)", () => {
       notificationsDeleted: 0,
       rateLimitsDeleted: 0,
       mailDeleted: 0,
+      signUpsDeleted: 0,
     });
     expect((await auditRow(oldEvent)).ip_address).toBeNull();
     expect((await auditRow(newEvent)).ip_address).toBe("203.0.113.7");
@@ -271,6 +272,7 @@ describe("the retention purge (102)", () => {
       notificationsDeleted: 0,
       rateLimitsDeleted: 0,
       mailDeleted: 0,
+      signUpsDeleted: 0,
     });
   });
 
@@ -298,6 +300,7 @@ describe("the retention purge (102)", () => {
       notificationsDeleted: 0,
       rateLimitsDeleted: 0,
       mailDeleted: 0,
+      signUpsDeleted: 0,
     });
     expect((await auditRow(event)).ip_address).toBe("203.0.113.7");
     expect(decodeJson((await auditRow(failed)).metadata)).toHaveProperty("email");
@@ -753,5 +756,107 @@ describe("rate limit counters (109)", () => {
     expect(await deleteExpiredRateLimitKeys(once, t.dialect, [key], NOW)).toBe(1);
     expect(failed).toBe(true);
     expect(await left()).toEqual([]);
+  });
+});
+
+describe("self-registration's data in the purge (190)", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const ended = (ms: number) => new Date(NOW.getTime() - ms);
+  const pending = async (id: string, expiresAt: Date) =>
+    t.db
+      .insertInto("pending_sign_ups")
+      .values({
+        id,
+        email: `${id.toLowerCase()}@acme.com`,
+        name: "Ana",
+        password_hash: null,
+        locale: "en",
+        terms_version: null,
+        terms_accepted_at: null,
+        created_at: at(new Date(expiresAt.getTime() - 15 * 60_000)),
+        expires_at: at(expiresAt),
+      })
+      .execute();
+  const code = async (id: string, expiresAt: Date) =>
+    t.db
+      .insertInto("email_codes")
+      .values({
+        id,
+        purpose: "sign_up",
+        subject_id: id,
+        email_hmac: "h",
+        code_hmac: "c",
+        attempts: 0,
+        created_at: at(new Date(expiresAt.getTime() - 15 * 60_000)),
+        expires_at: at(expiresAt),
+        consumed_at: null,
+      })
+      .execute();
+  const challenge = async (key: string, expiresAt: Date) =>
+    t.db
+      .insertInto("challenges_used")
+      .values({ challenge_hmac: key, expires_at: at(expiresAt) })
+      .execute();
+
+  it("deletes pending sign-ups, codes and used challenges a day past their end, no sooner", async () => {
+    await pending("01OLDPENDING0000000000000A", ended(DAY + 1000));
+    await pending("01NEWPENDING0000000000000A", ended(DAY - 1000));
+    await code("01OLDCODE00000000000000000", ended(DAY + 1000));
+    await code("01NEWCODE00000000000000000", ended(60_000));
+    // Exactly a day past its end: still kept (the cutoff is strictly before).
+    await code("01EDGECODE0000000000000000", ended(DAY));
+    await challenge("old-challenge", ended(DAY + 1000));
+    await challenge("new-challenge", ended(1000));
+    const dry = await runRetentionPurge(t.db, t.dialect, POLICY, NOW, { dryRun: true });
+    expect(dry.signUpsDeleted).toBe(3);
+    const counts = await runRetentionPurge(t.db, t.dialect, POLICY, NOW);
+    expect(counts.signUpsDeleted).toBe(3);
+    expect(await t.db.selectFrom("pending_sign_ups").select("id").execute()).toEqual([
+      { id: "01NEWPENDING0000000000000A" },
+    ]);
+    expect(
+      (await t.db.selectFrom("email_codes").select("id").execute()).map((r) => r.id).sort(),
+    ).toEqual(["01EDGECODE0000000000000000", "01NEWCODE00000000000000000"]);
+    expect(await t.db.selectFrom("challenges_used").select("challenge_hmac").execute()).toEqual([
+      { challenge_hmac: "new-challenge" },
+    ]);
+  });
+
+  it("clears the emails typed at sign-up with the IP retention, as failed sign-ins' are", async () => {
+    const actions = [
+      "auth.sign_up_requested",
+      "auth.sign_up_code_failed",
+      "user.signed_up",
+      "user.declined",
+    ];
+    const old = await Promise.all(
+      actions.map((action) =>
+        auditEvent(OUTSIDE_IP, { action, metadata: { email: "ana@acme.com", outcome: "sent" } }),
+      ),
+    );
+    const kept = await auditEvent(INSIDE_IP, {
+      action: "auth.sign_up_requested",
+      metadata: { email: "ana@acme.com", outcome: "sent" },
+    });
+    // An account's own email in another event stays.
+    const created = await auditEvent(OUTSIDE_IP, {
+      action: "user.approved",
+      metadata: { email: "ana@acme.com" },
+    });
+    const counts = await runRetentionPurge(t.db, t.dialect, POLICY, NOW);
+    expect(counts.emailsCleared).toBe(4);
+    const metadata = async (id: string) =>
+      decodeJson<Record<string, unknown>>(
+        (
+          await t.db
+            .selectFrom("audit_log")
+            .select("metadata")
+            .where("id", "=", id)
+            .executeTakeFirstOrThrow()
+        ).metadata,
+      );
+    for (const id of old) expect(await metadata(id)).toEqual({ outcome: "sent" });
+    expect(await metadata(kept)).toMatchObject({ email: "ana@acme.com" });
+    expect(await metadata(created)).toMatchObject({ email: "ana@acme.com" });
   });
 });

@@ -12,19 +12,28 @@ import { SetupFailedError } from "./run-setup";
 const n = (value: number) => value.toLocaleString("en-US");
 
 /** The counts, one line each, as the command prints them. */
-export const purgeLines = (counts: PurgeCounts, erasuresFinished = 0): string[] => {
+export const purgeLines = (
+  counts: PurgeCounts,
+  erasuresFinished = 0,
+  signUpsDeclined = 0,
+): string[] => {
   const ips = counts.ipsCleared;
   return [
     `IP addresses cleared: ${n(ips.auditLog + ips.sessions + ips.deviceGrants)} (audit log ${n(ips.auditLog)}, sessions ${n(ips.sessions)}, device grants ${n(ips.deviceGrants)})`,
-    `Failed sign-ins' emails cleared: ${n(counts.emailsCleared)}`,
+    `Emails typed at failed sign-ins and sign-ups cleared: ${n(counts.emailsCleared)}`,
     `Expired sessions deleted: ${n(counts.sessionsDeleted)}`,
     `Finished device grants deleted: ${n(counts.grantsDeleted)}`,
     `Handled feedback deleted: ${n(counts.feedbackDeleted)}`,
     `Notifications deleted: ${n(counts.notificationsDeleted)}`,
     `Rate limit counters deleted: ${n(counts.rateLimitsDeleted)}`,
     `Emails deleted: ${n(counts.mailDeleted)}`,
+    `Ended sign-ups, codes and challenges deleted: ${n(counts.signUpsDeleted)}`,
     // Erasures (103) whose audit log rewrite the run finished, when there were any.
     ...(erasuresFinished > 0 ? [`Erasures finished: ${n(erasuresFinished)}`] : []),
+    // Accounts that waited 30 days for a root's approval (190), when there were any.
+    ...(signUpsDeclined > 0
+      ? [`Sign-ups declined after 30 days waiting: ${n(signUpsDeclined)}`]
+      : []),
   ];
 };
 
@@ -79,6 +88,7 @@ export const runPurge = async (options: {
     );
     let counts: PurgeCounts;
     let erasuresFinished = 0;
+    let signUpsDeclined = 0;
     if (options.dryRun) {
       counts = await runRetentionPurge(db, dialect, policy, now(), { dryRun: true });
     } else {
@@ -94,8 +104,10 @@ export const runPurge = async (options: {
       if (!run.purge) throw new SetupFailedError("The purge ended without its counts.");
       counts = run.purge;
       erasuresFinished = run.counts.erasuresFinished ?? 0;
+      signUpsDeclined = run.counts.signUpsDeclined ?? 0;
     }
-    for (const line of purgeLines(counts, erasuresFinished)) prompts.log.success(line);
+    for (const line of purgeLines(counts, erasuresFinished, signUpsDeclined))
+      prompts.log.success(line);
     if (options.dryRun) prompts.log.info("A dry run: nothing was changed.");
     return counts;
   } finally {

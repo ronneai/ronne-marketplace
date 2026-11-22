@@ -60,6 +60,12 @@ export const kyselyApprovalRepository = (
     await db.deleteFrom("session").where("user_id", "=", userId).execute();
     await db.deleteFrom("account").where("user_id", "=", userId).execute();
     await db.deleteFrom("notifications").where("user_id", "=", userId).execute();
+    // The roots' notices that it waited (190): answered, they'd keep its address for 90 days.
+    await db
+      .deleteFrom("notifications")
+      .where("subject_type", "=", "user")
+      .where("subject_id", "=", userId)
+      .execute();
     const personal = await db
       .selectFrom("workspaces")
       .select("id")

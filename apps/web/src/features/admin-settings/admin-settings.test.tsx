@@ -536,9 +536,11 @@ describe("Admin › Settings › Privacy › Retention (102)", () => {
         }}
       />,
     );
-    expect(ok).toContain("cleared 1,204 IP addresses and 37 failed sign-ins’ emails");
     expect(ok).toContain(
-      "deleted 312 expired sessions, 9 finished rmk login approvals, 6 handled feedback messages, 15 notifications, 42 expired rate limit counters and 7 email records",
+      "cleared 1,204 IP addresses and 37 emails typed at failed sign-ins or sign-ups",
+    );
+    expect(ok).toContain(
+      "deleted 312 expired sessions, 9 finished rmk login approvals, 6 handled feedback messages, 15 notifications, 42 expired rate limit counters, 7 email records and 0 ended sign-up records.",
     );
     expect(ok).toMatch(/<time dateTime="2026-10-18T12:00:00.000Z"/);
     const failed = renderToStaticMarkup(

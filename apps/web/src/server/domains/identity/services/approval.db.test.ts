@@ -179,6 +179,18 @@ describe("an account waiting for approval (190)", () => {
 
   it("is declined by a root: the account and all it had are deleted, and its owner is emailed", async () => {
     const id = await waiting("ana@acme.com");
+    await kyselySignUpRepository(t.db, t.dialect, TEST_SECRET).notifyAwaitingApproval(
+      id,
+      "ana@acme.com",
+      new Date(),
+    );
+    expect(
+      await t.db
+        .selectFrom("notifications")
+        .select("user_id")
+        .where("subject_id", "=", id)
+        .execute(),
+    ).toHaveLength(2);
     await declineAccount(deps(), asRoot(root), id);
     expect(await userRow(id)).toBeUndefined();
     for (const table of ["account", "workspace_members", "terms_acceptances"] as const)
@@ -188,6 +200,10 @@ describe("an account waiting for approval (190)", () => {
       ).toEqual([]);
     expect(
       await t.db.selectFrom("workspaces").select("id").where("owner_id", "=", id).execute(),
+    ).toEqual([]);
+    // The roots' notices that it waited go with it: they'd keep its address for 90 days (190).
+    expect(
+      await t.db.selectFrom("notifications").select("id").where("subject_id", "=", id).execute(),
     ).toEqual([]);
     // The address is free again.
     await waiting("ana@acme.com");

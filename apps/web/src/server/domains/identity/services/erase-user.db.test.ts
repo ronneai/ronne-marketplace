@@ -646,6 +646,83 @@ describe("eraseUser (103)", () => {
     expect(await getCurrentUser(asBob, app)).toBeNull();
   });
 
+  it("deletes the person's sign-up data: terms, codes, a sign-up waiting at the address (190)", async () => {
+    const bob = { id: await createTestUser(app, { email: "bob@example.com", password }) };
+    const other = await createTestUser(app, { email: "cy@example.com", password });
+    const now = at();
+    const code = (id: string, subject: string) =>
+      t.db
+        .insertInto("email_codes")
+        .values({
+          id,
+          purpose: subject === bob.id ? "password_reset" : "sign_up",
+          subject_id: subject,
+          email_hmac: "h",
+          code_hmac: "c",
+          attempts: 0,
+          created_at: now,
+          expires_at: now,
+          consumed_at: null,
+        })
+        .execute();
+    const pending = (id: string, email: string) =>
+      t.db
+        .insertInto("pending_sign_ups")
+        .values({
+          id,
+          email,
+          name: "Bob",
+          password_hash: null,
+          locale: "en",
+          terms_version: null,
+          terms_accepted_at: null,
+          created_at: now,
+          expires_at: now,
+        })
+        .execute();
+    for (const [id, user] of [
+      ["01TERMSBOB0000000000000000", bob.id],
+      ["01TERMSCY00000000000000000", other],
+    ] as const)
+      await t.db
+        .insertInto("terms_acceptances")
+        .values({ id, user_id: user, version: "2026-11", accepted_at: now })
+        .execute();
+    await code("01CODEBOB00000000000000000", bob.id);
+    await pending("01PENDINGBOB00000000000000", "bob@example.com");
+    await code("01CODEPENDBOB0000000000000", "01PENDINGBOB00000000000000");
+    await pending("01PENDINGCY000000000000000", "cy@example.com");
+    // Another person's codes, their own and under their pending sign-up, must stay.
+    await code("01CODECY000000000000000000", other);
+    await code("01CODEPENDCY00000000000000", "01PENDINGCY000000000000000");
+    // A root's notice that Bob waited for approval holds his address.
+    await t.db
+      .insertInto("notifications")
+      .values({
+        id: "01NOTICEBOB000000000000000",
+        user_id: rootId,
+        kind: "user.awaiting_approval",
+        actor_id: bob.id,
+        subject_type: "user",
+        subject_id: bob.id,
+        params: JSON.stringify({ email: "bob@example.com" }),
+        workspace_ids: null,
+        created_at: now,
+        read_at: null,
+      })
+      .execute();
+    await adminEraseUser(asRoot, bob.id, "bob@example.com", app);
+    expect(await rows("notifications", "subject_id", bob.id)).toEqual([]);
+    expect(await rows("email_codes", "subject_id", other)).toHaveLength(1);
+    expect(await rows("email_codes", "subject_id", "01PENDINGCY000000000000000")).toHaveLength(1);
+    expect(await rows("terms_acceptances", "user_id", bob.id)).toEqual([]);
+    expect(await rows("terms_acceptances", "user_id", other)).toHaveLength(1);
+    expect(await rows("email_codes", "subject_id", bob.id)).toEqual([]);
+    expect(await rows("email_codes", "subject_id", "01PENDINGBOB00000000000000")).toEqual([]);
+    expect(await rows("pending_sign_ups", "email", "bob@example.com")).toEqual([]);
+    expect(await rows("pending_sign_ups", "email", "cy@example.com")).toHaveLength(1);
+  });
+
   it("keeps an empty personal workspace that holds another person's draft, renamed", async () => {
     const bob = await adminCreateUser(
       asRoot,

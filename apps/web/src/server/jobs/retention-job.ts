@@ -31,6 +31,7 @@ export const flattenCounts = (
   notificationsDeleted: counts.notificationsDeleted,
   rateLimitsDeleted: counts.rateLimitsDeleted,
   mailDeleted: counts.mailDeleted,
+  signUpsDeleted: counts.signUpsDeleted,
   erasuresFinished,
   signUpsDeclined,
 });

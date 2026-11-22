@@ -13,17 +13,35 @@ describe("rmk-server purge's output (102)", () => {
         notificationsDeleted: 15,
         rateLimitsDeleted: 42,
         mailDeleted: 7,
+        signUpsDeleted: 0,
       }),
     ).toEqual([
       "IP addresses cleared: 1,204 (audit log 1,180, sessions 20, device grants 4)",
-      "Failed sign-ins' emails cleared: 37",
+      "Emails typed at failed sign-ins and sign-ups cleared: 37",
       "Expired sessions deleted: 312",
       "Finished device grants deleted: 9",
       "Handled feedback deleted: 6",
       "Notifications deleted: 15",
       "Rate limit counters deleted: 42",
       "Emails deleted: 7",
+      "Ended sign-ups, codes and challenges deleted: 0",
     ]);
+  });
+
+  it("names the accounts declined after 30 days waiting, only when there were some (190)", () => {
+    const zero = {
+      ipsCleared: { auditLog: 0, sessions: 0, deviceGrants: 0 },
+      emailsCleared: 0,
+      sessionsDeleted: 0,
+      grantsDeleted: 0,
+      feedbackDeleted: 0,
+      notificationsDeleted: 0,
+      rateLimitsDeleted: 0,
+      mailDeleted: 0,
+      signUpsDeleted: 0,
+    };
+    expect(purgeLines(zero, 0, 2)).toContain("Sign-ups declined after 30 days waiting: 2");
+    expect(purgeLines(zero).some((line) => line.includes("declined"))).toBe(false);
   });
 
   it("reports a progress line at each 10,000 rows of the run, never twice, never backwards", () => {

@@ -30,7 +30,7 @@ import { kyselyEraseRepository } from "../repositories/kysely-erase-repository";
 import { kyselyScimUserRepository } from "../repositories/kysely-scim-user-repository";
 import { kyselySsoRepository } from "../repositories/kysely-sso-repository";
 import { kyselyUserDataRepository } from "../repositories/kysely-user-data-repository";
-import { cookieHeaders, setWorkspaceRole, testAppAuth } from "../testing/test-auth";
+import { cookieHeaders, createTestUser, setWorkspaceRole, testAppAuth } from "../testing/test-auth";
 import { eraseUser } from "./erase-user";
 import { exportUserData, lastExport } from "./user-data-export";
 
@@ -478,6 +478,37 @@ describe("exportUserData (104)", () => {
       metadata: { by: "self", rows },
     });
     expect(JSON.stringify(event?.metadata)).not.toContain("Looks fine");
+  });
+
+  it("says when the person signed up, whether they wait, and every terms version they accepted (190)", async () => {
+    const id = await createTestUser(app, { email: "sam@example.com", password });
+    const asSam = await signedIn("sam@example.com");
+    const signedUp = new Date("2026-11-01T09:00:00.000Z");
+    await t.db
+      .updateTable("user")
+      .set({ signed_up_at: at(signedUp) })
+      .where("id", "=", id)
+      .execute();
+    for (const [rowId, version, when] of [
+      ["01TERMSSAM0000000000000002", "2026-12", "2026-12-02T10:00:00.000Z"],
+      ["01TERMSSAM0000000000000001", "2026-11", "2026-11-01T09:00:00.000Z"],
+    ] as const)
+      await t.db
+        .insertInto("terms_acceptances")
+        .values({ id: rowId, user_id: id, version, accepted_at: at(new Date(when)) })
+        .execute();
+    const { data } = await exportAs(asSam, id);
+    expect(data.account).toMatchObject({
+      signedUpAt: signedUp,
+      approvalPendingAt: null,
+      termsAcceptances: [
+        { version: "2026-11", acceptedAt: new Date("2026-11-01T09:00:00.000Z") },
+        { version: "2026-12", acceptedAt: new Date("2026-12-02T10:00:00.000Z") },
+      ],
+    });
+    // Someone who didn't sign up: nothing to say.
+    const { data: root } = await exportAs(asRoot, rootId);
+    expect(root.account).toMatchObject({ signedUpAt: null, termsAcceptances: [] });
   });
 
   it("gives each event where it came from (166), and the client only of what the person did", async () => {

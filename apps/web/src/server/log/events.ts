@@ -168,6 +168,7 @@ export const EVENTS = {
       "notificationsDeleted",
       "rateLimitsDeleted",
       "mailDeleted",
+      "signUpsDeleted",
       "mailSent",
       "mailRetried",
       "mailFailed",
