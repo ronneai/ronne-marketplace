@@ -46,7 +46,11 @@ const answer = async (
     const account: WaitingAccount = found.account;
     const locale: Locale = isLocale(account.locale) ? account.locale : "en";
     const template = decision === "approved" ? "sign_up_approved" : "sign_up_declined";
-    const words = await renderMail(template, locale, { ...sender, at });
+    const words = await renderMail(template, locale, {
+      ...sender,
+      at,
+      ...(account.provider ? { provider: account.provider } : {}),
+    });
     if (decision === "approved") await repo.approve(account.id, at);
     else await repo.deleteWaiting(account.id);
     await repo.queueMail(

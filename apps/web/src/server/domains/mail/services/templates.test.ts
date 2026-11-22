@@ -25,7 +25,13 @@ describe("renderMail (189)", () => {
   for (const locale of LOCALES)
     for (const template of TEMPLATES)
       it(`writes ${template} in ${locale}, as text and HTML`, async () => {
-        const mail = await renderMail(template, locale, values);
+        // A sign-up's answers name a provider only for an account it made (191), tested below.
+        const { provider, ...plain } = values;
+        const mail = await renderMail(
+          template,
+          locale,
+          (SIGN_UP_MAILS as readonly string[]).includes(template) ? plain : { ...plain, provider },
+        );
         expect(mail.subject).not.toMatch(/[\r\n]/);
         expect(mail.text).toMatchSnapshot("text");
         expect(mail.html).toMatchSnapshot("html");
@@ -89,6 +95,23 @@ describe("renderMail (189)", () => {
     expect(mail.text).not.toContain("turned off");
     await expect(renderMail("sign_up_code", "en", { ...values, code: "" })).rejects.toThrow();
     expect((await renderMail("sign_up_existing", "en", values)).text).not.toContain("482913");
+  });
+
+  it("answers an account a provider made with the provider, not a password (191)", async () => {
+    for (const locale of LOCALES) {
+      const approved = await renderMail("sign_up_approved", locale, values);
+      const declined = await renderMail("sign_up_declined", locale, values);
+      expect(approved.text).toContain("Acme SSO");
+      expect(declined.text).toContain("Acme SSO");
+    }
+    const { provider: _, ...plain } = values;
+    expect((await renderMail("sign_up_approved", "en", values)).text).toContain(
+      "You can sign in now, with Acme SSO.",
+    );
+    expect((await renderMail("sign_up_approved", "en", plain)).text).toContain(
+      "with the email and password you chose",
+    );
+    expect((await renderMail("sign_up_declined", "en", values)).text).not.toContain("you typed");
   });
 
   it("says a notice can't be turned off, and the test email doesn't", async () => {

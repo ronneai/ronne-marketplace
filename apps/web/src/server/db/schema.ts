@@ -202,7 +202,7 @@ export interface IdentityProviderTable {
   secret_enc: string | null;
   domains: string;
   link_by_email: GeneratedDbBoolean;
-  /** Whether a first sign-in creates an account (migration 0047, feature 191); null reads as off. */
+  /** Whether a first sign-in creates an account (migration 0047, feature 191); null (never written) reads as 106's rule: while `domains` isn't empty. */
   creates_accounts: ColumnType<
     boolean | number | null,
     boolean | number | null,

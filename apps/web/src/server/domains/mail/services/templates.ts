@@ -40,7 +40,10 @@ export type MailValues = {
   contact: string;
   /** When the change happened. */
   at: Date;
-  /** A company sign-in's name, required for `sso_linked`: root named it. */
+  /**
+   * A company sign-in's name, required for `sso_linked`, and for an answer to an account that
+   * provider made (191): root named it.
+   */
   provider?: string;
   /** The one-time code, required for `sign_up_code`, and how many minutes it works. */
   code?: string;
@@ -125,6 +128,9 @@ export const renderMail = async (
               host,
               code: values.code ?? "",
               minutes: values.minutes ?? 15,
+              // An answer to an account a provider made (191) names it; else it's a sign-up's.
+              how: values.provider ? "provider" : "password",
+              provider: values.provider ?? "",
             }),
             notYou: t(`signUp.${template}.notYou`),
           }

@@ -61,12 +61,12 @@
     },
     "sign_up_approved": {
       "subject": "Your account on {host} is approved",
-      "body": "A root approved the account you created on {host}. You can sign in now, with the email and password you chose.",
+      "body": "{how, select, provider {A root approved the account made on {host} when you signed in with {provider}. You can sign in now, with {provider}.} other {A root approved the account you created on {host}. You can sign in now, with the email and password you chose.}}",
       "notYou": "If you didn't create an account there, contact your administrator."
     },
     "sign_up_declined": {
       "subject": "Your account on {host} wasn't approved",
-      "body": "The account you created on {host} wasn't approved, so it was deleted, with what you typed. You can ask your administrator why.",
+      "body": "{how, select, provider {The account made on {host} when you signed in with {provider} wasn't approved, so it was deleted. You can ask your administrator why.} other {The account you created on {host} wasn't approved, so it was deleted, with what you typed. You can ask your administrator why.}}",
       "notYou": "If you didn't create an account there, ignore this email: nothing is left of it."
     }
   }

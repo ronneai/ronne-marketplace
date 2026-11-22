@@ -61,12 +61,12 @@
     },
     "sign_up_approved": {
       "subject": "Votre compte sur {host} est approuvé",
-      "body": "Un root a approuvé le compte que vous avez créé sur {host}. Vous pouvez maintenant vous connecter, avec le courriel et le mot de passe choisis.",
+      "body": "{how, select, provider {Un root a approuvé le compte créé sur {host} quand vous vous êtes connecté avec {provider}. Vous pouvez maintenant vous connecter, avec {provider}.} other {Un root a approuvé le compte que vous avez créé sur {host}. Vous pouvez maintenant vous connecter, avec le courriel et le mot de passe choisis.}}",
       "notYou": "Si vous n’avez pas créé de compte là-bas, communiquez avec votre administrateur."
     },
     "sign_up_declined": {
       "subject": "Votre compte sur {host} n’a pas été approuvé",
-      "body": "Le compte que vous avez créé sur {host} n’a pas été approuvé, il a donc été supprimé, avec ce que vous avez tapé. Vous pouvez demander pourquoi à votre administrateur.",
+      "body": "{how, select, provider {Le compte créé sur {host} quand vous vous êtes connecté avec {provider} n’a pas été approuvé, il a donc été supprimé. Vous pouvez demander pourquoi à votre administrateur.} other {Le compte que vous avez créé sur {host} n’a pas été approuvé, il a donc été supprimé, avec ce que vous avez tapé. Vous pouvez demander pourquoi à votre administrateur.}}",
       "notYou": "Si vous n’avez pas créé de compte là-bas, ignorez ce courriel : il n’en reste rien."
     }
   }

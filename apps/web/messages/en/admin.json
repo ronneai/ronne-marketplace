@@ -680,6 +680,9 @@
           "rate_limited": "too many attempts"
         },
         "ssoNotAllowed": {
+          "domain_blocked": "no account, and the email’s domain is on the block list",
+          "domain_throwaway": "no account, and the email’s domain is a throwaway one",
+          "creating_off": "no account, and the provider doesn’t create accounts",
           "domain_not_allowed": "no account, and the email’s domain may not create one",
           "non_ascii_email": "the address isn’t plain ASCII",
           "invalid_email": "the address isn’t valid",

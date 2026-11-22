@@ -40,7 +40,8 @@ const domainCount = (value: unknown): number => {
  * `creates_accounts` and `created_via` have no default: null is "not backfilled yet". Every save
  * and every new account writes a value, and the backfill fills only nulls, so a rerun after a
  * failed run (MySQL commits each DDL statement) finishes the backfill and never overwrites what
- * was saved since. A null left anyway reads as off, or `unknown`.
+ * was saved since. A null left anyway reads as 106's rule (creating while the list isn't empty),
+ * or `unknown`.
  * The block list is a setting with its default in code (empty), so no setting row is written here.
  */
 export const accountRules: AppMigration = (dialect) => ({

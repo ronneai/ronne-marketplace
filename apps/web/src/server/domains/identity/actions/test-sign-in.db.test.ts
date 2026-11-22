@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { toDbDate } from "../../../db/dates";
+import { newId } from "../../../db/ids";
+import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { memoryRateLimiter } from "../../../rate-limit/memory-store";
 import { listAuditEvents } from "../../audit/actions/audit";
@@ -160,6 +163,66 @@ describe("Test sign-in", () => {
     expect(page.lastTest?.decision).toBe(
       "Refuse: the email address isn't plain ASCII, and Ronne only matches and creates plain ASCII addresses.",
     );
+  });
+
+  it("says a blocked domain, creating off and waiting for approval in words (191)", async () => {
+    const decision = async () => {
+      await testSignIn(rootHeaders);
+      return (await providerPage(rootHeaders, "acme", app)).lastTest?.decision;
+    };
+    const flag = (column: "creates_accounts" | "needs_approval", on: boolean) =>
+      app.db
+        .updateTable("identity_providers")
+        .set({ [column]: app.dialect === "sqlite" ? Number(on) : on })
+        .where("id", "=", "acme")
+        .execute();
+    await flag("needs_approval", true);
+    expect(await decision()).toBe(
+      "Create the account ana@acme.com (a user in global, with a personal workspace), waiting for a root's approval: no sign-in and no groups until a root approves it.",
+    );
+    await flag("creates_accounts", false);
+    expect(await decision()).toBe(
+      "Refuse (creating_off): no account matches, and this provider doesn't create accounts.",
+    );
+    await app.db
+      .insertInto("instance_settings")
+      .values({
+        key: "blocked_domains",
+        value: '["acme.com"]',
+        updated_by: null,
+        updated_at: toDbDate(new Date(), app.dialect),
+      })
+      .execute();
+    expect(await decision()).toBe(
+      "Refuse (domain_blocked): acme.com is on the instance's block list.",
+    );
+  });
+
+  it("predicts no group changes for an account that would wait for approval (191)", async () => {
+    await app.db
+      .insertInto("provider_group_mappings")
+      .values({
+        id: newId(),
+        provider_id: "acme",
+        group_name: "mods",
+        workspace_id: GLOBAL_WORKSPACE_ID,
+        role: "moderator",
+        created_at: toDbDate(new Date(), app.dialect),
+      })
+      .execute();
+    fake.user = { ...fake.user, groups: ["mods"] };
+    const changes = async () => {
+      await testSignIn(rootHeaders);
+      return (await providerPage(rootHeaders, "acme", app)).lastTest?.groupChanges;
+    };
+    // Without approval, the new account would get the mapping's role at once.
+    expect((await changes())?.length).toBeGreaterThan(0);
+    await app.db
+      .updateTable("identity_providers")
+      .set({ needs_approval: app.dialect === "sqlite" ? 1 : true })
+      .where("id", "=", "acme")
+      .execute();
+    expect(await changes()).toEqual([]);
   });
 
   it("fails on a bad answer, marks the provider Failing, and records no test", async () => {

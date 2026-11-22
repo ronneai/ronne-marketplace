@@ -8,6 +8,9 @@ import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
 import { mailQueued, queueSecurityNotice } from "../../mail/services/notices";
 import { notify } from "../../notifications/services/notify";
+import { activeRoots } from "../../notifications/services/recipients";
+import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
+import { readAccountRules } from "../../settings/services/account-rules";
 import { kyselyIdentityRepository } from "./kysely-identity-repository";
 import type { SsoRepository, SsoSignInState } from "./sso-repository";
 
@@ -126,11 +129,36 @@ export const kyselySsoRepository = (
     findUser: (userId) => identity.findUser(userId),
     findUserByEmail: (email) => identity.findUserByEmail(email),
 
-    createUser: ({ providerId, ...user }, now) =>
-      identity.createUserWithoutPassword(
+    async createUser({ providerId, approval, ...user }, now) {
+      const id = await identity.createUserWithoutPassword(
         { ...user, role: "user", createdVia: `provider:${providerId}` },
         now,
-      ),
+      );
+      if (approval)
+        await db
+          .updateTable("user")
+          .set({ approval_pending_at: at(now) })
+          .where("id", "=", id)
+          .execute();
+      return id;
+    },
+
+    accountRules: () => readAccountRules(kyselySettingsRepository(db, dialect)),
+
+    async notifyAwaitingApproval(userId, email, now) {
+      await notify(
+        db,
+        dialect,
+        {
+          recipients: await activeRoots(db),
+          kind: "user.awaiting_approval",
+          actorId: userId,
+          subject: { type: "user", id: userId },
+          params: { email },
+        },
+        now,
+      );
+    },
 
     async mappingsFor(providerId) {
       const rows = await db

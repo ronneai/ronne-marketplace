@@ -1,6 +1,7 @@
 import { toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { encodeJson } from "../../../db/json";
+import { emailDomain } from "../../settings/models/account-rules";
 import { GLOBAL_WORKSPACE_ID } from "../../workspaces/models/workspace";
 import { ProviderFlowError, ProviderSecretUnreadableError } from "../exceptions/errors";
 import type { VerifiedIdentity } from "../models/auth-provider-type";
@@ -31,7 +32,7 @@ export const testKey = (providerId: string, userId: string) =>
   `${TEST_PREFIX}${providerId}:${userId}`;
 
 /** What a real sign-in would do, in words, for the result. */
-const decisionText = (plan: Awaited<ReturnType<typeof planSsoSignIn>>): string => {
+const decisionText = (plan: Awaited<ReturnType<typeof planSsoSignIn>>, emailOf: string): string => {
   switch (plan.action) {
     case "sign_in":
       return `Sign in ${plan.user.email} (already linked).`;
@@ -39,10 +40,17 @@ const decisionText = (plan: Awaited<ReturnType<typeof planSsoSignIn>>): string =
       return `Link the existing account ${plan.user.email} by its verified email, then sign in.`;
     case "create":
       return `Create the account ${plan.email} (a user in global, with a personal workspace), then sign in.`;
+    case "create_pending":
+      return `Create the account ${plan.email} (a user in global, with a personal workspace), waiting for a root's approval: no sign-in and no groups until a root approves it.`;
     default:
       if (plan.why) {
         const email = plan.user?.email ?? "";
+        const domain = emailDomain(plan.user?.email ?? emailOf);
         return {
+          domain_blocked: `Refuse (domain_blocked): ${domain} is on the instance's block list.`,
+          domain_throwaway: `Refuse (domain_throwaway): ${domain} is a throwaway email domain: this provider takes any domain, and root blocks throwaway domains.`,
+          creating_off:
+            "Refuse (creating_off): no account matches, and this provider doesn't create accounts.",
           domain_not_allowed:
             "Refuse: no account matches, and the email's domain isn't one that may create one.",
           non_ascii_email:
@@ -105,7 +113,8 @@ export const finishTestSignIn = async (input: {
     const sso = kyselySsoRepository(app.db, app.dialect);
     const plan = await planSsoSignIn(sso, stored.provider, identity);
     let groupChanges: GroupChange[] = [];
-    if (plan.action !== "refuse" && identity.groups !== null) {
+    // A waiting account gets no groups until it's approved (191): nothing changes at this sign-in.
+    if (plan.action !== "refuse" && plan.action !== "create_pending" && identity.groups !== null) {
       const existing = plan.action === "create" ? null : plan.user;
       if (existing?.role !== "root")
         groupChanges = planGroupChanges({
@@ -122,7 +131,7 @@ export const finishTestSignIn = async (input: {
       ok: identity.emailVerified,
       lines,
       claims: identity,
-      decision: decisionText(plan),
+      decision: decisionText(plan, identity.email),
       groupChanges,
     };
     if (result.ok) {

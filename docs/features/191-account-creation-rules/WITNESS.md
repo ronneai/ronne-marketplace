@@ -105,3 +105,94 @@ Witnessed: 2026-11-22 11:29 EST, by a fresh agent (adversarial). Commit: 9f95eac
 | 7 | The touched db and unit files pass on all four databases | yes | confirmed | SQLite 226 passed, 5 skipped; PostgreSQL, MySQL 8.4, MariaDB 231 each; unit 65 passed |
 
 **Overall:** met. Remark: the `is null` filters on the two selects only save work; each update repeats the guard.
+
+## Task 3 — The rule in SSO sign-in
+
+Witnessed: 2026-11-22 11:47 EST, by a fresh agent (blind; it read PLAN.md's task 3 notes while finding the task, before its verdicts, and says every verdict rests on code it read and commands it ran). Commit: 25b0cab5 + working-tree diff and the untracked `settings/services/account-rules.ts`. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A blocked domain refuses a new account (`domain_blocked`) before every other step, over a provider's allowed list (case 10) | no | confirmed | `sso-sign-in.ts:131`; M1 → 7 tests fail; M5 (order) → 1 fails; probe: case and trailing-dot variants → `domain_blocked` |
+| 2 | A throwaway domain refused only with *Any domain* while the setting is on | no | confirmed | `sso-sign-in.ts:132-133`; M3 → 2 tests fail |
+| 3 | `creating_off` refuses a new account, still signs in and links existing ones | no | confirmed | `sso-sign-in.ts:134`; M4 → 2 tests fail |
+| 4 | *Any domain* creates in any domain not blocked and never links by email (Decision 4) | no | confirmed | `sso-sign-in.ts:124`; M2 → 2 tests fail |
+| 5 | `create_pending` when the provider needs approval | no | confirmed | unit "case 3"; M8 → 2 tests fail |
+| 6 | The waiting account: linked, `approval_pending_at`, `created_via`, no session, no groups; groups after approval (Decision 6) | no | confirmed | `sso-sign-in.ts:217-245`; sso-groups.db; M6 → fails |
+| 7 | The person sees 190's "waits for a root's approval" notice | no | confirmed | `actions/sso.ts:314-319` → `/sign-in?signedUp=waiting` |
+| 8 | Roots are notified (139) | no | confirmed | `kysely-sso-repository.ts:147-161`; M7 → fails |
+| 9 | The approval and decline emails name the provider, in three languages | no | partly | works (probe), but `provider: null` in `kysely-approval-repository.ts` fails no test |
+| 10 | The audit `why` has the three new reasons, worded in en, pt, fr | no | confirmed | sso.db asserts all three; keys in each `admin.json` |
+| 11 | *Test sign-in* words `domain_blocked`, `creating_off`, waiting | no | confirmed | test-sign-in.db asserts all three |
+| 12 | *Test sign-in* plans no group changes for a waiting account | no | partly | `test-sign-in.ts:117`, but removing the condition fails no test |
+| 13 | A null `creates_accounts` reads as 106's rule | no | confirmed | 0047 db test; M10 → fails |
+| 14 | The tests cover cases 1, 3, 4, 8, 10, 12, 13 | no | confirmed | unit "case 1/3/4/8/10/12"; sso.db; scim-users-api.db case 13 |
+| 15 | Existing tests unchanged and passing | no | confirmed | `git diff 25b0cab5 -- '*.test.ts'`: only the fake's signature and the snapshot loop's values; 120/120 on each server |
+| 16 | No way to link or create past the block list (one blind attempt) | no | confirmed | probes (case, dots, padding, `a@b@acme.com`, `x@[1.2.3.4]`, bad punycode, damaged list) |
+
+**Overall:** not met (rows 9, 12). Observation: with *Any domain*, `ana@acme.com.` beside an existing `ana@acme.com` plans `create`: a second account (`normalizeEmail` keeps the dot, the block list strips it).
+
+### Adversarial pass
+
+Witnessed: 2026-11-22 11:47 EST, by a fresh agent (adversarial). Commit: 25b0cab5 + working-tree diff and the untracked `settings/services/account-rules.ts`. Machine: macOS (Darwin 27.2), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A blocked domain refused before every other create check, even when listed | no | confirmed | probe `adv-probe.test.ts`: 22 hostile addresses, none created; M1 → 4 fail |
+| 2 | Domains compared exactly, as delivery reads them; subdomains not covered | no | confirmed | `Bob@YAHOO.com.` → blocked; `bob@eu.yahoo.com` → create; non-ASCII refused first |
+| 3 | A damaged list refuses everything | no | confirmed | probe: 7 damaged forms → `domain_blocked` |
+| 4 | Throwaway with *Any domain* only, subdomains too | no | confirmed | probe; M6 → 2 fail |
+| 5 | `creating_off`, `domain_not_allowed`, `create_pending` in order | no | confirmed | probe `LINK` |
+| 6 | New accounts only; linking keeps 106's check | no | confirmed | sso.db; probe `root-link-under-block` |
+| 7 | *Any domain* never links by email | no | confirmed | probe `anydomain-root`; M2 → 2 fail |
+| 8 | Waiting: linked, no groups, no session, `signedUp=waiting`, roots told | no | confirmed | sso-groups.db on all 4; M5 → 2 fail |
+| 9 | Groups after approval; refused while waiting; declined deletes account and link | no | confirmed | sso-groups.db; probe |
+| 10 | The emails name the provider | no | partly | works (probe reads `mail_outbox`), but M7 (`providerId = null`) leaves every test green |
+| 11 | *Test sign-in* words | no | confirmed | test-sign-in.db on all 4 |
+| 12 | *Test sign-in* predicts no group changes when waiting | no | partly | M3 leaves test-sign-in.db green |
+| 13 | Audit `why` in en, pt, fr | no | confirmed | sso.db; `git diff messages/*/admin.json` |
+| 14 | SCIM not governed (case 13) | no | confirmed | scim-users-api.db on all 4 |
+| 15 | A null `creates_accounts` reads as 106's rule | no | confirmed | probe; M4 → 3 fail |
+| 16 | The race retry can't create past the rules; no two accounts at once | no | confirmed | probes on all 4 (3× one subject, 2 subjects one email, 2 providers, 2 waiting) |
+| 17 | Existing SSO tests unchanged | no | confirmed | only the fake's signature and the snapshot loop |
+| 18 | All pass on SQLite, PostgreSQL, MySQL, MariaDB | no | confirmed | SQLite 184 passed, 4 skipped; servers 120 each |
+
+**Overall:** not met (rows 10, 12). Wording: an address whose domain delivery can't read (`ana@acme.com:25`, `ana@xn--acme-.com`) is refused as `domain_blocked`, with an empty domain in *Test sign-in*'s words.
+
+Fixes after the passes:
+- `sso.db.test.ts`: a provider's waiting account approved and another declined, through real sign-ins with email set up; the queued emails name Acme SSO, never a password or "you typed". Mutation `providerId = null` in `kysely-approval-repository.ts` → it fails.
+- `test-sign-in.db.test.ts`: with a mapping and groups in the claims, a new account's group changes are predicted, and none once the provider needs approval. Removing the condition in `test-sign-in.ts` → it fails.
+- `planSsoSignIn` refuses an address whose domain isn't spelled as delivery reads it (`invalid_email`): a final dot, a port, a domain delivery can't read. So no second account beside `ana@acme.com`, and no empty domain in the words. New unit cases; the case-4 test asserts `Bob@YAHOO.com` instead of the dotted one.
+- Identity, http and mail suites on SQLite: 107 files, 1391 passed, 6 skipped; the 5 changed db files on PostgreSQL, MySQL and MariaDB: 100 each.
+
+### Re-check 1 (blind)
+
+Witnessed: 2026-11-22 12:10 EST, by a fresh agent (blind). Commit: 25b0cab5 + working-tree diff + untracked `settings/services/account-rules.ts`. Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | The approval and decline emails for a provider-made waiting account name the provider; a test fails if the name is lost | yes | confirmed | `kysely-approval-repository.ts:38-48`, `approval.ts:49-53`; sso.db "answers a provider's waiting account by email…"; M1 (null), M1b (the id), M2 (`approval.ts` drops it) each fail it |
+| 12 | *Test sign-in* predicts no group changes for a waiting account; a test fails if it does | yes | confirmed | `test-sign-in.ts:116-117`; test-sign-in.db "predicts no group changes…"; M3 fails it |
+| obs | With *Any domain*, `ana@acme.com.` beside `ana@acme.com` makes no second account | yes | confirmed | `sso-sign-in.ts:118-119`; probe `probe-trailing.db.test.ts` (6 spellings, real sign-in) → `error=not_allowed`, no new user; M4 → 4 unit cases fail |
+| 15 | Existing tests unchanged; no way past the block list | yes | confirmed | `git diff 25b0cab5 -- '*.test.ts'`: 2 removed lines (the fake's signature, the snapshot loop's values), no snapshot changed |
+| 16 | The task's files pass on SQLite and the three servers | yes | confirmed | SQLite 7 files, 172 passed; each server 6 files, 102 passed |
+
+**Overall:** met.
+
+### Re-check 1 (adversarial)
+
+Witnessed: 2026-11-22 12:04 EST, by a fresh agent (adversarial). Commit: 25b0cab5 + working-tree diff and the untracked `settings/services/account-rules.ts`. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | (adv 10 / blind 9) The emails name the provider; a test fails if the name is lost | yes | confirmed | `sso.db.test.ts:1092`; M7 (null) and M7b (the id) fail it; pt/fr in `templates.test.ts:100` |
+| 2 | (adv 12 / blind 12) No group changes predicted for a waiting account; a test fails without the guard | yes | confirmed | `test-sign-in.db.test.ts:201`; M3 fails it |
+| 3 | A domain part not spelled as `emailDomain` reads it is refused `invalid_email` before any lookup or rule | yes | confirmed | `sso-sign-in.ts:118-119`; probe `adv-probe-recheck.test.ts`, 33 hostile addresses; `accountRules` and `findUserByEmail` not called for `ana@acme.com.` |
+| 4 | No second account beside an existing one; the block list and the lookup compare the same domain | yes | confirmed | `ana@acme.com.` → `invalid_email` (was `create`); every address still planning `create` has its domain part unchanged by `emailDomain` |
+| 5 | The check refuses nothing it shouldn't | no | confirmed | 10 good addresses (case, subdomains, valid `xn--`, `+`, `'`, `co.uk`) → `create` |
+| 6 | No way to create past the block list | no | confirmed | the previous pass's 22 hostile addresses rerun: none created |
+| 7 | Existing SSO tests unchanged | no | confirmed | `git diff 25b0cab5 -- '*.test.ts'` → 2 removed lines (the fake's signature, the snapshot loop) |
+| 8 | The task's files pass on all four databases | yes | confirmed | 6 db files: SQLite 134 passed, 4 skipped; PostgreSQL, MySQL, MariaDB 138 each; unit 72 |
+
+**Overall:** met. Observations: with *Any domain*, addresses delivery leaves unchanged but can't reach (`ana@acme..com`, `ana@1.2.3.4`) still plan `create`, which doesn't get around the block list; and an unlinked account stored with a final dot can no longer be linked by email.
+
+Fix after the pass (wording): the comment at `sso-sign-in.ts:115-117` now says what the check does (a final dot, or a domain IDNA changes or can't read), not "a name delivery can't read".

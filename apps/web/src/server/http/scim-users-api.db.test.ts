@@ -166,6 +166,20 @@ const expectScimError = (
 };
 
 describe("create", () => {
+  it("creates an account in a blocked domain: SCIM is outside the rules (191, case 13)", async () => {
+    await t.db
+      .insertInto("instance_settings")
+      .values({
+        key: "blocked_domains",
+        value: JSON.stringify(["example.com"]),
+        updated_by: null,
+        updated_at: toDbDate(new Date(), t.dialect),
+      })
+      .execute();
+    expect((await call("POST", "/Users", entraCreate())).status).toBe(201);
+    expect(await account("ann@example.com")).toMatchObject({ role: "user" });
+  });
+
   it("records that SCIM made the account (191)", async () => {
     expect((await call("POST", "/Users", entraCreate())).status).toBe(201);
     const row = await t.db

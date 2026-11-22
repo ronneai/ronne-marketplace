@@ -128,6 +128,15 @@ describe("migration 0047_account_rules (191)", () => {
     );
   });
 
+  it("a provider row never given creates_accounts reads as 106's rule: while it lists domains", async () => {
+    await migrateToLatest(t.db, t.dialect);
+    await addProvider("listed", ["acme.com"]);
+    await addProvider("empty", []);
+    const repo = kyselyIdentityProviderRepository(t.db, t.dialect);
+    expect((await repo.find("listed"))?.provider.createsAccounts).toBe(true);
+    expect((await repo.find("empty"))?.provider.createsAccounts).toBe(false);
+  });
+
   it("a rerun after a run that stopped part-way finishes the backfill", async () => {
     await addProvider("entra", ["acme.com"]);
     await addProvider("okta", []);

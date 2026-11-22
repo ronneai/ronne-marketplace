@@ -680,6 +680,9 @@
           "rate_limited": "trop de tentatives"
         },
         "ssoNotAllowed": {
+          "domain_blocked": "aucun compte, et le domaine du courriel est dans la liste de blocage",
+          "domain_throwaway": "aucun compte, et le domaine du courriel est jetable",
+          "creating_off": "aucun compte, et le fournisseur ne crée pas de comptes",
           "domain_not_allowed": "aucun compte, et le domaine du courriel ne peut pas en créer",
           "non_ascii_email": "l’adresse n’est pas en ASCII simple",
           "invalid_email": "l’adresse n’est pas valide",
