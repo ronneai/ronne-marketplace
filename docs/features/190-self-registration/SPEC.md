@@ -32,7 +32,7 @@ and standards".
   - **Terms and privacy link** (optional): a URL and a version label root types (such as
     `2026-11`). When set, the sign-up form shows it with a required checkbox.
     - When root changes the version, a box **Ask everyone to accept again** appears. Ticked, every
-      existing person accepts at their next web sign-in. Unticked, only new sign-ups accept it.
+      existing person accepts it on the web, at their next page. Unticked, only new sign-ups accept it.
   - The switch can be turned on only while three things hold. Otherwise it's disabled with the
     reason and a link to the place that fixes it.
     - Email is set up (189).
@@ -101,8 +101,12 @@ and standards".
   - An allow list makes it irrelevant. 191 applies the same list to every way in with *Any domain*.
 - **Accepting new terms:**
   - After a web sign-in (password or provider), a person who hasn't accepted the version root asked
-    everyone to accept sees **Accept the updated terms**. It has the link, a required checkbox,
-    **Continue**, and **Sign out**. It's held like a required password change
+    everyone to accept sees **Accept the updated terms**. A session already open is held at its next
+    page or action, as for a required password change. Any acceptance since root asked is enough,
+    whatever its version (a sign-up after it, or after changes root didn't ask everyone to
+    accept); one from before never is, of the same label included. Someone held is asked for the
+    version the link shows, so what is recorded is what they read. It
+    has the link, a required checkbox, **Continue**, and **Sign out**. It's held like a required password change
     (`server/http/password-change-hold.ts`).
   - Access tokens, `rmk` and the MCP server keep working: the web asks, the API doesn't, so no build
     or install breaks over terms.
@@ -278,7 +282,7 @@ browser couldn't finish the check. Try again." Past the limits: "Too many tries.
 - [ ] With approval on, the account can't sign in, get a token or use the device flow; roots are
   notified; Approve and Decline work and email the person; 30 days unapproved declines it.
 - [ ] The terms checkbox is required when root sets a link, and its version and time are stored.
-  With **Ask everyone to accept again** ticked, existing people accept at their next web sign-in,
+  With **Ask everyone to accept again** ticked, existing people accept it on the web, at their next page,
   and their tokens keep working; unticked, only new sign-ups accept it. Every acceptance is a row.
 - [ ] With *Any domain* and the throwaway setting on, an address in the bundled list is refused.
 - [ ] Sign-up can't be turned on without email, the instance contact, and the policy *Everyone*.

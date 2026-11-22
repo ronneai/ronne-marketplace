@@ -5,6 +5,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const hold = vi.hoisted(() => ({ requirement: null as null | "reviewers" | "everyone" }));
 const scope = vi.hoisted(() => ({ inRequest: true }));
 const password = vi.hoisted(() => ({ held: false }));
+const terms = vi.hoisted(() => ({ held: false }));
+vi.mock("./terms-hold", () => ({
+  TERMS_PATH: "/account/terms",
+  termsHold: vi.fn(async () => terms.held),
+}));
 vi.mock("./password-change-hold", () => ({
   PASSWORD_PATH: "/account/password",
   passwordChangeHold: vi.fn(async () => password.held),
@@ -34,6 +39,7 @@ const { serverAction } = await import("./server-action");
 beforeEach(() => {
   hold.requirement = null;
   password.held = false;
+  terms.held = false;
   scope.inRequest = true;
 });
 
@@ -82,5 +88,32 @@ describe("serverAction and the two-factor hold (105)", () => {
     expect(await serverAction(ran, { whilePasswordHeld: true })()).toBe("done");
     password.held = false;
     await expect(serverAction(ran)()).rejects.toThrow("REDIRECT /account/security");
+  });
+});
+
+describe("serverAction and the terms hold (190)", () => {
+  it("sends someone who must accept new terms to the terms page, unless the action is open to them", async () => {
+    terms.held = true;
+    await expect(serverAction(async () => "done")()).rejects.toThrow("REDIRECT /account/terms");
+    expect(await serverAction(async () => "done", { whileTermsHeld: true })()).toBe("done");
+    // The password-change hold's own actions don't open to it.
+    await expect(serverAction(async () => "done", { whilePasswordHeld: true })()).rejects.toThrow(
+      "REDIRECT /account/terms",
+    );
+  });
+
+  it("comes after the password change and before two-factor", async () => {
+    terms.held = true;
+    password.held = true;
+    hold.requirement = "everyone";
+    await expect(serverAction(async () => "done", { whileTermsHeld: true })()).rejects.toThrow(
+      "REDIRECT /account/password",
+    );
+    password.held = false;
+    await expect(serverAction(async () => "done", { whileHeld: true })()).rejects.toThrow(
+      "REDIRECT /account/terms",
+    );
+    terms.held = false;
+    expect(await serverAction(async () => "done", { whileHeld: true })()).toBe("done");
   });
 });

@@ -193,5 +193,17 @@
     "title": "Getting started",
     "description": "Bring the Getting started checklist back on Home. It picks up where you are: what you’ve done stays ticked.",
     "show": "Show getting started again"
+  },
+  "terms": {
+    "title": "Accept the updated terms",
+    "description": "The terms and privacy notice of this marketplace have changed. Read them, and accept them to go on. Access tokens, rmk and the MCP server keep working meanwhile.",
+    "read": "Read the terms and privacy notice (version {version})",
+    "accept": "I accept the updated terms and privacy notice",
+    "continue": "Continue",
+    "signOut": "Sign out",
+    "errors": {
+      "unticked": "Tick the box to accept the terms, or sign out.",
+      "changed": "The terms changed again while this page was open. Read the new version and accept it."
+    }
   }
 }

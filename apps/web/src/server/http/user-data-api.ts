@@ -10,6 +10,7 @@ import { signInUrl } from "../domains/identity/models/route-guard";
 import { type AppAuth, getAppAuth } from "../domains/identity/repositories/auth-instance";
 import { errorResponse } from "./errors";
 import { changeRequiredResponse, passwordChangeHold } from "./password-change-hold";
+import { termsHold } from "./terms-hold";
 import { twoFactorHold } from "./two-factor-hold";
 
 /** What the route handlers of `GET /account/data` and `GET /admin/users/<id>/data` share (104). */
@@ -19,6 +20,8 @@ export type UserDataRouteDeps = {
   hold?: (headers: Headers) => Promise<unknown>;
   /** The password-change hold (128), for tests; the default reads the account's flag. */
   passwordHold?: (headers: Headers) => Promise<boolean>;
+  /** The terms hold (190), for tests; the default reads root's terms and the person's. */
+  termsHold?: (headers: Headers) => Promise<boolean>;
 };
 
 /** `ronne-data-<id>-<date>.json`: the id is ours (a ULID) and the date is UTC, so both are safe. */
@@ -66,6 +69,12 @@ export const userDataResponse = async (
     });
   if (await (deps.passwordHold ?? passwordChangeHold)(request.headers))
     return changeRequiredResponse("Choose your own password first (Account › Password).");
+  if (await (deps.termsHold ?? termsHold)(request.headers))
+    return errorResponse(
+      403,
+      "terms_acceptance_required",
+      "Accept the updated terms first: sign in on the web, and the page asks for them.",
+    );
   if (await (deps.hold ?? twoFactorHold)(request.headers))
     return errorResponse(
       403,

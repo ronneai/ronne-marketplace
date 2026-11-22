@@ -800,7 +800,8 @@
           "enabled": "Enabled <name>{who}</name>",
           "erased": "Erased <name>{who}</name>",
           "data_exported": "Downloaded the data of <name>{who}</name>{byRoot, select, true { (by root)} other {}}",
-          "signed_up": "<name>{who}</name> created their own account{waiting, select, true {, waiting for a root's approval} other {}}"
+          "signed_up": "<name>{who}</name> created their own account{waiting, select, true {, waiting for a root's approval} other {}}",
+          "terms_accepted": "Accepted the terms, version <code>{version}</code>"
         },
         "auth": {
           "signed_in": "{sso, select, true {Signed in with <code>{provider}</code>} other {{remember, select, true {Signed in (remembered for 30 days)} other {Signed in}}}}",

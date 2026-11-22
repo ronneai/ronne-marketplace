@@ -434,5 +434,9 @@
   "user.signed_up": {
     "empty": "sam@example.com created their own account",
     "rich": "sam@example.com created their own account"
+  },
+  "user.terms_accepted": {
+    "empty": "Accepted the terms, version ?",
+    "rich": "Accepted the terms, version 1.2.0"
   }
 }

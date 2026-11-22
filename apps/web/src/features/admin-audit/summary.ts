@@ -302,6 +302,7 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     who: h.who(m, e),
     waiting: flag(m.approval === true),
   }),
+  "user.terms_accepted": (m) => ({ version: text(m.version) || "?" }),
   "user.sso_linked": (m, e, h) => ({ email: h.who(m, e), provider: text(m.provider) }),
   "user.role_changed": (m, e, h) => ({
     who: h.who(m, e),

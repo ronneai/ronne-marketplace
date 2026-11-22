@@ -128,6 +128,7 @@ export const ROUTE_SEGMENTS = new Set([
   "submissions",
   "submit",
   "tarball",
+  "terms",
   "test",
   "token",
   "tokens",

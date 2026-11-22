@@ -534,3 +534,104 @@ Witnessed: 2026-11-21 22:23 EST, by a fresh agent (adversarial, a fifth round at
 **Overall:** met. With re-check 2 (blind) met, both latest passes are met.
 
 Fixes after re-check 5, from the pre-commit run's guard tests: `e2e/pages.ts` lists `/sign-up` and `/sign-up/code`, skipped by the sweep (open only while sign-up is on; `sign-up.e2e.ts` covers them); the honeypot field takes `inputClasses` (the touch rule); the four sign-up actions no longer run while a signed-in person is held (they're for people not signed in, and `server-action.test.ts` lists which actions may). `vitest run` on those three guard tests and `src/features/sign-up` → 60 passed (rerun by the implementer). No service or repository code changed.
+
+## Task 6 — Accepting new terms [risky]
+
+### Blind pass
+
+Witnessed: 2026-11-21 22:38 EST, by a fresh agent (blind). Commit: fad757d6 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Sign-up writes a `terms_acceptances` row | no | confirmed | `kysely-sign-up-repository.ts` `createAccount`; `sign-up.db.test.ts` checks it |
+| 2 | Each acceptance one row, audited; concurrent submits one row | no | confirmed | `terms.db.test.ts`; mutations M2, M3 → fail |
+| 3 | A ticked change holds; an unticked one doesn't | no | confirmed | db tests; M1 (never held) → 5 of 7 fail |
+| 4 | Unticked: only new sign-ups accept it | no | not met | probe: 2026-11 ticked, 2026-12 unticked, a sign-up with 2026-12 → held for 2026-11 |
+| 5–6 | A password and a provider sign-in held | no | confirmed | db tests, the fake OIDC round trip |
+| 7 | Built like the password-change hold, order password → terms → two-factor, only the listed actions open | no | confirmed | `hold.ts`, `server-action.ts`; M4, M5 → fail; 7 open actions pinned |
+| 8 | The page: link, required box, Continue, Sign out | no | confirmed | `terms.test.tsx` |
+| 9–10 | Tokens work while held; tokens, the API and the device flow untouched | no | confirmed | `authenticateToken` ok; no diff under `src/app/api`, `access-tokens`, `device` |
+| 11 | db tests on the three servers | no | confirmed | 7/7 each |
+| 12 | An e2e test accepts the new terms | no | confirmed | Playwright Chromium → 1 passed |
+| 13 | Typecheck and lint | no | confirmed | `tsc` exit 0; `biome check` clean |
+
+**Overall:** not met (row 4).
+
+### Adversarial pass
+
+Witnessed: 2026-11-21 22:40 EST, by a fresh agent (adversarial). Commit: fad757d6 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1–3, 6, 8, 10, 11 | Rows, races (20 at once → 1 row; without the lock 3 and 5 rows on PostgreSQL and MySQL), the hold's order, tokens, `next` never off-site, wrong versions refused | no | confirmed | probes P3, P5 on four databases; mutations |
+| 4 | Ticked and unticked as SPEC says | no | not met | P1, P2 as the blind pass |
+| 5 | The hold itself tested | no | confirmed | db tests call `termsToAccept`; `termsHold` → `return false` passes everything but the e2e |
+| 7 | Held everywhere a session reaches | no | partly | `/account/data` and `/admin/users/<id>/data` ignore the terms hold |
+| 9 | e2e | no | confirmed | by reading `e2e/terms.e2e.ts`; the blind pass ran it |
+| 12 | Root changing the version mid-page | no | partly | the stale form keeps the old version |
+| 13 | Cheap on every page | no | partly | 9 settings queries per request |
+
+**Overall:** not met. Also: SPEC said "next web sign-in" where the hold applies at once.
+
+Fixes after the first passes: `InstanceTerms` carries `current`; the data routes refuse a held person (`terms_acceptance_required`); `instanceTerms` reads the required version alone first; a `changed` answer reloads `/account/terms?changed=1`; `terms-hold.test.ts`; SPEC wording.
+
+### Re-check 1 (blind)
+
+Witnessed: 2026-11-21 22:46 EST, by a fresh agent (blind). Commit: fad757d6 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | Nobody asked again after an unticked change | no | partly | the first case fixed; a second unticked change holds again (4b, 4c) |
+| 2, 3, 12–17 | Rows, data routes, `termsHold`, the reload, e2e, typecheck | no | confirmed | 23/23 on each database; M6–M8 fail tests; e2e passed |
+
+**Overall:** not met (row 4). Remark: the `?changed=1` redirect has no test.
+
+### Re-check 1 (adversarial)
+
+Witnessed: 2026-11-21 22:46 EST, by a fresh agent (adversarial). Commit: fad757d6 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4, 7, 12, 13, 5, 2, 14 | The version rule, the data routes (P10, a held root's real session → 403), the reload, one query with no version asked, `termsHold` tested, rows, SPEC | no | confirmed | probes on four databases; mutations fail tests |
+
+**Overall:** met. Remarks: the redirect untested; the notice may not show without a remount; SPEC lines 35 and 284.
+
+Fixes after re-check 1: any acceptance since root asked counts (`requiredSince`, the required version's setting time); `setSignUpPolicy` writes only changed settings; `key={terms.version}`; `features/terms/actions.test.ts`; SPEC lines 35, 107 and 284.
+
+### Re-check 2 (blind)
+
+Witnessed: 2026-11-21 22:52 EST, by a fresh agent (blind). Commit: fad757d6 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | No one asked again after one or several unticked changes; a ticked one still asks | no | confirmed | probes 4–4f on four databases; M9 → 3 tests fail |
+| 18 | Only changed settings are written | no | confirmed | M10 → a test fails |
+| 2, 3, 15, 12, 13 | Rows, ticked and unticked, the reload, e2e, typecheck | no | confirmed | 19/19 on each server; M11 → fails; e2e passed |
+
+**Overall:** met. Remark: an old label re-asked doesn't hold people who accepted it before.
+
+### Re-check 2 (adversarial)
+
+Witnessed: 2026-11-21 22:52 EST, by a fresh agent (adversarial). Commit: fad757d6 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4, 15, 16, 7, 12, 14 | The time rule at its edges (P11–P13, P15), the data routes, the reload, SPEC | no | confirmed | four databases; mutations |
+| 17 | Continue always gets a held person out | no | not met | P6: accepted 2026-10, root ticks 2026-11, saves 2026-10 unticked → asked for 2026-10, Continue writes nothing, held for ever |
+
+**Overall:** not met (row 17).
+
+Owner's decision after two re-checks (AskUserQuestion, 2026-11-21): fix, then a short third adversarial round. Fix: one check, `acceptedSinceAsked`, for both the hold and Continue: only an acceptance at or after `requiredSince` counts, of the same label included; Continue writes whenever the person is still held, never with a time before `requiredSince`. Two db tests.
+
+### Re-check 3 (adversarial)
+
+Witnessed: 2026-11-21 23:03 EST, by a fresh agent (adversarial, a third round at the owner's request, scoped to row 17). Commit: fad757d6 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 17 | Continue always gets a held person out | no | confirmed | P6, P18–P20, P22 on four databases (a reused label; root's clock ahead; this server behind; a sign-up from a lagging replica; a link removed and re-added): one Continue lets them through. Mutations (dedupe by version, no clamp, an old row counting) each fail a new test |
+| — | The rest still holds | no | confirmed | 100 tests on SQLite; 27/27 on each server |
+
+**Overall:** met. With re-check 2 (blind) met, both latest passes are met. Notes: the no-time fallback could trap someone with `required` ≠ `current`, unreachable with the schema (`updated_at` is `NOT NULL`); sign-up records the policy's version at the request, not the one the form showed (task 5's, a follow-up in PLAN.md).
+
+Fix after re-check 3, from the pre-commit run: the telemetry's list of the app's route segments (`server/telemetry/sanitize.ts`) gains `terms`, the new page's segment (`route-segments.test.ts`). `vitest run src/server/telemetry` → 36 passed (rerun by the implementer). No code the witnesses checked changed.

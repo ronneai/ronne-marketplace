@@ -137,6 +137,23 @@ describe("a person who must change their password (128)", () => {
     });
     expect(free.status).toBe(200);
   });
+
+  it("is refused with terms_acceptance_required while new terms wait, after the password, before two-factor (190)", async () => {
+    const held = await userDataResponse(get("/account/data", asAna), null, {
+      app,
+      hold: async () => "everyone",
+      passwordHold: async () => false,
+      termsHold: async () => true,
+    });
+    expect(held.status).toBe(403);
+    expect((await held.json()).error.code).toBe("terms_acceptance_required");
+    const password = await userDataResponse(get("/account/data", asAna), null, {
+      app,
+      passwordHold: async () => true,
+      termsHold: async () => true,
+    });
+    expect((await password.json()).error.code).toBe("password_change_required");
+  });
 });
 
 describe("what is not a person's own click (104)", () => {

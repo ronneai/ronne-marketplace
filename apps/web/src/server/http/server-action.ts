@@ -4,6 +4,7 @@ import { withRequestContext } from "../log";
 import { PASSWORD_PATH, passwordChangeHold } from "./password-change-hold";
 import { requestHeaders as appRequestHeaders } from "./request-headers";
 import { forwardedRequestId } from "./request-id";
+import { TERMS_PATH, termsHold } from "./terms-hold";
 import { SECURITY_PATH, twoFactorHold } from "./two-factor-hold";
 
 /**
@@ -27,6 +28,11 @@ export const serverAction = <A extends unknown[], R>(
      * and out, the language and the notice. Every other action sends them to the change page.
      */
     whilePasswordHeld?: boolean;
+    /**
+     * Runs for someone who must accept new terms first (190): accepting them, signing in and out,
+     * the language and the notice. Every other action sends them to the terms page.
+     */
+    whileTermsHeld?: boolean;
   } = {},
 ): ((...args: A) => Promise<R>) => {
   const wrapped = async (...args: A): Promise<R> => {
@@ -39,6 +45,8 @@ export const serverAction = <A extends unknown[], R>(
         const held = await heldNow();
         if (held === "password") {
           if (!options.whilePasswordHeld) redirect(PASSWORD_PATH);
+        } else if (held === "terms") {
+          if (!options.whileTermsHeld) redirect(TERMS_PATH);
         } else if (held === "two_factor" && !options.whileHeld) redirect(SECURITY_PATH);
         return action(...args);
       },
@@ -64,10 +72,11 @@ const requestHeaders = async (): Promise<{ get(name: string): string | null }> =
 };
 
 /**
- * Why the action's caller is held: the password change comes first (128), then two-factor (105).
+ * Why the action's caller is held: the password change comes first (128), then new terms (190),
+ * then two-factor (105).
  * Never held outside a request.
  */
-const heldNow = async (): Promise<"password" | "two_factor" | null> => {
+const heldNow = async (): Promise<"password" | "terms" | "two_factor" | null> => {
   let request: Headers;
   try {
     request = await appRequestHeaders();
@@ -75,5 +84,6 @@ const heldNow = async (): Promise<"password" | "two_factor" | null> => {
     return null;
   }
   if (await passwordChangeHold(request)) return "password";
+  if (await termsHold(request)) return "terms";
   return (await twoFactorHold(request)) !== null ? "two_factor" : null;
 };

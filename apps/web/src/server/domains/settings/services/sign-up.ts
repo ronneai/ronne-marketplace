@@ -139,7 +139,10 @@ export const setSignUpPolicy = async (
     if (Object.keys(toRows).every((key) => fromRows[key] === toRows[key]))
       return { changed: false };
     const by = actor.user?.id ?? null;
-    for (const [key, value] of Object.entries(toRows)) await repo.set(key, value, by, at);
+    // Only the settings that changed are written: each row's time then says when it took its value,
+    // which the terms hold reads (when root last asked everyone to accept a version).
+    for (const [key, value] of Object.entries(toRows))
+      if (fromRows[key] !== value) await repo.set(key, value, by, at);
     await repo.recordAudit(
       {
         actorId: by,

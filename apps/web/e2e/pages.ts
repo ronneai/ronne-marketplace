@@ -173,6 +173,12 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
   { route: "/workspaces/requests", roles: REVIEWERS, urls: () => ["/workspaces/requests"] },
   { route: "/account/password", roles: EVERYONE, urls: () => ["/account/password"] },
   { route: "/account/security", roles: EVERYONE, urls: () => ["/account/security"] },
+  {
+    route: "/account/terms",
+    roles: EVERYONE,
+    urls: () => ["/account/terms"],
+    skip: "Only while root asks everyone to accept new terms; with nothing to accept it sends you on (terms.e2e.ts covers it, 190)",
+  },
   { route: "/account/language", roles: EVERYONE, urls: () => ["/account/language"] },
   { route: "/account/tokens", roles: EVERYONE, urls: () => ["/account/tokens"] },
   { route: "/device", roles: EVERYONE, urls: () => ["/device", "/device?user_code=WDJB-MJHT"] },

@@ -22,5 +22,5 @@ export const dismissNotice = serverAction(
       noticeCookieOptions,
     );
   },
-  { whileHeld: true, whilePasswordHeld: true },
+  { whileHeld: true, whilePasswordHeld: true, whileTermsHeld: true },
 );

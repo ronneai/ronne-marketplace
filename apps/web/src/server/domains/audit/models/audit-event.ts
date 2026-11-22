@@ -44,6 +44,7 @@ export const AUDIT_ACTIONS = [
   "user.two_factor_reset",
   "user.created",
   "user.signed_up",
+  "user.terms_accepted",
   "user.updated",
   "user.scim_adopted",
   "user.sso_linked",
