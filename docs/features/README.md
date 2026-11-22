@@ -537,6 +537,18 @@ order: 109 (M17's shared rate limits, so every limit holds across replicas and r
 | [196](./196-breached-passwords/SPEC.md) | Breached passwords refused: a bundled list of known breached and common passwords, and words from the instance and the address, checked wherever a password is set; optionally Have I Been Pwned's anonymous range check, off by default | 194, 128, 189, 122 | specified |
 | [197](./197-verified-email-change/SPEC.md) | Verified email changes: a person changes their email with their password and two-factor, a code to the new address and a notice to the old one; addresses a company provider or SCIM manages stay theirs; root's changes notify both addresses | 109, 189, 190, 191, 105, 106, 108, 123 | specified |
 
+## Planned on 2026-11-21
+
+Skills, agents and commands say which model and effort they expect in each AI tool, so cheap work
+runs on a cheap model and token use stays balanced (owner, 2026-11-21). Root decides which models
+the instance allows and what each tier means, and a project can adjust the tiers for itself.
+
+### M33 — Model and effort per AI tool
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [198](./198-model-effort/SPEC.md) | Model and effort per AI tool: a portable `model` block (tier `fast`/`default`/`strong`, effort `low`/`medium`/`high`) on skills, agents and commands, with a pin per tool in `targets.<tool>.overrides`; root's allowed models, tier map and tier efforts per tool on a Models tab of Admin › Settings, read by `rmk` from `GET /api/v1/model-policy`; `rmk.config.json` replacing tiers or turning pins off within root's list; Claude Code writes them on all three types, Codex and Cursor on agents only, and every other case warns and installs | 023, 024, 025, 026, 076, 078, 097, 122, 129, 166 | specified |
+
 ## Outside the milestones
 
 Work on the repository itself rather than the product.
