@@ -6,6 +6,7 @@ import {
   headingAnchors,
   linkedPages,
   relativeLinks,
+  withoutComments,
 } from "./features-index.js";
 
 const domains = {
@@ -228,6 +229,15 @@ describe("checkLinks", () => {
       "docs/features/_template/SPEC.md:1: the link to ./GONE.md lands nowhere",
       "docs/x.md:1: the link to ./gone.md lands nowhere",
     ]);
+  });
+});
+
+describe("withoutComments", () => {
+  it("drops whole comments, keeps what's around them, and says when one is left open", () => {
+    expect(withoutComments("a <!-- b --> c <!-- d -->e")).toEqual({ text: "a  c e", open: false });
+    expect(withoutComments("[x](a.md) <!-- open")).toEqual({ text: "[x](a.md) ", open: true });
+    expect(withoutComments("<!-->x")).toEqual({ text: "", open: true });
+    expect(withoutComments("<!-<!---->-")).toEqual({ text: "<!--", open: false });
   });
 });
 

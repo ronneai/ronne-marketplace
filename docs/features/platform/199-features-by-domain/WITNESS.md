@@ -90,6 +90,19 @@ Witnessed: 2026-11-22 17:31 EST, by a fresh agent (blind). Commit: 4ca3e4a5 + un
 
 **Overall:** met: comments on one line, opened mid-line, or running over several lines are skipped, a link after `-->` or before `<!--` is still read, docs:check passes, and the 50 tests pass. Remarks: a `<!--` inside inline code opens a comment (no page has one today); no test has a link before `<!--` on the same line.
 
+### Re-check 3
+
+Witnessed: 2026-11-22 17:44 EST, by a fresh agent (blind). Commit: 295865c9 + uncommitted working tree. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence |
+|---|---|---|---|---|
+| 1 | `pnpm docs:check` passes on the tree | no | confirmed | `node packages/repo-tools/src/check-docs-index.js` in the repo → exit 0. Scratch copy rebuilt from all tracked and untracked files (`features-index.js` and its test match the tree byte for byte, `cmp`) → exit 0 |
+| 7c | Links in HTML comments are skipped (one-line comments, comments opened mid-line, multi-line comments); a link before `<!--` or after `-->` is still read | no | confirmed | `recheck2.sh` on `docs/knowledge/i18n.md`. Not reported: `<!-- [x](./nope-1line.md) -->`, `Text <!-- start\n[x](./nope-midcomment.md)\n-->`, `<!--\n[x](./nope-comment.md)\n-->`, a second comment on the same line, a comment reopened on the close line, a nested `<!--`. Reported with `file:line`: `<!-- a --> [x](./nope-after1.md)`, `<!--\nhidden\n--> [x](./nope-after2.md)`, `[x](./nope-before.md) <!-- c`, `<!-- a -->[x](./nope-mid.md)<!-- b -->`. A `<!--` inside a fence doesn't open a comment. `mutate3.sh`: all 6 mutations each fail at least one test, including the one that survived re-check 2, now caught by the `withoutComments` test |
+| 7g | `features-index.js` has no `replace` that strips `<!--…-->` or tags | no | confirmed | `grep -n replace packages/repo-tools/src/features-index.js` → a comment naming `replace`, ``text.replace(/`[^`]*`/g, "")`` (inline code) and a heading's anchor; none strips comments or tags. `<!--` appears only in `line.indexOf("<!--", at)` in `withoutComments` |
+| 8 | The repo-tools tests pass, with a case for each failure the spec lists | no | confirmed | `vitest run src/witness.test.js src/features-index.test.js` → 2 files, 51 passed (50 before, plus the `withoutComments` case) |
+
+**Overall:** met: a `withoutComments` loop with `indexOf` replaces the comment regex (CodeQL alert 38 on #326); comments are skipped, links around them are read, docs:check passes and all 51 tests pass. Remarks: a `<!--` inside inline code still opens a comment (no page has one); `<!-->` counts as left open, which doesn't matter for links.
+
 ## Task 4 — The move
 
 Witnessed: 2026-11-22 17:18 EST, by a fresh agent (blind). Commit: 4ca3e4a5 + working tree (staged renames, unstaged link edits, untracked `docs/features/milestones/`, `features-index.js`, `features-index.test.js`, 199's `WITNESS.md`). Machine: macOS 27.2.1, Node v26.13.1.

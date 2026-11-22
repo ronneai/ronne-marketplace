@@ -127,6 +127,25 @@ export const checkFeatureLists = ({ folders, domains, index, milestones }) => {
 };
 
 /**
+ * A line without its HTML comments, and whether one is still open at its end. A loop with
+ * `indexOf`, not a `replace`: CodeQL reads a regex that strips comments as an incomplete HTML
+ * sanitizer (docs/knowledge/codeql-tag-stripping.md).
+ * @returns {{ text: string, open: boolean }}
+ */
+export const withoutComments = (line) => {
+  let kept = "";
+  let at = 0;
+  for (;;) {
+    const start = line.indexOf("<!--", at);
+    if (start === -1) return { text: kept + line.slice(at), open: false };
+    kept += line.slice(at, start);
+    const close = line.indexOf("-->", start + 4);
+    if (close === -1) return { text: kept, open: true };
+    at = close + 3;
+  }
+};
+
+/**
  * The relative links in a Markdown page, outside code: `{ target, section, line }`, the `#section`
  * apart (`undefined` without one): inline links (`[a](b.md)`) and reference definitions (`[a]: b.md`). Web addresses, `mailto:`
  * and links within the page are left out, and so are code (fenced with ``` or ~~~, or in backticks)
@@ -162,12 +181,9 @@ export const relativeLinks = (text) => {
       return;
     }
     // HTML comments: whole ones go, and one left open runs on to its `-->` on a later line.
-    text = text.replace(/<!--[\s\S]*?-->/g, "");
-    const open = text.indexOf("<!--");
-    if (open !== -1) {
-      comment = true;
-      text = text.slice(0, open);
-    }
+    const outside = withoutComments(text);
+    text = outside.text;
+    comment = outside.open;
     const definition = /^\s{0,3}\[[^\]]+\]:\s*<?([^\s>]+)/.exec(text);
     if (definition) {
       const [target, section] = definition[1].split("#");
