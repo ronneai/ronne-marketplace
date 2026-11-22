@@ -69,9 +69,14 @@ export const setAccountRules = async (
   const expected = Number(input.version);
   const at = (deps.now ?? (() => new Date()))();
   return deps.repo.transaction(async (repo) => {
+    // The version row is read once, and the same value is both checked against the form and
+    // compared when it's written: PostgreSQL reads each statement afresh, so a second read could
+    // see another save's version and write over it.
+    const stored = await repo.get(ACCOUNT_RULES_KEYS.version);
+    const version = accountRulesFromRows({ version: stored?.value ?? null }).version;
+    if (!Number.isSafeInteger(expected) || expected !== version) throw new StaleAccountRulesError();
     const from = await readAccountRules(repo);
-    if (!Number.isSafeInteger(expected) || expected !== from.version)
-      throw new StaleAccountRulesError();
+    if (from.version !== version) throw new StaleAccountRulesError();
     const to = { blockedDomains: parsed.domains, blockThrowaway, version: from.version + 1 };
     const same =
       !from.damaged &&
@@ -79,8 +84,7 @@ export const setAccountRules = async (
       JSON.stringify(from.blockedDomains) === JSON.stringify(to.blockedDomains);
     if (same) return { changed: false, version: from.version };
     const by = actor.user?.id ?? null;
-    // The version first, only if it's still the one read: of two saves of one form, one lands.
-    const stored = await repo.get(ACCOUNT_RULES_KEYS.version);
+    // The version first, only if it's still the one checked: of two saves of one form, one lands.
     if (
       !(await repo.compareAndSet(
         ACCOUNT_RULES_KEYS.version,
