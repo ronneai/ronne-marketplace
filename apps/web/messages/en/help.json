@@ -379,6 +379,14 @@
     "question": "What does the threshold block?",
     "answer": "With a score set, a submission whose latest scan scores at or above it can't be approved, nor one whose scan is waiting, failed or never ran: a broken scan isn't a way past it. Only root can approve it anyway, with a reason that's audited. An author's own submission in their personal workspace isn't blocked."
   },
+  "account-rules": {
+    "question": "How do these rules work together?",
+    "answer": "Every new account, through sign-up or a provider, is refused first when its email's domain is on the block list, then by that way in's own settings. Accounts that exist already keep signing in, and the accounts you create yourself only ask before a blocked domain."
+  },
+  "provider-account-rules": {
+    "question": "Who gets an account through this provider?",
+    "answer": "A person signing in for the first time, if this provider creates accounts and their email's domain is allowed here and not on the block list. With approval on, the account waits for a root, with no groups until it's approved."
+  },
   "self-registration": {
     "question": "What does sign-up need first?",
     "answer": "Email set up, so the code can be sent; the instance contact, so every notice says whom to tell; and password sign-in open to everyone. Each account proves its address with a code before it exists, and can wait for a root's approval."

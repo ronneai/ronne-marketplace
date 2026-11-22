@@ -14,8 +14,9 @@ export type IdentityProvider = {
   config: Record<string, unknown>;
   hasSecret: boolean;
   /**
-   * Email domains this provider signs in: a new address gets an account on first sign-in, an
-   * existing account is linked (with `linkByEmail`). Empty: only accounts already linked.
+   * The allowed domains (191; 106's "email domains this provider signs in"): a new address in one
+   * gets an account on first sign-in while `createsAccounts`, unless the block list has it; an
+   * existing account in one is linked (with `linkByEmail`). Unused for creating with `anyDomain`.
    */
   domains: string[];
   linkByEmail: boolean;

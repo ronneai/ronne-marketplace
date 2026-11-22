@@ -205,7 +205,7 @@
     },
     "waiting": {
       "title": "Esta conta aguarda a aprovação de um root",
-      "body": "Ela foi criada por cadastro, <date></date>. Não consegue entrar até um root aprová-la; se aguardar 30 dias, é recusada.",
+      "body": "{how, select, provider {Ela foi criada no primeiro acesso com {provider}, <date></date>.} other {Ela foi criada por cadastro, <date></date>.}} Não consegue entrar até um root aprová-la; se aguardar 30 dias, é recusada.",
       "approve": "Aprovar",
       "decline": "Recusar"
     },
@@ -1573,9 +1573,9 @@
         "title": "Não foi possível ler a lista de bloqueio salva",
         "body": "Nenhuma conta pode ser criada até você salvar a lista de novo."
       },
-      "overviewTitle": "Formas de entrar",
+      "overviewTitle": "Meios de entrada",
       "columns": {
-        "way": "Forma de entrar",
+        "way": "Meio de entrada",
         "on": "Ativa",
         "creates": "Cria contas",
         "domains": "Domínios permitidos",

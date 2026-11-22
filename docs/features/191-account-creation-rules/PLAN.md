@@ -60,7 +60,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - Every new message in the `admin` namespace, in all three languages.
   - *Done when:* the translation tests and the raw-text lint pass.
 
-- [ ] **7. Documentation.**
+- [x] **7. Documentation.**
   - ronne-web: `authentication#account-rules`, `authentication#providers` and the provider guides,
     in three languages, in a branch that goes live with the release.
   - Here: the helpers and `topics.ts`.

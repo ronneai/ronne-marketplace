@@ -353,7 +353,9 @@ export const ProviderForm = ({
         </div>
 
         <fieldset className="grid gap-3">
-          <legend className="mb-1 text-sm font-semibold text-fg">{t("whoLegend")}</legend>
+          <legend className="mb-1 text-sm font-semibold text-fg">
+            {t("whoLegend")} <Help id="provider-account-rules" />
+          </legend>
           <label className="flex items-start gap-2 text-sm text-fg">
             <input
               type="checkbox"

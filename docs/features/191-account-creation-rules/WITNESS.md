@@ -361,3 +361,42 @@ Witnessed: 2026-11-22 13:04 EST, by a fresh agent (blind, wording; rows 1–3 an
 | 6 | The translation tests pass | yes | confirmed | `src/i18n` → 20 files, 420 passed |
 
 **Overall:** met.
+
+## Task 7 — Documentation
+
+Witnessed: 2026-11-22 13:15 EST, by a fresh agent (blind). Commit: d9693984 + the working tree (marketplace), and ronne-web-191 `8e006f3` + its working tree (branch feat/191-account-creation-rules). Machine: macOS (Darwin 27.2), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | ronne-web's `topics.ts` adds `authentication#account-rules`, upcoming in 0.8.0 | no | confirmed | `git -C ../ronne-web-191 diff www/src/content/docs/topics.ts`; `apps/web/package.json` 0.8.0 |
+| 2 | The `account-rules` section in en, pt, fr, rendering | no | confirmed | the three `authentication.tsx`; ronne-web `pnpm lint` clean, `pnpm test` 224 passed |
+| 3 | `authentication#providers` describes step 3's fields, matching the form | no | confirmed | the Since-0.8.0 block against `ProviderForm.tsx:162,181,402,416-417,432-434`, `accountSettings`, `checkApproval`, `0047_account_rules.ts:68`, `test-sign-in.ts:50-54` |
+| 4 | The provider guides' "Who may sign in" line uses the new names | no | confirmed | only Google's guide has one; its Since block in the three languages |
+| 5 | The helpers here and `topics.ts` | no | confirmed | `Help.tsx:212-218`, the panel and step 3, `help.json` in three languages, `topics.ts:265`; 9 files, 108 passed |
+| 6 | `pnpm docs:links` and the topics test pass, and fail when the sites disagree | no | confirmed | "Compared 38 topics"; 9 passed; a copy without `account-rules` → exit 1 |
+| 7 | The block list facts | no | partly | match `account-rules.ts`; but "an address at `bücher.de` meets that entry" (three languages): sign-up and providers refuse a non-ASCII address before the list is read |
+| 8 | The rule's order and what a person sees | no | confirmed | `sso-sign-in.ts:136-147`, `sign-up.ts:51-59,278-281,353,441-444`, the quoted messages |
+| 9 | The stale check and the damaged list | no | confirmed | the service and the error and panel words |
+| 10 | The overview: order, columns, dashes, links, warnings | no | confirmed | `overview.ts:38-69`, `AccountRulesPanel.tsx:122-186` |
+| 11 | Approval for a provider | no | partly | all holds but "the overview warns on that provider's row" (three languages): it's a notice under the table naming the provider |
+| 12 | What isn't governed; Created by | no | confirmed | `sso-sign-in.ts:124-135`, `CreateUserDialog.tsx:71-78`, the labels |
+| 13 | The cases table says what the spec's edge cases say | no | confirmed | cases 1–4, 7–14; 5 (193) and 6 (192) left out, not built |
+| 14 | The labels quoted match the app's, in each language | no | confirmed | message dump against the three `admin.json`, auth, errors, notifications |
+| 15 | The self-registration and providers text updated | no | confirmed | the throwaway move, "not allowed or blocked", linking by email, the final dot |
+| 16 | The waiting notice reworded; pt "Meios de entrada" | no | confirmed | `UserPage.tsx:125-129`; the user page test; the glossary rows |
+
+**Overall:** not met (rows 7, 11). Remark: the user page names a provider by its id ("entra"), the approval email by its name.
+
+Fixes after the pass (wording, three languages each, in ronne-web-191's `authentication.tsx`): the `bücher.de` clause now says sign-up and identity providers refuse a non-ASCII address before the list is read, so an `xn--` entry meets addresses written in that form; "warns on that provider's row" now "warns under the table, naming the provider". ronne-web `pnpm lint` clean, `pnpm test` 224 passed.
+
+### Re-check 1
+
+Witnessed: 2026-11-22 13:22 EST, by a fresh agent (blind, wording, rows 7 and 11). Commit: d9693984 + working tree (marketplace), and ronne-web-191 `8e006f3` + its working tree. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | The internationalised-domain bullet says what the app does, in en, pt, fr | yes | confirmed | en:306-312, pt:319-325, fr:341-348 against `sign-up.ts:124-129` and `sso-sign-in.ts:105` |
+| 11 | The overview warns under the table, naming the provider, in en, pt, fr | yes | confirmed | en:480, pt:498-499, fr:531-532 against `AccountRulesPanel.tsx:171-186`; no "row" wording left |
+| 12 | ronne-web `pnpm lint` and `pnpm test` pass | no | confirmed | 307 files, no fixes; 224 passed |
+
+**Overall:** met.

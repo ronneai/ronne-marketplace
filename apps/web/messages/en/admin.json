@@ -205,7 +205,7 @@
     },
     "waiting": {
       "title": "This account waits for a root's approval",
-      "body": "It was made by signing up, <date></date>. It can't sign in until a root approves it; left waiting for 30 days, it's declined.",
+      "body": "{how, select, provider {It was made by a first sign-in with {provider}, <date></date>.} other {It was made by signing up, <date></date>.}} It can't sign in until a root approves it; left waiting for 30 days, it's declined.",
       "approve": "Approve",
       "decline": "Decline"
     },

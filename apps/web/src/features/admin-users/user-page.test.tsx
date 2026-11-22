@@ -76,6 +76,14 @@ describe("an account waiting for approval, on its page (190)", () => {
     expect(withButtons).toContain("SLOT-APPROVAL");
   });
 
+  it("says a provider made a waiting account, naming it (191)", () => {
+    const html = page(
+      detail({ approvalPendingAt: new Date("2026-11-22T10:00:00Z"), createdVia: "provider:entra" }),
+    );
+    expect(html).toContain("It was made by a first sign-in with entra");
+    expect(html).not.toContain("by signing up");
+  });
+
   it("says nothing of approval for an account that doesn't wait", () => {
     const html = renderToStaticMarkup(
       <UserPage

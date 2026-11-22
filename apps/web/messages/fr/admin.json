@@ -205,7 +205,7 @@
     },
     "waiting": {
       "title": "Ce compte attend l’approbation d’un root",
-      "body": "Il a été créé par inscription, <date></date>. Il ne peut pas se connecter tant qu’un root ne l’a pas approuvé; s’il attend 30 jours, il est refusé.",
+      "body": "{how, select, provider {Il a été créé à la première connexion avec {provider}, <date></date>.} other {Il a été créé par inscription, <date></date>.}} Il ne peut pas se connecter tant qu’un root ne l’a pas approuvé; s’il attend 30 jours, il est refusé.",
       "approve": "Approuver",
       "decline": "Refuser"
     },

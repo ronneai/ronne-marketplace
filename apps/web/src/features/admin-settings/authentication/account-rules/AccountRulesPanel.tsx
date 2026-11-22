@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { inputClasses, Label } from "@/components/ui/Field";
@@ -51,9 +52,12 @@ export const AccountRulesPanel = ({
   return (
     <section aria-labelledby="who-may-create-accounts-title" className="grid gap-5">
       <div className="grid gap-1">
-        <h2 id="who-may-create-accounts-title" className="text-base font-semibold text-fg">
-          {t("title")}
-        </h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 id="who-may-create-accounts-title" className="text-base font-semibold text-fg">
+            {t("title")}
+          </h2>
+          <Help id="account-rules" />
+        </div>
         <p className="text-sm text-muted">{t("intro")}</p>
       </div>
 

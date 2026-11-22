@@ -119,11 +119,13 @@ export const UserPage = ({
         }
       />
       {user.approvalPendingAt && !erased ? (
-        // Made by signing up, waiting for a root's answer (190).
+        // Made by signing up (190) or a provider's first sign-in (191), waiting for a root's answer.
         <Notice kind="warn" title={u("waiting.title")}>
           <div className="grid gap-3">
             <p>
               {u.rich("waiting.body", {
+                how: user.createdVia?.startsWith("provider:") ? "provider" : "sign_up",
+                provider: user.createdVia?.startsWith("provider:") ? user.createdVia.slice(9) : "",
                 date: () => <LocalTime value={user.approvalPendingAt as Date} precision="day" />,
               })}
             </p>

@@ -209,6 +209,13 @@ export const HELP = {
   "password-lockout": {
     href: docsHref("password-sign-in", "lockout"),
   },
+  // Who may create accounts (191): the panel, and a provider's step 3.
+  "account-rules": {
+    href: docsHref("authentication", "account-rules"),
+  },
+  "provider-account-rules": {
+    href: docsHref("authentication", "account-rules"),
+  },
   // Self-registration (190): the panel, and the sign-up page.
   "self-registration": {
     href: docsHref("authentication", "self-registration"),
