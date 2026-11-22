@@ -61,7 +61,7 @@ only where VS Code needs none (language servers). User scope writes under `~/.co
 |---|---|---|---|
 | `skill` | `.github/skills/<n>/` (the CLI, VS Code's Copilot harness and the cloud agent) | `~/.copilot/skills/<n>/` | native |
 | `agent` | `.github/agents/<n>.agent.md` | `~/.copilot/agents/<n>.agent.md` | native |
-| `rule` | `.github/instructions/<n>.instructions.md` with `applyTo` | `~/.copilot/instructions/<n>.instructions.md` | native |
+| `rule` | `always`: a section of `.github/copilot-instructions.md`; `glob`: `.github/instructions/<n>.instructions.md` with `applyTo` | `~/.copilot/copilot-instructions.md`; `~/.copilot/instructions/<n>.instructions.md` | native |
 | `command` | as a skill, `.github/skills/<n>/`, run as `/<n>` | `~/.copilot/skills/<n>/` | native |
 | `hook` | `.github/hooks/<n>.json`, one file per item | `~/.copilot/hooks/<n>.json` | native |
 | `mcp-server` | `mcpServers.<n>` in `.mcp.json` (the CLI and VS Code's Copilot harness) | `mcpServers.<n>` in `~/.copilot/mcp-config.json` (both) | native |
@@ -127,9 +127,13 @@ Model ids differ between the CLI and VS Code, so `model` comes only from
 `targets.copilot.overrides.model`, and the `fast` and `strong` hints warn (198 replaces this).
 Skill dependencies aren't preloaded (Copilot's `skills` field is VS Code-only), so they warn.
 
-**`rule`.** Written to `.github/instructions/<n>.instructions.md` with `applyTo`:
-- `always` → `applyTo: "**"`;
-- `glob` → the globs, comma-separated;
+**`rule`.**
+- `always` → a fenced `rmk:begin`/`rmk:end` section of `.github/copilot-instructions.md`
+  (`~/.copilot/copilot-instructions.md`), the repository-wide instructions, as Codex's rules are
+  sections of `AGENTS.md`. An instructions file with `applyTo: "**"` applies only when Copilot works
+  on files, not to a conversation (seen on the CLI 1.0.114: an edit picked it up, a question didn't;
+  owner, 2026-11-22).
+- `glob` → `.github/instructions/<n>.instructions.md` with `applyTo`, the globs comma-separated.
 - `model` and `manual` → skills, since Copilot's instructions are applied by path, not picked by
   the model or asked for.
 
@@ -148,8 +152,9 @@ also reads:
   single-quoted, so it stays one word in the shell.
 - A tool filter is a `matcher` on the events Copilot filters by `toolName` (`preToolUse`,
   `postToolUse`, `permissionRequest`). Copilot compiles it as `^(?:…)$`, so it is the CLI's tool
-  name (below). MCP tools and web search have no documented name there, so such a filter is left
-  out with a warning that the hook runs for every tool. So is a filter on any other event.
+  name (below): an MCP tool is `<server>-<tool>`, and a whole server `<server>-.*` (seen on the
+  CLI 1.0.114, 2026-11-22). Web search has no name seen yet, so a filter on it is left out with a
+  warning that the hook runs for every tool. So is a filter on any other event.
 - `$RMK_` variables warn as in Cursor, because Copilot passes the event as JSON on stdin.
 
 **`mcp-server`.** Written as `mcpServers.<n>` in `.mcp.json`:
@@ -195,7 +200,7 @@ VS Code has its own language servers.
 | `shell` | `execute` | `bash` |
 | `web-fetch` | `web` | `web_fetch` |
 | `web-search` | `web` | none: a warning |
-| `mcp:<s>/<t>` | `<s>/<t>` (`<s>/*` for a whole server) | none: a warning |
+| `mcp:<s>/<t>` | `<s>/<t>` (`<s>/*` for a whole server) | `<s>-<t>` (`<s>-.*` for a whole server) |
 
 | Canonical event | Copilot |
 |---|---|
@@ -214,7 +219,8 @@ VS Code has its own language servers.
   canonical tools; an alias that stands for several, such as `edit`, becomes all of them, with a
   warning, and an MCP server named in `tools` is a reference to it;
 - **rules** from `.github/instructions/*.instructions.md` (`~/.copilot/instructions/`), where
-  `applyTo: "**"` → `always`, other globs → `glob`, and none → `manual`;
+  `applyTo: "**"` → `always`, other globs → `glob`, and none → `manual`. Sections of
+  `copilot-instructions.md` aren't read, as sections of `AGENTS.md` aren't (no boundary);
 - **skills** from `.github/skills/` (`~/.copilot/skills/`) through the shared skill reader. A
   command written there comes back as a skill, as one from `.agents/skills/` does;
 - **MCP servers** from `.github/mcp.json` and `~/.copilot/mcp-config.json`, `type: "local"` as
@@ -229,33 +235,61 @@ Language servers aren't read: `rmk export` reads no `lsp-server` for any tool (n
 
 ## Run counting
 
+Checked on real payloads from the Copilot CLI 1.0.114 on 2026-11-22 (a scratch project, a logging
+hook, a skill, an agent and a local MCP server; the CLI installed globally as a local test target,
+owner, 2026-11-22). The payloads don't name their event, so rmk's hook command does.
+
 `copilot` joins `HOOK_TOOLS`:
-- **The hook file** is `~/.copilot/hooks/rmk-telemetry.json`, with `version: 1`. It runs
-  `rmk telemetry hook copilot` on the events that show a skill, an MCP tool or a subagent being
-  used: `postToolUse`, `postToolUseFailure`, `subagentStart` and `userPromptSubmitted`, whichever
-  task 6 confirms on a real payload.
-- **The handler** reads `sessionId` and `toolName` (camelCase events).
+- **The hook file** is `~/.copilot/hooks/rmk-telemetry.json`, a file of rmk's own (Copilot reads
+  every `~/.copilot/hooks/*.json`), with `version: 1` and one entry per event:
+  `rmk telemetry hook copilot <event>` on `postToolUse`, `postToolUseFailure` and `subagentStart`.
+- **Skills:** `postToolUse` with `toolName: "skill"` and the skill's name in `toolArgs.skill`.
+- **MCP servers:** `postToolUse` with `toolName: "<server>-<tool>"`. A server's name can hold `-`,
+  so every prefix before a `-` is a candidate, and the lockfile picks the one installed. When two
+  installed servers' names are prefixes of each other (`gh` and `gh-pr`), a call to `gh-pr`'s tool
+  matches both and isn't counted, as any run that names two items isn't. The same overlap makes a
+  whole-server hook matcher `gh-.*` fire for `gh-pr`'s tools too.
+- **Agents:** `subagentStart`, by `agentName`.
+- **How it ended:** `toolResult.resultType` (`success`, `failure`), or `postToolUseFailure`; an
+  agent's is unknown. **Who started it:** a subagent's own calls carry `agentId` (`agent`), the rest
+  are the model's (a subagent's `view` call captured on 2026-11-22 carried its `agentId`).
+- **`rmk telemetry off`** removes rmk's entries and leaves `rmk-telemetry.json` as `{}`, which the
+  CLI 1.0.114 loads without a warning.
+- **No double count:** the Copilot CLI also runs Claude Code's hooks, with `COPILOT_CLI=1`; rmk's
+  Claude Code hook ignores those, as it ignores Cursor's.
+- **Not counted:** a skill a person starts by typing `/name` shows only as a prompt, as with Codex.
 - **The web app** adds `copilot` to the usage chart (`TOOL_COLOR`, a `--chart-copilot` token, never
   red or amber) and to the "What each AI tool reports" help section.
 
 ## Plugins and feeds
 
-A Copilot plugin is Agent Plugins 1.0 with Copilot's extensions:
+A Copilot plugin is Agent Plugins 1.0 with Copilot's extensions (the CLI plugin reference,
+2026-11-22):
 - the manifest is the root `plugin.json` with `$schema`, as Codex's is;
-- `skills/` holds skills and commands, and `mcp.json` holds MCP servers;
-- `com.github.copilot/` holds `agents/`, `rules/`, `hooks/hooks.json` and `lsp.json`;
+- `skills/` holds skills and commands, and `mcp.json` (with its `$schema`) holds MCP servers, in the
+  portable shape (`streamable-http`, no `tools` list);
+- `com.github.copilot/` holds `agents/`, `rules/`, `hooks/hooks.json` (with `version: 1`, scripts
+  run as `"$COPILOT_PLUGIN_ROOT"/com.github.copilot/hooks/<n>/…`) and `lsp.json`;
+- an `always` rule, a section in a project, is a rule file of the plugin's own with `applyTo: "**"`;
 - permission policies and status lines stay out.
 
-The marketplace is `.github/plugin/marketplace.json`:
+On the CLI 1.0.114 (2026-11-22) a plugin's agent, skills, MCP server and hook loaded. Its rules
+didn't: `copilot instruction list` doesn't show them, as `.instructions.md` or `.md`. `rmk` writes
+them where the docs say anyway, and the Copilot page says they may not apply yet (owner,
+2026-11-22).
+
+The marketplace is `.github/plugin/marketplace.json`, which Copilot looks up first, so it doesn't
+read Claude Code's `.claude-plugin/` in the same mirror:
 - `name`, `owner`, `metadata.description`, and `plugins[]` with `name`, `version`, `description`
-  and a folder `source`;
+  and a folder `source` (`./plugins/copilot/<plugin>`);
 - it is served only in the git mirror (078), like Codex's and Cursor's;
-- people add it with `copilot plugin marketplace add <url>`.
+- people add it with `copilot plugin marketplace add <repo or folder>` and install with
+  `copilot plugin install <plugin>@<marketplace>` (seen working on the CLI 1.0.114).
 
 `copilot` joins:
 - `PLUGIN_TOOLS`, `MARKETPLACE_PATHS` and `pluginNameProblem`, under the Agent Plugins name rule;
 - the feed's `SERVED_TOOLS` and `rmk feed build --tools`;
-- Admin › Settings › Plugin feeds.
+- Admin › Settings › Plugin feeds, which names it from the renderer.
 
 `plugin-feeds.md` gets the Copilot column.
 
@@ -306,7 +340,7 @@ The support matrix (026) picks the renderer up from `RENDERERS`.
 - [ ] With Claude Code or Codex as a target too, Copilot leaves out exactly what the "also a target" table says, through the shared helper, and Cursor's goldens don't change.
 - [ ] MCP servers go to `.mcp.json` / `~/.copilot/mcp-config.json` with `env` as `${NAME}` references and `tools`, and no `env` value is written.
 - [ ] `rmk export --from copilot` reads agents, rules, skills and MCP servers, reading back what the renderer writes, with warnings per `native-readers.md` §11.
-- [ ] `rmk telemetry` installs and removes Copilot's run hook, and a real `postToolUse` payload is counted.
+- [ ] `rmk telemetry` installs and removes Copilot's run hook, and payloads captured from the real CLI are counted.
 - [ ] Copilot plugins build for every example item with goldens; the git mirror has `.github/plugin/marketplace.json`; `rmk feed build --tools copilot` works.
 - [ ] Every tool list above includes `copilot`, with messages in en, pt and fr.
 - [ ] The end-to-end test installs a skill, an agent, a hook, an MCP server, a rule and a language server with `rmk` in a project with `.github/copilot-instructions.md`, with Claude Code too, and removes them cleanly.
@@ -328,12 +362,18 @@ The owner's, on 2026-11-22:
    doesn't go to `.github/mcp.json` (CLI only) or `.vscode/mcp.json` (the Local harness only).
 3. **A tool filter Copilot can't express** is dropped with a warning, and the hook installs. (Asked
    when the docs seemed to allow no matcher on `preToolUse`/`postToolUse`; a closer read the same
-   day found they do, so only MCP tools, web search and other events are left out.)
+   day found they do, and the real CLI showed MCP tools' names, so only web search and other
+   events are left out.)
 4. **Full parity**: a reader, run counting, plugins and feeds, all in this feature.
 
 From the September spec's recommendations, kept because the 2026-11-22 check supports them:
 
 5. **Hooks** are left to Claude Code's copy when both are targets: the CLI and VS Code's Copilot
    harness both run Claude Code's hooks, so they'd run twice.
-6. **Rules** are written as instruction files even with Claude Code as a target: neither surface
-   reads `.claude/rules/`.
+6. **Rules** are written for Copilot even with Claude Code as a target: neither surface reads
+   `.claude/rules/`.
+
+The owner's, later the same day, from what the real CLI showed:
+
+7. **`always` rules** are sections of `copilot-instructions.md`, not `applyTo: "**"` files.
+8. **Rules in plugins** are written where the docs say, though the CLI 1.0.114 didn't load them.

@@ -312,6 +312,8 @@ Copilot CLI reads.
 | `rule.globs` | `applyTo`, comma-separated |
 
 - Dropped, with a warning each: `excludeAgent`, and any other field.
+- A rule the renderer wrote as `always` is a section of `.github/copilot-instructions.md`, which
+  isn't read: sections have no boundary (§12), as in `AGENTS.md`.
 
 **MCP server.** Source: `mcpServers.<n>` in `.github/mcp.json` (project) and
 `~/.copilot/mcp-config.json` (home). A server in the project's `.mcp.json`, which Copilot also

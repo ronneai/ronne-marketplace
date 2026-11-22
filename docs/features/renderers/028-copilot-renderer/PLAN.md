@@ -54,7 +54,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* exporting each golden output gives back the example item, or the warnings the
     contract names, and `rmk export --from copilot` has CLI tests.
 
-- [ ] **6. Run counting, plugins and every tool list.**
+- [x] **6. Run counting, plugins and every tool list.**
   - `HOOK_TOOLS`, `HOOK_FILES` and `hookChanges` for `copilot`, and the handler's payload fields,
     checked on a real Copilot CLI payload (or the documented example, if no CLI is at hand; say
     which in Notes).
@@ -87,3 +87,23 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     a real Copilot CLI (or the spec says what changed instead).
 
 ## Notes
+
+- **The Copilot CLI as a local test target** (owner, 2026-11-22): `@github/copilot` 1.0.114 is
+  proprietary, so it is never a dependency of Ronne (not in the repo, the lockfile or CI). It was
+  installed globally on the owner's machine to capture real payloads, with `COPILOT_HOME` (and for
+  the status line `HOME`) set to a scratch folder so the owner's own `~/.copilot` was untouched.
+  `COPILOT_ALLOW_ALL=true` trusts the working directory, which loads its hooks and MCP servers.
+- **What the real CLI showed (task 6):** payloads don't name their event (except
+  `permissionRequest`'s `hookName`); a skill is `toolName: "skill"` with `toolArgs.skill`; an MCP
+  tool is `<server>-<tool>` in `postToolUse` and `<server>/<tool>` in `permissionRequest`; a
+  subagent is `subagentStart` with `agentName`; a hook `matcher` of `probe-ping` fired only for that
+  MCP tool, and `~/.copilot/hooks/*.json` runs. This corrected task 3: MCP tools get a matcher.
+  A second run (after the task 6 witness) captured a subagent's own `view` call, which carries the
+  subagent's `agentId` (the main agent's `task` call doesn't), and showed an empty `{}` file in
+  `~/.copilot/hooks/` loads without a warning.
+- **The status line (task 7):** the interactive screen couldn't be driven from here (`expect`
+  stalls on the terminal's colour queries, and there's no tmux). To check by hand: in a terminal,
+  put a script at `~/.copilot/statusline/probe/my status.sh` that writes a file, set
+  `"statusLine": {"type": "command", "command": "\"$HOME\"/'.copilot/statusline/probe/my status.sh'"}`
+  in `~/.copilot/settings.json` (or a scratch `HOME`), start `copilot`, and see whether the file
+  appears.

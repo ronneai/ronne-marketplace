@@ -328,3 +328,63 @@ Witnessed: 2026-11-22 16:38 EST, by a fresh agent (blind). Commit: d4efaa65 + un
 **Overall:** met.
 
 After Re-check 1, the pre-commit hook's `pnpm test` stopped the commit: `packages/repo-tools/src/item-names.test.js` ("item names are never split by hand outside names.ts") flagged `read/copilot/agent.ts:59 .indexOf("/")`, which splits a Copilot tool alias (`<server>/<tool>`), not an item name. The alias is now split with `split("/")` and a rest join, with a comment saying what it is; same behaviour (the reader's 6 tests and the repo-tools test pass). No claim above changes.
+
+## Task 6 — Run counting, plugins and every tool list
+
+Witnessed: 2026-11-22 17:30 EST, by a fresh agent (blind). Commit: 357288af + uncommitted working tree (39 modified, 43 untracked). Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `copilot` in `HOOK_TOOLS`, `HOOK_FILES` `~/.copilot/hooks/rmk-telemetry.json`, `hookChanges` with `version: 1` and one entry per event | yes | confirmed | usage-hooks.ts:22,34,38,88–99; 15 passed; the written file matches exactly |
+| 2 | The handler counts a skill, an MCP tool by every prefix, and an agent; the outcome from `resultType` or the failure event | yes | confirmed | probe: `gh-pr-list` → `@team/gh-pr`; `subagentStart` → `@team/reviewer`; mutation → a test fails |
+| 3 | A subagent's own calls carry `agentId` (trigger `agent`) | yes | can't check here | the code does it; no captured payload of a subagent's call in the fixtures |
+| 4 | No event, the wrong event, or not JSON count nothing and print nothing | no | confirmed | probe: queue `[]`, exit 0, no output |
+| 5 | Claude Code's hook under `COPILOT_CLI=1` counts nothing, and still counts without it | yes | confirmed | usage-hooks.ts:428; mutation → 1 failed; `COPILOT_CLI=0` → 1 queued |
+| 6 | Notes say whether the payloads were real | yes | confirmed | PLAN.md Notes; usage-hooks.test.ts:146–149 |
+| 7 | `plugins/copilot.ts`: root `plugin.json`, `skills/`, portable `mcp.json`, agents, rules, hooks and `lsp.json` under `com.github.copilot/` | yes | confirmed | 63 passed; goldens viewed |
+| 8 | `PLUGIN_TOOLS`, `build.ts` (`lspFile`), `MARKETPLACE_PATHS`, `marketplaceFor`, `pluginNameProblem` | yes | confirmed | types.ts:13, build.ts:28,156–157, marketplace.ts:38–39,107–119, names.ts:44–47 |
+| 9 | Plugin goldens under `plugins/__golden__/copilot/` | no | confirmed | 9 folders and `marketplaces/copilot.json` (untracked, for the task's commit) |
+| 10 | A plugin hook script path with spaces or quotes runs under `$COPILOT_PLUGIN_ROOT` | yes | confirmed | `bash -c` on real files → ran, for `it's "q" $x.sh` and `a b/c d.sh` |
+| 11 | An `always` rule in a plugin becomes `com.github.copilot/rules/<n>.instructions.md` with `applyTo: "**"` | yes | confirmed | probe; copilot.test.ts; no managed marker, unlike the glob rule's |
+| 12 | `always` rules as sections; MCP matchers `<server>-<tool>` / `<server>-.*`; web search and odd names warn | yes | confirmed | probe; renderer.test.ts 24 passed |
+| 13 | `.github/plugin/marketplace.json` sources point at the folders the mirror writes | yes | confirmed | probe: `./plugins/copilot/team.style` |
+| 14 | Feeds: `SERVED_TOOLS`, `TOOL_NAMES`, the panel, the API serving Copilot | yes | confirmed | feed.ts:24, plugin-feed.ts:107, PluginFeedsPanel.tsx:11; patched db test → names and zips |
+| 15 | `rmk feed build --tools` takes copilot; the test stops refusing it | yes | confirmed | 4 marketplaces read; `no-such-tool` refused; cli.ts:49 |
+| 16 | The feed tests include Copilot | yes | partly | not the web feed API tests (feeds-api, private-feeds-api), marketplace.test.ts:76, or two UI test lists |
+| 17 | `plugin-feeds.md` has the Copilot column and the mirror layout | yes | confirmed | `git diff docs/spec/plugin-feeds.md` |
+| 18 | The MCP server's enum, descriptions and `testing.ts` include copilot | yes | partly | server.ts:224 (`list_local_items`) still names three tools |
+| 19 | `TOOL_PLACES` has Copilot's places | yes | confirmed | tool-paths.ts:61–70,77 |
+| 20 | `TOOL_PAGES` leaves copilot out on purpose, says so, and ToolsPanel handles it | yes | confirmed | tool-paths.ts:85; ToolsPanel.tsx:81,87–95 |
+| 21 | `TOOL_COLOR`, `NO_RUNS`, `--chart-copilot` in both themes, not red or amber | yes | confirmed | UsageCard.tsx:25,38; tokens.css:62,152 `#c026d3`; globals.css:34; contrast pairs; 516 passed |
+| 22 | The messages list GitHub Copilot in en, pt and fr, naturally, placeholders kept | yes | confirmed | three keys in each language; `vitest run src/i18n` → 420 passed |
+| 23 | A search for `"cursor"` finds no tool list without `copilot` | yes | partly | package.json `keywords` (cli, core, mcp, server); topics.ts:487 (task 7); test lists; `plugin-setup.ts:69` |
+| 24 | native-readers.md §11's note on sections; MVP's Copilot cells | yes | confirmed | `git diff` |
+| 25 | The doc and witness checks pass | no | confirmed | exit 0 both |
+| 26 | `rmk telemetry off` removes Copilot's hook | no | confirmed | "Removed rmk's usage hook from ~/.copilot/hooks/rmk-telemetry.json."; the file stays as `{}` |
+| 27 | No repository files changed | no | confirmed | scratch copy only; `cmp`; `git status` unchanged |
+
+**Overall:** not met (rows 3, 16, 18, 23).
+
+Fixes after the pass:
+- Row 3: a second real run (2026-11-22) captured a subagent's own `view` call carrying its `agentId`; it's a fixture (`COPILOT.delegated`), and the test reads it as a skill call (`trigger: "agent"`) and as itself (not a run). PLAN Notes and SPEC say so.
+- Row 16: Copilot in feeds-api.db.test.ts (its plugin names, and the `style` and `reviewer` zips' layout), private-feeds-api.db.test.ts's loop, marketplace.test.ts's archive refusal, admin-settings.test.tsx's `notBuilt` (and "Not built yet" ×4), and item-page.test.tsx's `--target` list.
+- Row 18: server.ts's `list_local_items` names GitHub Copilot's folders.
+- Row 23: `"copilot"` in the four packages' `keywords`; `plugin-setup.ts` says Codex, Cursor and GitHub Copilot read plugins from a git mirror (its test covers `copilot`); the feed workflow's header names GitHub Copilot (both goldens). topics.ts is task 7's.
+- Finding 6 (the `{}` file after `rmk telemetry off`): the real CLI loads it without a warning; SPEC says so. Finding 7 (no marker on a plugin's `always` rule file): kept, since a section carries no version for the marker. Finding 8 (overlapping server names): SPEC "Run counting" states it.
+
+### Re-check 1
+
+Witnessed: 2026-11-22 17:36 EST, by a fresh agent (blind). Commit: 357288af + uncommitted working tree. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | A subagent's own calls carry `agentId` and count with trigger `agent`; the captured payload is a fixture, PLAN Notes record it | yes | confirmed | `COPILOT.delegated`; usage-hooks.ts:256; mutation → 1 failed; PLAN.md:101 |
+| 16 | The feed tests include Copilot | yes | confirmed | feeds-api.db.test.ts:353 names and zips; private-feeds-api, marketplace.test, admin-settings, item-page; 89 + 7 passed; leftover plugin-feed.db.test.ts:807 (coverage only) |
+| 18 | The MCP server's `list_local_items` description names Copilot | yes | confirmed | server.ts:224 |
+| 23 | A search for `"cursor"` finds no tool list without `copilot` | yes | confirmed | `git grep '"cursor"' -- . ':!docs' \| grep -v copilot`: only single-tool fixtures, Cursor's own code, pagination, TOOL_PAGES (on purpose), topics.ts (task 7); keywords, plugin-setup, feed-workflow and its goldens updated; 28 passed |
+| 28 | SPEC "Run counting" additions agree with the code | yes | confirmed | usage-hooks.ts:235–240, :405, :255–256 |
+| 29 | No repository files changed | no | confirmed | scratch copy only; `cmp`; `git status` unchanged |
+
+**Overall:** met.
+
+After the re-check, plugin-feed.db.test.ts:807's loop ("caps only Claude Code's marketplace") includes `copilot`, the coverage the re-check noted; it passes. No claim above changes.

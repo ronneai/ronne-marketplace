@@ -14,12 +14,12 @@ import { dayOf, lastSendAttempt, queueUsage, reportingTo } from "./telemetry.js"
  * is on; `rmk telemetry off` removes them where the policy allows. They're recorded in the user
  * state file under `rmk telemetry`, like `rmk mcp-setup`'s entries, so installs leave them alone.
  * Which events each tool has was checked against the vendors' docs, and Claude Code's against
- * real payloads, on 2026-09-30.
+ * real payloads, on 2026-09-30; Copilot's against real payloads from its CLI 1.0.114 on 2026-11-22.
  */
 export const TELEMETRY_ITEM = "rmk telemetry";
 
 /** The tools rmk can count runs in. */
-export const HOOK_TOOLS = ["claude-code", "codex", "cursor"] as const;
+export const HOOK_TOOLS = ["claude-code", "codex", "cursor", "copilot"] as const;
 export type HookTool = (typeof HOOK_TOOLS)[number];
 
 const isHookTool = (value: string): value is HookTool =>
@@ -30,7 +30,12 @@ export const HOOK_FILES: Record<HookTool, string> = {
   "claude-code": ".claude/settings.json",
   codex: ".codex/hooks.json",
   cursor: ".cursor/hooks.json",
+  // A file of rmk's own: Copilot reads every `~/.copilot/hooks/*.json`.
+  copilot: ".copilot/hooks/rmk-telemetry.json",
 };
+
+/** Copilot's events rmk counts runs in. Its payloads don't name their event, so the hook does. */
+const COPILOT_EVENTS = ["postToolUse", "postToolUseFailure", "subagentStart"] as const;
 
 const commandFor = (tool: HookTool) => `rmk telemetry hook ${tool}`;
 
@@ -80,6 +85,18 @@ export const hookChanges = (tool: HookTool): Change[] => {
       { kind: "json-array-item", path, key: ["hooks", "PostToolUse"], item: { hooks: [handler] } },
     ];
   }
+  if (tool === "copilot")
+    return [
+      { kind: "json-key", path, key: ["version"], value: 1 },
+      ...COPILOT_EVENTS.map(
+        (event): Change => ({
+          kind: "json-array-item",
+          path,
+          key: ["hooks", event],
+          item: { type: "command", bash: `${command} ${event}`, timeoutSec: 10 },
+        }),
+      ),
+    ];
   return [
     { kind: "json-key", path, key: ["version"], value: 1 },
     { kind: "json-array-item", path, key: ["hooks", "subagentStop"], item: { command } },
@@ -209,8 +226,53 @@ const mcpServerOf = (toolName: unknown): string | null => {
   return server && !server.startsWith("plugin_") ? server : null;
 };
 
+/**
+ * Every name a Copilot MCP tool could come from: Copilot calls it `<server>-<tool>`, and a server's
+ * name can hold `-` too, so each prefix before a `-` is a candidate; the lockfile picks the one
+ * installed (`installedItem` wants exactly one).
+ */
+const copilotServers = (toolName: string): string[] => {
+  const names: string[] = [];
+  for (let at = toolName.indexOf("-"); at > 0; at = toolName.indexOf("-", at + 1))
+    names.push(toolName.slice(0, at));
+  return names;
+};
+
+/** A Copilot event (checked on real payloads, 2026-11-22), named by the hook's command. */
+const copilotRun = (event: string | undefined, payload: Record<string, unknown>): Run | null => {
+  if (event === "subagentStart")
+    return typeof payload.agentName === "string" && payload.agentName
+      ? { names: [payload.agentName], types: ["agent"], trigger: "model", outcome: "unknown" }
+      : null;
+  if (event !== "postToolUse" && event !== "postToolUseFailure") return null;
+  const resultType = record(payload.toolResult).resultType;
+  const outcome =
+    event === "postToolUseFailure" || resultType === "failure"
+      ? "error"
+      : resultType === "success"
+        ? "success"
+        : "unknown";
+  // A subagent's own tool calls carry its `agentId`.
+  const trigger = typeof payload.agentId === "string" ? "agent" : "model";
+  const toolName = payload.toolName;
+  if (toolName === "skill") {
+    const skill = record(payload.toolArgs).skill;
+    return typeof skill === "string" && skill
+      ? { names: [skill], types: ["skill"], trigger, outcome }
+      : null;
+  }
+  if (typeof toolName !== "string") return null;
+  const names = copilotServers(toolName);
+  return names.length ? { names, types: ["mcp-server"], trigger, outcome } : null;
+};
+
 /** One tool's event → the run it describes, or null when it isn't a run rmk counts. */
-export const runOf = (tool: HookTool, payload: Record<string, unknown>): Run | null => {
+export const runOf = (
+  tool: HookTool,
+  payload: Record<string, unknown>,
+  copilotEvent?: string,
+): Run | null => {
+  if (tool === "copilot") return copilotRun(copilotEvent, payload);
   const event = payload.hook_event_name;
   if (tool === "claude-code") {
     // Cursor can load Claude Code's hooks too; its own hook counts the run.
@@ -354,15 +416,18 @@ const readStdin = async (io: Io): Promise<string> => {
 const HOOK_SEND_AFTER_MS = 60 * 60_000;
 
 /**
- * `rmk telemetry hook <tool>`: reads the tool's event, and queues a run when it names an item rmk
+ * `rmk telemetry hook <tool> [event]`: reads the tool's event (Copilot's hooks name it, since its
+ * payloads don't), and queues a run when it names an item rmk
  * installed and reporting is on for its registry. Prints nothing and never fails, so it can't get in
  * the way of the tool. Sends the queue in the background when nothing was sent for an hour.
  */
-export const runHook = async (io: Io, tool: string): Promise<void> => {
+export const runHook = async (io: Io, tool: string, event?: string): Promise<void> => {
   try {
     if (!isHookTool(tool)) return;
+    // The Copilot CLI runs Claude Code's hooks too, with `COPILOT_CLI=1`; its own hook counts the run.
+    if (tool === "claude-code" && io.env.COPILOT_CLI === "1") return;
     const payload = record(JSON.parse(await readStdin(io)));
-    const run = runOf(tool, payload);
+    const run = runOf(tool, payload, event);
     if (!run) return;
     const found = installedItem(io, folderOf(payload), run);
     if (!found || !reportingTo(io, found.registry).enabled) return;

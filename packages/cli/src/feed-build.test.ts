@@ -40,7 +40,7 @@ let revoked = false;
 const routes = (): Record<string, Route> => ({
   ...identityRoutes("rmk_feed"),
   ...Object.fromEntries(
-    ["claude-code", "codex", "cursor"].map((tool) => [
+    ["claude-code", "codex", "cursor", "copilot"].map((tool) => [
       `GET /feeds/${tool}/marketplace.json`,
       async () =>
         revoked
@@ -149,17 +149,22 @@ beforeEach(async () => {
     "claude-code": [skill("team.style", "1.0.0"), skill("team.review", "2.0.0")],
     codex: [skill("team.style", "1.0.0")],
     cursor: [skill("team.style", "1.0.0"), hook("team.fmt", "1.1.0")],
+    copilot: [skill("team.style", "1.0.0")],
   };
   io = fakeIo(withZips(routes()));
   await rmk("login", "--registry", REGISTRY, "--token", "rmk_feed");
 });
 
 describe("rmk feed build (078)", () => {
-  it("writes the three marketplaces, the plugin folders and the state into an empty folder", async () => {
+  it("writes the four marketplaces, the plugin folders and the state into an empty folder", async () => {
     const result = await build();
     expect(result.exitCode, result.stderr).toBe(0);
     expect(result.stdout).toContain(`Built ${REGISTRY}'s plugin feed into mirror:`);
     expect(result.stdout).toContain("  cursor: 2 plugins (2 added, 0 updated, 0 removed)");
+    expect(result.stdout).toContain("  copilot: 1 plugin (1 added, 0 updated, 0 removed)");
+    expect(
+      json(".github/plugin/marketplace.json").plugins.map((p: { source: string }) => p.source),
+    ).toEqual(["./plugins/copilot/team.style"]);
     expect(json(".claude-plugin/marketplace.json")).toEqual({
       name: "ronne-ronne-example",
       owner: { name: "Ronne at ronne.example" },
@@ -219,11 +224,12 @@ describe("rmk feed build (078)", () => {
     expect(again.exitCode, again.stderr).toBe(0);
     expect(again.stdout).toContain("Nothing changed.");
     expect(snapshot()).toEqual(before);
-    // Only the three marketplaces were read, for the public workspaces (093).
+    // Only the four marketplaces were read, for the public workspaces (093).
     expect(io.requests.slice(requests).map((r) => r.path)).toEqual([
       "/api/v1/feeds/claude-code/marketplace.json?workspaces=",
       "/api/v1/feeds/codex/marketplace.json?workspaces=",
       "/api/v1/feeds/cursor/marketplace.json?workspaces=",
+      "/api/v1/feeds/copilot/marketplace.json?workspaces=",
     ]);
   });
 
@@ -247,6 +253,7 @@ describe("rmk feed build (078)", () => {
       }),
       expect.objectContaining({ tool: "codex", added: [], updated: ["team.style"], removed: [] }),
       expect.objectContaining({ tool: "cursor", added: [], updated: [], removed: [] }),
+      expect.objectContaining({ tool: "copilot", added: [], updated: [], removed: [] }),
     ]);
     const after = snapshot();
     expect(existsSync(join(out(), "plugins/claude-code/team.review"))).toBe(false);
@@ -410,7 +417,12 @@ describe("rmk feed build (078)", () => {
     expect(after[".cursor-plugin/marketplace.json"]).toBe(
       before[".cursor-plugin/marketplace.json"],
     );
-    expect(Object.keys(json(FEED_STATE).tools).sort()).toEqual(["claude-code", "codex", "cursor"]);
+    expect(Object.keys(json(FEED_STATE).tools).sort()).toEqual([
+      "claude-code",
+      "codex",
+      "copilot",
+      "cursor",
+    ]);
   });
 
   it("needs --out, a known tool, and a token", async () => {
@@ -418,7 +430,7 @@ describe("rmk feed build (078)", () => {
       exitCode: 2,
       stderr: expect.stringContaining("--out"),
     });
-    expect(await build("--tools", "codex,copilot")).toMatchObject({ exitCode: 2 });
+    expect(await build("--tools", "codex,no-such-tool")).toMatchObject({ exitCode: 2 });
     expect(await rmk("feed")).toMatchObject({ exitCode: 2 });
     io = fakeIo(withZips(routes()));
     expect(await rmk("feed", "build", "--out", "m", "--registry", REGISTRY)).toMatchObject({

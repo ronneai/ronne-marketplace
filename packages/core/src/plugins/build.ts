@@ -6,6 +6,7 @@ import type { RenderInput } from "../render/types.js";
 import { bytesOf, jsonFile, type Part, type PluginAdapter } from "./adapter.js";
 import { claudeCodeAdapter } from "./claude-code.js";
 import { codexAdapter } from "./codex.js";
+import { copilotAdapter } from "./copilot.js";
 import { cursorAdapter } from "./cursor.js";
 import { PLUGIN_NAME_PROBLEM_MESSAGES, pluginName, pluginNameProblem } from "./names.js";
 import type { BuiltPlugin, PluginInput, PluginTool, PluginWarning } from "./types.js";
@@ -24,6 +25,7 @@ const ADAPTERS: Record<PluginTool, PluginAdapter> = {
   "claude-code": claudeCodeAdapter,
   codex: codexAdapter,
   cursor: cursorAdapter,
+  copilot: copilotAdapter,
 };
 
 const byPath = (a: PackageFile, b: PackageFile) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
@@ -151,7 +153,8 @@ export const buildPlugin = (tool: PluginTool, input: PluginInput): BuiltPlugin =
   const generated: PackageFile[] = [adapter.manifest(item, name)];
   if (Object.keys(into.hooks).length) generated.push(adapter.hooksFile(into.hooks));
   if (Object.keys(into.mcp).length) generated.push(adapter.mcpFile(into.mcp));
-  if (Object.keys(into.lsp).length) generated.push(jsonFile(".lsp.json", into.lsp));
+  if (Object.keys(into.lsp).length)
+    generated.push(adapter.lspFile?.(into.lsp) ?? jsonFile(".lsp.json", into.lsp));
   for (const file of generated) {
     if (into.files.has(file.path)) throw conflict(file.path, item);
     into.files.set(file.path, file);

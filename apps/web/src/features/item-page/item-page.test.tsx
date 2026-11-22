@@ -481,7 +481,7 @@ describe("the item page", () => {
     expect(html).toContain("rmk install @team/github<");
     expect(html).toContain("rmk install @team/github@1.1.0");
     expect(html).toContain("How do I install it?");
-    for (const id of ["claude-code", "codex", "cursor"])
+    for (const id of ["claude-code", "codex", "cursor", "copilot"])
       expect(html).toContain(`aria-label="Copy rmk install @team/github --target ${id}"`);
     // Capabilities and guardrails.
     expect(html).toContain("It starts <code");

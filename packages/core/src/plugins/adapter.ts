@@ -32,6 +32,8 @@ export type PluginAdapter = {
   manifest(item: RenderInput, name: string): PackageFile;
   hooksFile(hooks: Record<string, unknown[]>): PackageFile;
   mcpFile(servers: Record<string, unknown>): PackageFile;
+  /** The language servers' file; `.lsp.json` (Claude Code's) when the tool doesn't say. */
+  lspFile?(servers: Record<string, unknown>): PackageFile;
 };
 
 const encoder = new TextEncoder();

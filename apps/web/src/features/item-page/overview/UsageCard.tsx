@@ -22,6 +22,7 @@ export const TOOL_COLOR: Record<string, string> = {
   cursor: "bg-chart-cursor",
   "claude-code": "bg-chart-claude-code",
   codex: "bg-chart-codex",
+  copilot: "bg-chart-copilot",
 };
 export const toolColor = (id: string) => TOOL_COLOR[id] ?? "bg-chart";
 
@@ -33,6 +34,8 @@ const OUTCOMES = ["success", "error", "cancelled", "unknown"] as const;
 const NO_RUNS: Record<string, readonly ItemType[]> = {
   codex: ["skill", "command"],
   cursor: ["skill", "command"],
+  // Copilot reports the skills the model starts, not a command a person types (028).
+  copilot: ["command"],
 };
 
 /**

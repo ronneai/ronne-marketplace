@@ -22,7 +22,7 @@ import type {
   RenderScope,
   RenderWarning,
 } from "../types.js";
-import { AGENT_TOOLS, EVENTS, HOOK_TOOLS, TOOL_EVENTS } from "./mappings.js";
+import { AGENT_TOOLS, EVENTS, hookMatcher, TOOL_EVENTS } from "./mappings.js";
 
 /**
  * The GitHub Copilot renderer (feature 028). Where the Copilot CLI and VS Code's Copilot harness
@@ -100,8 +100,11 @@ const renderAgent = (
 };
 
 /**
- * Instructions files apply by path, so `always` and `glob` rules are instructions, and `model` and
- * `manual` rules, which the model picks or a person asks for, are skills, as in Codex (024).
+ * `always` rules are sections of the repository-wide instructions, `.github/copilot-instructions.md`
+ * (`~/.copilot/copilot-instructions.md`): an instructions file with `applyTo: "**"` applies only
+ * when Copilot works on files, not to a conversation (seen on the CLI 1.0.114, owner, 2026-11-22).
+ * `glob` rules are instructions files, by path; `model` and `manual` rules, which the model picks or
+ * a person asks for, are skills, as in Codex (024).
  */
 const renderRule = (
   item: RenderInput,
@@ -134,19 +137,29 @@ const renderRule = (
         ],
         warnings: [],
       };
-    default: {
-      const globs = String(block.activation) === "glob" ? strings(block.globs).join(",") : "**";
+    case "glob":
       return {
         changes: [
           {
             kind: "file",
             path: `${home(scope)}/instructions/${n}.instructions.md`,
-            content: frontmatterMarkdown(item, [["applyTo", globs]], body),
+            content: frontmatterMarkdown(item, [["applyTo", strings(block.globs).join(",")]], body),
           },
         ],
         warnings: [],
       };
-    }
+    default:
+      return {
+        changes: [
+          {
+            kind: "section",
+            path: `${home(scope)}/copilot-instructions.md`,
+            key: item.name,
+            text: body,
+          },
+        ],
+        warnings: [],
+      };
   }
 };
 
@@ -211,7 +224,7 @@ const renderHook = (
   if (typeof block.timeout === "number") entry.timeoutSec = block.timeout;
   const tool = record(block.matcher).tool;
   if (typeof tool === "string") {
-    const matcher = TOOL_EVENTS.has(event) ? own(HOOK_TOOLS, tool) : undefined;
+    const matcher = TOOL_EVENTS.has(event) ? hookMatcher(tool) : null;
     if (matcher) entry.matcher = matcher;
     else
       warnings.push({

@@ -59,6 +59,7 @@
   --chart-cursor: #0d9488;
   --chart-claude-code: #6366f1;
   --chart-codex: #d97706;
+  --chart-copilot: #c026d3;
   --focus: #14213d;
   /* Code previews: an Ink block with Paper text, in both themes. */
   --code-bg: #0b1220;
@@ -148,6 +149,7 @@
   --chart-cursor: #0d9488;
   --chart-claude-code: #6366f1;
   --chart-codex: #d97706;
+  --chart-copilot: #c026d3;
   --focus: #18b6a4;
   --code-bg: #0b1220;
   /* Vendor marks on the sign-in buttons (157): their own brand colours, the same in both themes. */

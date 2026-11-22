@@ -12,18 +12,20 @@ code.claude.com/docs/en/plugins-reference, /en/plugins/components, /en/plugins/m
 cursor.com/docs/plugins, cursor.com/changelog/05-01-26 and the Cursor 2.6 release notes;
 developers.openai.com/codex/plugins/build and agent-plugins.org/specification;
 cursor.com/docs/reference/plugins). They change often: re-check them when each feature is built,
-and record the date here.
+and record the date here. Copilot's were checked on 2026-11-22 for 028, against
+docs.github.com's CLI plugin reference and on the Copilot CLI 1.0.114 (a marketplace added from a
+local folder, and a plugin's agent, skills, MCP server and hook seen loading).
 
 ## What each tool accepts
 
-| | Claude Code | Codex | Cursor |
-|---|---|---|---|
-| Marketplace file | `.claude-plugin/marketplace.json` | `.agents/plugins/marketplace.json` (also reads `.claude-plugin/marketplace.json`) | `.cursor-plugin/marketplace.json` |
-| Plugin manifest | `.claude-plugin/plugin.json` (optional) | root `plugin.json` ([Agent Plugins 1.0](https://agent-plugins.org/specification)); `.codex-plugin/plugin.json` as fallback | `.cursor-plugin/plugin.json` (reads Agent Plugins too) |
-| Added from | a git repo, or **an HTTPS URL to `marketplace.json`** | a git repo (`owner/repo`, a git URL, `--ref`, `--sparse`), or a local folder: `codex plugin marketplace add` | a git repo (GitHub; GitLab, Bitbucket and Azure DevOps since Cursor 3.9), imported by a **team admin** (Teams or Enterprise) in Dashboard › Settings › Plugins › Team Marketplaces › Import |
-| Plugin sources usable from a URL marketplace | `archive` (zip + `sha256`), `github`, `git-subdir`, `npm` | none | none |
-| Auth | `headers` / `headersHelper` on a URL source; git credentials for git | not documented (it clones with git, so presumably the machine's git credentials) | the git host's connection to Cursor |
-| Updates | `/plugin marketplace update`, or auto-update | `codex plugin marketplace upgrade` | on push, with **Enable Auto Refresh** (GitHub imports) |
+| | Claude Code | Codex | Cursor | GitHub Copilot |
+|---|---|---|---|---|
+| Marketplace file | `.claude-plugin/marketplace.json` | `.agents/plugins/marketplace.json` (also reads `.claude-plugin/marketplace.json`) | `.cursor-plugin/marketplace.json` | `.github/plugin/marketplace.json` (looked up first; also reads `.claude-plugin/` and `.plugin/`) |
+| Plugin manifest | `.claude-plugin/plugin.json` (optional) | root `plugin.json` ([Agent Plugins 1.0](https://agent-plugins.org/specification)); `.codex-plugin/plugin.json` as fallback | `.cursor-plugin/plugin.json` (reads Agent Plugins too) | root `plugin.json` (Agent Plugins 1.0, with its own parts under `com.github.copilot/`) |
+| Added from | a git repo, or **an HTTPS URL to `marketplace.json`** | a git repo (`owner/repo`, a git URL, `--ref`, `--sparse`), or a local folder: `codex plugin marketplace add` | a git repo (GitHub; GitLab, Bitbucket and Azure DevOps since Cursor 3.9), imported by a **team admin** (Teams or Enterprise) in Dashboard › Settings › Plugins › Team Marketplaces › Import | a git repo (`owner/repo`, `owner/repo#ref`, a URL) or a local folder: `copilot plugin marketplace add` |
+| Plugin sources usable from a URL marketplace | `archive` (zip + `sha256`), `github`, `git-subdir`, `npm` | none | none | none: the mirror's folders |
+| Auth | `headers` / `headersHelper` on a URL source; git credentials for git | not documented (it clones with git, so presumably the machine's git credentials) | the git host's connection to Cursor | the machine's git credentials |
+| Updates | `/plugin marketplace update`, or auto-update | `codex plugin marketplace upgrade` | on push, with **Enable Auto Refresh** (GitHub imports) | `copilot plugin marketplace update` |
 
 ### Claude Code's limits on a URL marketplace
 
@@ -118,17 +120,17 @@ Ronne serves:
 The builder renders each member with the tool's `PlatformRenderer` and moves the result into the
 plugin layout. Anything that has no place in a plugin is skipped with a warning, as renderers do.
 
-| Type | Claude Code plugin | Codex plugin | Cursor plugin |
-|---|---|---|---|
-| skill, command | `skills/<n>/` | `skills/<n>/` | `skills/<n>/` |
-| agent | `agents/<n>.md` | skipped (Codex plugins carry skills, MCP servers, hooks and apps only) | `agents/<n>.md` |
-| rule | model and manual rules as `skills/<n>/`; `always` and `glob` rules skipped (a plugin's `CLAUDE.md` isn't loaded, and there is no rules component) | model and manual rules as `skills/<n>/`; `always` and `glob` rules skipped | `rules/<n>.mdc` |
-| hook | `hooks/hooks.json` + `hooks/<n>/…`, run as `"${CLAUDE_PLUGIN_ROOT}"/hooks/<n>/…` | `hooks/hooks.json` + `hooks/<n>/…`, run as `"${PLUGIN_ROOT}"/hooks/<n>/…` | `hooks/hooks.json` + `hooks/<n>/…`, run as `./hooks/<n>/…` |
-| mcp-server | `.mcp.json` (`{"mcpServers": …}`) | `mcp.json` with the Agent Plugins `$schema`; each server has `type` (`stdio` or `streamable-http`) | `mcp.json` (`{"mcpServers": …}`) |
-| output-style | `output-styles/<n>.md` | none | none |
-| lsp-server | `.lsp.json` | none | none |
-| permission-policy, statusline | skipped (a plugin's `settings.json` only takes `agent` and `subagentStatusLine`) | skipped | skipped |
-| bundle | its members | its members | its members |
+| Type | Claude Code plugin | Codex plugin | Cursor plugin | GitHub Copilot plugin |
+|---|---|---|---|---|
+| skill, command | `skills/<n>/` | `skills/<n>/` | `skills/<n>/` | `skills/<n>/` |
+| agent | `agents/<n>.md` | skipped (Codex plugins carry skills, MCP servers, hooks and apps only) | `agents/<n>.md` | `com.github.copilot/agents/<n>.agent.md` |
+| rule | model and manual rules as `skills/<n>/`; `always` and `glob` rules skipped (a plugin's `CLAUDE.md` isn't loaded, and there is no rules component) | model and manual rules as `skills/<n>/`; `always` and `glob` rules skipped | `rules/<n>.mdc` | model and manual rules as `skills/<n>/`; `always` and `glob` rules as `com.github.copilot/rules/<n>.instructions.md` (where the docs put them; the CLI 1.0.114 didn't load them, 028) |
+| hook | `hooks/hooks.json` + `hooks/<n>/…`, run as `"${CLAUDE_PLUGIN_ROOT}"/hooks/<n>/…` | `hooks/hooks.json` + `hooks/<n>/…`, run as `"${PLUGIN_ROOT}"/hooks/<n>/…` | `hooks/hooks.json` + `hooks/<n>/…`, run as `./hooks/<n>/…` | `com.github.copilot/hooks/hooks.json` (`version: 1`) + `com.github.copilot/hooks/<n>/…`, run as `"$COPILOT_PLUGIN_ROOT"/com.github.copilot/hooks/<n>/…` |
+| mcp-server | `.mcp.json` (`{"mcpServers": …}`) | `mcp.json` with the Agent Plugins `$schema`; each server has `type` (`stdio` or `streamable-http`) | `mcp.json` (`{"mcpServers": …}`) | as Codex's, without Copilot's `tools` list |
+| output-style | `output-styles/<n>.md` | none | none | none |
+| lsp-server | `.lsp.json` | none | none | `com.github.copilot/lsp.json` (`{"lspServers": …}`) |
+| permission-policy, statusline | skipped (a plugin's `settings.json` only takes `agent` and `subagentStatusLine`) | skipped | skipped | skipped |
+| bundle | its members | its members | its members | its members |
 
 The members are rendered at project scope, the scope whose layout every renderer writes in full
 (Cursor writes rules only there), and the paths are then moved into the plugin.
@@ -141,6 +143,7 @@ Every plugin has the manifest for its tool, with `name`, `description` and `auth
 - Codex: a root `plugin.json` with
   `"$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"` and `version`.
 - Cursor: `.cursor-plugin/plugin.json` with `version`.
+- GitHub Copilot: a root `plugin.json` as Codex's (028).
 
 Generated Markdown keeps the rmk managed marker. MCP configs keep env var references: secrets are
 never written.
@@ -194,9 +197,11 @@ Errors use the API's shape (MVP §11), with these codes (077):
 .claude-plugin/marketplace.json     sources "./plugins/claude-code/<plugin>"
 .agents/plugins/marketplace.json    sources "./plugins/codex/<plugin>"
 .cursor-plugin/marketplace.json     sources "./plugins/cursor/<plugin>"
+.github/plugin/marketplace.json     sources "./plugins/copilot/<plugin>" (028)
 plugins/claude-code/<plugin>/…
 plugins/codex/<plugin>/…
 plugins/cursor/<plugin>/…
+plugins/copilot/<plugin>/…
 .rmk-feed.json                      what rmk wrote: registry, tools, plugins and their sha256
 ```
 

@@ -157,10 +157,11 @@ describe("rmk plugin-setup claude-code (077)", () => {
       exitCode: 1,
       stderr: expect.stringContaining("rmk login"),
     });
-    expect(await rmk("plugin-setup", "codex")).toMatchObject({
-      exitCode: 2,
-      stderr: expect.stringContaining("git mirror"),
-    });
+    for (const tool of ["codex", "copilot"])
+      expect(await rmk("plugin-setup", tool)).toMatchObject({
+        exitCode: 2,
+        stderr: expect.stringContaining("GitHub Copilot read plugins from a git mirror"),
+      });
     expect(await rmk("plugin-setup")).toMatchObject({ exitCode: 2 });
   });
 

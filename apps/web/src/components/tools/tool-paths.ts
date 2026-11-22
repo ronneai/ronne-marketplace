@@ -53,11 +53,28 @@ const CURSOR: Record<string, ToolPlace> = {
   "permission-policy": key("permissions", ".cursor/cli.json"),
 };
 
+/**
+ * GitHub Copilot (renderer 028, checked against its docs and its CLI 1.0.114 on 2026-11-22). An
+ * `always` rule is a section of `.github/copilot-instructions.md`; a `glob` rule an instructions
+ * file, which this shows.
+ */
+const COPILOT: Record<string, ToolPlace> = {
+  skill: path(".github/skills/<name>/"),
+  agent: path(".github/agents/<name>.agent.md"),
+  rule: path(".github/instructions/<name>.instructions.md"),
+  command: path(".github/skills/<name>/"),
+  hook: path(".github/hooks/<name>.json"),
+  "mcp-server": key("mcpServers", ".mcp.json"),
+  statusline: key("statusLine", "~/.copilot/settings.json"),
+  "lsp-server": key("lspServers", ".github/lsp.json"),
+};
+
 /** Each tool's places, by renderer id. */
 export const TOOL_PLACES: Record<string, Record<string, ToolPlace>> = {
   "claude-code": CLAUDE_CODE,
   codex: CODEX,
   cursor: CURSOR,
+  copilot: COPILOT,
 };
 
 /** Each tool's page in the Documentation, by renderer id. */
@@ -65,6 +82,7 @@ export const TOOL_PAGES: Record<string, TopicSlug> = {
   "claude-code": "claude-code",
   codex: "codex",
   cursor: "cursor",
+  // Copilot's page comes with its Documentation (028 task 7).
 };
 
 /**

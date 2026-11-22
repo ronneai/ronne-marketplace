@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "examples.git-branch",
+  "version": "1.0.0",
+  "description": "Shows the current folder and git branch in the status line.",
+  "author": {
+    "name": "examples"
+  }
+}

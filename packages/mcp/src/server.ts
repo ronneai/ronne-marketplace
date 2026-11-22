@@ -81,7 +81,9 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
         tool: z
           .string()
           .optional()
-          .describe("An AI tool id (claude-code, codex, cursor): only items that install in it"),
+          .describe(
+            "An AI tool id (claude-code, codex, cursor, copilot): only items that install in it",
+          ),
         limit: z.number().int().min(1).max(100).optional(),
       },
       annotations: read,
@@ -143,7 +145,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     .array(z.string())
     .optional()
     .describe(
-      "AI tool ids, such as claude-code, codex or cursor; left out, the project's config or what the folder looks like decides",
+      "AI tool ids, such as claude-code, codex, cursor or copilot; left out, the project's config or what the folder looks like decides",
     );
   // Planning writes nothing to the project; only apply_plan does.
   const planning = { readOnlyHint: true, openWorldHint: true };
@@ -219,7 +221,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     {
       title: "List items to export",
       description:
-        "The skills, agents, commands, rules and MCP servers in this project's AI tool folders (Claude Code's, Codex's and Cursor's) (or your home folder's, with scope user), each with whose it is: yours, installed, installed and edited, a registry copy, or written by rmk. Only items marked yours can be exported. Reads no network.",
+        "The skills, agents, commands, rules and MCP servers in this project's AI tool folders (Claude Code's, Codex's, Cursor's and GitHub Copilot's) (or your home folder's, with scope user), each with whose it is: yours, installed, installed and edited, a registry copy, or written by rmk. Only items marked yours can be exported. Reads no network.",
       inputSchema: {
         scope,
         type: exportType,

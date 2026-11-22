@@ -804,7 +804,7 @@ describe("feed stats, warnings and the cap (079)", () => {
 
   it("caps only Claude Code's marketplace, and the 507 names the git mirror", async () => {
     const tiny = { maxBytes: 100, sizeWarningBytes: 50, timeWarningMs: 60_000 };
-    for (const tool of ["codex", "cursor"] as const)
+    for (const tool of ["codex", "cursor", "copilot"] as const)
       await expect(
         marketplace(withFeeds({ feedLimits: tiny }), actor, tool, "https://r.example.com"),
       ).resolves.toBeInstanceOf(Uint8Array);

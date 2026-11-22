@@ -38,7 +38,8 @@ export const TOOL_EVENTS = new Set(["preToolUse", "postToolUse", "permissionRequ
 
 /**
  * The CLI's own tool names, which a hook's `matcher` is matched against (compiled as `^(?:…)$`).
- * MCP tools and web search have no documented name there, so they have no matcher.
+ * An MCP tool is `<server>-<tool>` there (seen on the CLI 1.0.114, 2026-11-22: `probe-ping`
+ * matched only that tool); web search has no name seen yet, so it has no matcher.
  */
 export const HOOK_TOOLS: Partial<Record<string, string>> = {
   read: "view",
@@ -48,4 +49,19 @@ export const HOOK_TOOLS: Partial<Record<string, string>> = {
   glob: "glob",
   shell: "bash",
   "web-fetch": "web_fetch",
+};
+
+/**
+ * A hook `matcher` for a canonical tool, or null. Server and tool names hold only letters, digits,
+ * `-` and `_` (the manifest schema), so they need no escaping in the pattern.
+ */
+export const hookMatcher = (tool: string): string | null => {
+  if (tool.startsWith("mcp:")) {
+    const [server = "", ...rest] = tool.slice("mcp:".length).split("/");
+    if (!/^[a-z0-9-]+$/.test(server)) return null;
+    const name = rest.join("/");
+    if (!name) return `${server}-.*`;
+    return /^[A-Za-z0-9_-]+$/.test(name) ? `${server}-${name}` : null;
+  }
+  return Object.hasOwn(HOOK_TOOLS, tool) ? (HOOK_TOOLS[tool] ?? null) : null;
 };

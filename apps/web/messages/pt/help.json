@@ -137,7 +137,7 @@
   },
   "export": {
     "question": "Já escreveu na sua ferramenta de IA?",
-    "answer": "Envie para cá com rmk export: ele lê a sua skill, agente, comando, regra ou servidor MCP do Claude Code, Codex ou Cursor, mostra tudo o que enviaria e cria aqui um rascunho privado para você conferir e submeter. Exportar de novo atualiza esse rascunho."
+    "answer": "Envie para cá com rmk export: ele lê a sua skill, agente, comando, regra ou servidor MCP do Claude Code, Codex, Cursor ou GitHub Copilot, mostra tudo o que enviaria e cria aqui um rascunho privado para você conferir e submeter. Exportar de novo atualiza esse rascunho."
   },
   "approve-many": {
     "question": "Aprovar várias de uma vez?",

@@ -128,7 +128,7 @@ describe("the GitHub Copilot renderer", () => {
     expect(warnings.map((w) => w.message).join("\n")).toContain("not preloaded");
   });
 
-  it("writes always and glob rules as instructions, and model and manual rules as skills", () => {
+  it("writes always rules as sections of copilot-instructions.md, glob rules as instructions, and model and manual rules as skills", () => {
     const rule = (activation: string, scope: RenderContext["scope"] = "project") =>
       copilotRenderer.render(
         withBlock("house-style", "rule", {
@@ -142,8 +142,12 @@ describe("the GitHub Copilot renderer", () => {
     expect(glob?.path).toBe(".github/instructions/house-style.instructions.md");
     expect(text(glob)).toMatch(/^---\napplyTo: "\*\*\/\*\.ts,\*\*\/\*\.tsx"\n---\n/);
     const [always] = rule("always", "user");
-    expect(always?.path).toBe(".copilot/instructions/house-style.instructions.md");
-    expect(text(always)).toMatch(/^---\napplyTo: "\*\*"\n---\n/);
+    expect(always).toMatchObject({
+      kind: "section",
+      path: ".copilot/copilot-instructions.md",
+      key: "@examples/house-style",
+    });
+    expect(rule("always")[0]?.path).toBe(".github/copilot-instructions.md");
     const [model] = rule("model");
     expect(model).toMatchObject({ kind: "dir", path: ".github/skills/house-style" });
     const [manual] = rule("manual", "user");
@@ -205,7 +209,15 @@ describe("the GitHub Copilot renderer", () => {
       expect(matcher(canonical, "tool.after").matcher).toBe(copilot);
       expect(matcher(canonical, "permission.request").matcher).toBe(copilot);
     }
-    for (const tool of ["web-search", "mcp:github", "mcp:github/create_issue"]) {
+    expect(matcher("mcp:github")).toEqual({ matcher: "github-.*", warnings: [] });
+    expect(matcher("mcp:github/create_issue")).toEqual({
+      matcher: "github-create_issue",
+      warnings: [],
+    });
+    expect(matcher("mcp:github/create_issue", "permission.request").matcher).toBe(
+      "github-create_issue",
+    );
+    for (const tool of ["web-search"]) {
       const { matcher: written, warnings } = matcher(tool);
       expect(written).toBeUndefined();
       expect(warnings.map((w) => w.code)).toEqual(["unmapped_tool"]);
