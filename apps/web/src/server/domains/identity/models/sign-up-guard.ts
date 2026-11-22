@@ -6,7 +6,7 @@ import {
   randomInt,
   timingSafeEqual,
 } from "node:crypto";
-import { domainToASCII } from "node:url";
+import { domainToASCII, domainToUnicode } from "node:url";
 import type { Limit } from "../../../rate-limit/rate-limiter";
 import { DISPOSABLE_DOMAINS } from "../lists/disposable-domains";
 
@@ -56,7 +56,18 @@ export const deliveryDomain = (domain: string): string => {
   // domain can have) is refused too.
   if (domain.length > 1024) return "";
   const ascii = domainToASCII(domain.trim()).toLowerCase().replace(/\.+$/, "");
-  return ascii.length > 253 ? "" : ascii;
+  return ascii.length > 253 || !ascii.split(".").every(readablePunycode) ? "" : ascii;
+};
+
+/**
+ * Whether an `xn--` label is punycode that decodes and encodes back to itself. Node.js reads a bad
+ * one differently by version (24.0 refuses `xn--acme-`, 22.14 and 26 keep it), so it's checked
+ * here, the same on every version; mail couldn't reach such a domain anyway (191).
+ */
+const readablePunycode = (label: string): boolean => {
+  if (!label.startsWith("xn--")) return true;
+  const unicode = domainToUnicode(label);
+  return unicode !== "" && unicode !== label && domainToASCII(unicode) === label;
 };
 
 /** Whether a domain, or a domain it's under, is on the bundled throwaway list. */
