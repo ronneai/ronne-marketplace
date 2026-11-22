@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AuthShell } from "@/components/auth-shell/AuthShell";
+import { Help } from "@/components/help/Help";
 import { SignUpForm } from "@/features/sign-up/SignUpForm";
 import { currentPath, requestChoosableLocales, requestLocale } from "@/i18n/server";
 import { loadConfig } from "@/server/config";
@@ -34,6 +35,9 @@ const SignUp = async () => {
           {t("title")}
         </h1>
         <p className="text-sm text-muted">{t("subtitle")}</p>
+        <div>
+          <Help id="signing-up" />
+        </div>
       </div>
       <SignUpForm
         stamp={formStamp(authSecret, now)}

@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { inputClasses, Label } from "@/components/ui/Field";
 import { useKeptActionState } from "@/components/ui/kept-form";
@@ -67,7 +68,10 @@ export const SignUpForm = ({
       noValidate
     >
       <div className="grid gap-1">
-        <h2 className="text-base font-semibold text-fg">{t("title")}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-semibold text-fg">{t("title")}</h2>
+          <Help id="self-registration" />
+        </div>
         <p className="text-sm text-muted">{t("intro")}</p>
       </div>
 

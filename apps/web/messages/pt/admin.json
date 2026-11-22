@@ -1231,7 +1231,7 @@
       "fields": {
         "ipDays": {
           "label": "Guardar endereços IP por",
-          "hint": "Os endereços dos clientes guardados com eventos de auditoria, sessões e aprovações de login do rmk, e o e-mail digitado em um acesso que falhou. Os mais antigos são apagados; os eventos ficam."
+          "hint": "Os endereços dos clientes guardados com eventos de auditoria, sessões e aprovações de login do rmk, e os e-mails digitados em um acesso que falhou ou em um cadastro. Os mais antigos são apagados; os eventos ficam."
         },
         "sessionsDays": {
           "label": "Guardar sessões expiradas por",
@@ -1553,7 +1553,7 @@
       "termsHint": "Opcional, um endereço https://. Quando definido, o formulário de cadastro pede que as pessoas o aceitem.",
       "termsVersion": "Versão",
       "askAgain": "Pedir que todos aceitem de novo",
-      "askAgainHint": "Todos que têm conta aceitam esta versão na próxima vez que entrarem pela web. Sem isso, só os novos cadastros a aceitam. Tokens, o rmk e o servidor MCP continuam funcionando de qualquer forma.",
+      "askAgainHint": "Todos que têm conta aceitam esta versão na web, na próxima página que abrirem. Sem isso, só os novos cadastros a aceitam. Tokens, o rmk e o servidor MCP continuam funcionando de qualquer forma.",
       "save": "Salvar",
       "done": {
         "saved": "Cadastro de contas salvo.",

@@ -1231,7 +1231,7 @@
       "fields": {
         "ipDays": {
           "label": "Keep IP addresses for",
-          "hint": "The client addresses kept with audit events, sessions and rmk login approvals, and the email typed in a failed sign-in. Older ones are cleared; the events stay."
+          "hint": "The client addresses kept with audit events, sessions and rmk login approvals, and the emails typed at a failed sign-in or a sign-up. Older ones are cleared; the events stay."
         },
         "sessionsDays": {
           "label": "Keep expired sessions for",
@@ -1553,7 +1553,7 @@
       "termsHint": "Optional, an https:// address. When it's set, the sign-up form asks people to accept it.",
       "termsVersion": "Version",
       "askAgain": "Ask everyone to accept again",
-      "askAgainHint": "Everyone who has an account accepts this version at their next web sign-in. Without it, only new sign-ups accept it. Tokens, rmk and the MCP server keep working either way.",
+      "askAgainHint": "Everyone who has an account accepts this version on the web, at the next page they open. Without it, only new sign-ups accept it. Tokens, rmk and the MCP server keep working either way.",
       "save": "Save",
       "done": {
         "saved": "Self-registration saved.",

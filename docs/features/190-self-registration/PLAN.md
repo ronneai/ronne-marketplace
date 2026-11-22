@@ -104,7 +104,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     approval").
   - *Done when:* the translation tests and the raw-text lint pass.
 
-- [ ] **10. Documentation.**
+- [x] **10. Documentation.**
   - ronne-web: `account#signing-up`, `authentication#self-registration`, `privacy`, `security`,
     in three languages, in a branch that goes live with the release.
   - Here: the helpers and `topics.ts`.

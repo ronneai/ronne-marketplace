@@ -378,5 +378,13 @@
   "scan-threshold": {
     "question": "What does the threshold block?",
     "answer": "With a score set, a submission whose latest scan scores at or above it can't be approved, nor one whose scan is waiting, failed or never ran: a broken scan isn't a way past it. Only root can approve it anyway, with a reason that's audited. An author's own submission in their personal workspace isn't blocked."
+  },
+  "self-registration": {
+    "question": "What does sign-up need first?",
+    "answer": "Email set up, so the code can be sent; the instance contact, so every notice says whom to tell; and password sign-in open to everyone. Each account proves its address with a code before it exists, and can wait for a root's approval."
+  },
+  "signing-up": {
+    "question": "How does creating an account work?",
+    "answer": "Type your name, email and a password. A 6-digit code goes to that address; type it here, in this window, and the account exists. Then sign in. If a root has to approve it, you get an email when they do."
   }
 }

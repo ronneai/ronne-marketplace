@@ -378,5 +378,13 @@
   "scan-threshold": {
     "question": "Que bloque le seuil?",
     "answer": "Avec un score défini, une soumission dont la dernière analyse l’atteint ou le dépasse ne peut pas être approuvée, ni une dont l’analyse est en attente, a échoué ou n’a jamais eu lieu : une analyse en panne n’est pas un moyen de passer. Seul root peut l’approuver quand même, avec un motif consigné dans l’audit. La soumission d’une personne dans son propre espace de travail personnel n’est pas bloquée."
+  },
+  "self-registration": {
+    "question": "De quoi l’inscription a-t-elle besoin d’abord?",
+    "answer": "Le courriel configuré, pour que le code puisse être envoyé; le contact de l’instance, pour que chaque avis dise à qui s’adresser; et la connexion par mot de passe ouverte à tous. Chaque compte prouve son adresse par un code avant d’exister, et peut attendre l’approbation d’un root."
+  },
+  "signing-up": {
+    "question": "Comment fonctionne la création d’un compte?",
+    "answer": "Tapez votre nom, votre courriel et un mot de passe. Un code à 6 chiffres est envoyé à cette adresse; tapez-le ici, dans cette fenêtre, et le compte existe. Connectez-vous ensuite. Si un root doit l’approuver, vous recevez un courriel quand il le fait."
   }
 }

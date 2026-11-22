@@ -161,6 +161,7 @@ export const TOPICS = [
       "How you sign in, with a password or your company's identity provider, two-factor sign-in, and the language of the screens.",
     sections: [
       { id: "signing-in", title: "Signing in" },
+      { id: "signing-up", title: "Signing up" },
       { id: "two-factor", title: "Two-factor sign-in" },
       { id: "language", title: "Language" },
     ],
@@ -260,6 +261,7 @@ export const TOPICS = [
       "Signing in with your company's identity provider: how it fits together, adding and testing a provider, and giving workspace roles from its groups.",
     sections: [
       { id: "overview", title: "How it fits together" },
+      { id: "self-registration", title: "Self-registration" },
       { id: "providers", title: "Adding a provider" },
       { id: "groups", title: "Groups and workspace roles" },
       { id: "tokens", title: "Access tokens policy" },

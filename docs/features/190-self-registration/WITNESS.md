@@ -823,3 +823,36 @@ Witnessed: 2026-11-22 01:09 EST, by a fresh agent (blind). Commit: 913db81f + wo
 | 9 | The label change leaves nothing pointing at the old text | no | confirmed | grep finds nothing; tests pass |
 
 **Overall:** met. Wording suggestions, applied afterwards: fr "Il est valide pendant {minutes} minutes" (the code page and its email), fr "Ce code n’est plus valide.", pt and fr `actions.approveBody` agreeing with "a conta" / "le compte", fr email "la fenêtre où vous avez demandé ce code" (not gendered), the glossary's pt "fazer o cadastro". `vitest run` on the i18n, sign-up, admin-users and mail templates tests → 579 passed, two snapshots updated (rerun by the implementer).
+
+## Task 10 — Documentation
+
+### Blind pass
+
+Witnessed: 2026-11-22 09:32 EST, by a fresh agent (blind). Commit: bc0325ed + working-tree diff; ronne-web-190 at 3bd954a + working-tree diff. Machine: macOS (Darwin 27.2.0), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The website's docs tests, lint and typecheck pass | no | confirmed | `pnpm test` 218 passed; `pnpm lint`, `pnpm typecheck` exit 0 |
+| 2–3 | `pnpm docs:links` and the topics test pass | no | confirmed | 38 topics compared; 9 passed; a site without `self-registration` → fails |
+| 4 | The help and i18n tests pass | no | confirmed | 438 passed |
+| 5 | Same new sections, same order, app and site | no | confirmed | by reading (the check doesn't test order) |
+| 6–7 | The two help links, with messages in three languages, on the panel and the sign-up page | no | confirmed | `Help.tsx`, `help.json`; placed in a `div`, not a `p` |
+| 8–10, 12–15 | Defaults and limits, the 30-day decline, what Decline and erase remove, the button names in each language, domains, the same answer, the terms hold | no | confirmed | checked against the code; every bold UI string found in its language's messages |
+| 11 | The purge's wording in `screenshots.ts` | no | partly | the example lacks four lines and part of the step line |
+| 16 | "too many tries" refusals recorded | no | partly | the per-IP limit records nothing |
+
+**Overall:** not met (rows 11, 16).
+
+Fixes: the example has every line the command prints, in its order, with a comment saying which counts are 0 and asking for a new capture at the release; the audit paragraph says "too many tries for one address" and that per-IP refusals aren't recorded, in three languages. The website work moved from the `../ronne-web-190` worktree into `../ronne-web` on the same branch, at the owner's request.
+
+### Re-check 1 (blind)
+
+Witnessed: 2026-11-22 09:34 EST, by a fresh agent (blind). Commit: bc0325ed + working-tree diff; ronne-web on docs/marketplace-190-self-registration + working-tree diff. Machine: macOS (Darwin 27.2.0), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 11 | The purge's wording | no | confirmed | probe: every line matches `purgeLines`, in order; a copy without one → MISMATCH |
+| 16 | The audit sentence | no | confirmed | three languages; per-IP refusals unrecorded in the code (`sign-up.ts:199–206`) |
+| — | After the move | no | confirmed | `pnpm docs:links` (no variable) 38 topics; the test 9 passed; the site's 218 tests passed |
+
+**Overall:** met.

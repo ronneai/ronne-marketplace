@@ -123,7 +123,7 @@ Pull requests are squash-merged, so the PR title becomes the commit on `main`. C
   - Ronne never installs a database server. Setup validates the connection the user provides.
 - **Auth:** Better Auth, wrapped by the `identity` domain.
   - Sessions for the web app; personal access tokens for `rmk` and the MCP server.
-  - Users are created only in the web app, by root, or (once 190 is built) by themselves when root allows it. The CLI never registers users.
+  - Users are created only in the web app, by root, or by themselves when root allows it (190). The CLI never registers users.
   - Better Auth owns `user`, `session`, `account` and `verification`. Access tokens are our own `access_tokens` table, stored as sha256 hashes.
   - SSO (OIDC first) comes after the MVP.
 - **Items:** one canonical `ronne.yaml` manifest per item, rendered to each AI tool's native files by a `PlatformRenderer` module.

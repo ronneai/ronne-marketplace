@@ -1231,7 +1231,7 @@
       "fields": {
         "ipDays": {
           "label": "Garder les adresses IP pendant",
-          "hint": "Les adresses des clients conservées avec les événements d’audit, les sessions et les approbations de connexion rmk, et le courriel saisi lors d’une connexion échouée. Les plus anciennes sont effacées; les événements restent."
+          "hint": "Les adresses des clients conservées avec les événements d’audit, les sessions et les approbations de connexion rmk, et les courriels saisis lors d’une connexion échouée ou d’une inscription. Les plus anciennes sont effacées; les événements restent."
         },
         "sessionsDays": {
           "label": "Garder les sessions expirées pendant",
@@ -1553,7 +1553,7 @@
       "termsHint": "Facultatif, une adresse https://. Quand il est défini, le formulaire d’inscription demande de l’accepter.",
       "termsVersion": "Version",
       "askAgain": "Demander à tout le monde d’accepter de nouveau",
-      "askAgainHint": "Chaque personne qui a un compte accepte cette version à sa prochaine connexion Web. Sans cela, seules les nouvelles inscriptions l’acceptent. Les jetons, rmk et le serveur MCP continuent de fonctionner dans tous les cas.",
+      "askAgainHint": "Chaque personne qui a un compte accepte cette version dans l’application Web, à la prochaine page qu’elle ouvre. Sans cela, seules les nouvelles inscriptions l’acceptent. Les jetons, rmk et le serveur MCP continuent de fonctionner dans tous les cas.",
       "save": "Enregistrer",
       "done": {
         "saved": "Inscription enregistrée.",
