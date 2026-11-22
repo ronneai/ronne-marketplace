@@ -16,7 +16,7 @@ const { englishLeaks } = await import("@/test/english-leak");
 
 const html = (element: ReactElement) => renderToStaticMarkup(element);
 const form = (props: Partial<Parameters<typeof SignUpForm>[0]> = {}) => (
-  <SignUpForm stamp="1.ab" challenge={null} termsUrl="" locale="en" {...props} />
+  <SignUpForm stamp="1.ab" challenge={null} termsUrl="" termsVersion="" locale="en" {...props} />
 );
 
 describe("the sign-up form (190)", () => {
@@ -41,8 +41,10 @@ describe("the sign-up form (190)", () => {
   });
 
   it("asks to accept root's terms through its link, opened apart", () => {
-    const page = html(form({ termsUrl: "https://acme.com/terms" }));
+    const page = html(form({ termsUrl: "https://acme.com/terms", termsVersion: "2026-11" }));
     expect(page).toMatch(/id="terms"[^>]*required/);
+    // The version shown goes back with the form: the person accepts that one.
+    expect(page).toContain('name="termsVersion" value="2026-11"');
     expect(page).toMatch(/href="https:\/\/acme\.com\/terms"[^>]*rel="noopener noreferrer"/);
   });
 
@@ -53,6 +55,23 @@ describe("the sign-up form (190)", () => {
     expect(page).toContain("Checking your browser");
     expect(page).toContain("<noscript>");
     expect(page).toContain("Turn on JavaScript to create an account");
+  });
+
+  it("shows the new terms after they changed while the form was open", () => {
+    const page = html(
+      form({
+        termsUrl: "https://acme.com/terms",
+        termsVersion: "2026-11",
+        initial: {
+          error: "terms_changed",
+          field: "terms",
+          terms: { url: "https://acme.com/terms-v2", version: "2026-12" },
+        },
+      }),
+    );
+    expect(page).toContain('href="https://acme.com/terms-v2"');
+    expect(page).toContain('name="termsVersion" value="2026-12"');
+    expect(page).toContain("The terms changed while this page was open.");
   });
 
   it("points at the box a refusal is about, and keeps what was typed but the password", () => {

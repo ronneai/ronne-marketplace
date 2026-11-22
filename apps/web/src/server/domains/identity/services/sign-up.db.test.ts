@@ -59,6 +59,7 @@ const form = (fields: Partial<signUp.SignUpRequest> = {}): Omit<signUp.SignUpReq
   email: "ana@acme.com",
   password: PASSWORD,
   termsAccepted: false,
+  termsVersion: "",
   locale: "pt",
   stamp: formStamp(TEST_SECRET, new Date(clock.getTime() - 5000)),
   honeypot: "",
@@ -446,8 +447,11 @@ describe("signing up (190)", () => {
       refusal: "password_long",
     });
     await policy({ termsUrl: "https://acme.com/terms", termsVersion: "2026-11" });
-    expect(await request()).toMatchObject({ refusal: "terms", field: "terms" });
-    const asked = await started({ termsAccepted: true });
+    expect(await request({ termsVersion: "2026-11" })).toMatchObject({
+      refusal: "terms",
+      field: "terms",
+    });
+    const asked = await started({ termsAccepted: true, termsVersion: "2026-11" });
     await signUp.enterSignUpCode(deps(), {
       id: asked.id,
       code: codeIn((await mails())[0]?.text),
@@ -455,6 +459,42 @@ describe("signing up (190)", () => {
     });
     const accepted = await t.db.selectFrom("terms_acceptances").select(["version"]).execute();
     expect(accepted).toEqual([{ version: "2026-11" }]);
+  });
+
+  it("refuses terms the form didn't show, and gives back the ones to read now", async () => {
+    await policy({ termsUrl: "https://acme.com/terms", termsVersion: "2026-11" });
+    // The form drawn on 2026-11; root saves 2026-12 (and asks everyone) before it's sent.
+    await policy({
+      termsUrl: "https://acme.com/terms-v2",
+      termsVersion: "2026-12",
+      askAgain: true,
+    });
+    const stale = { termsAccepted: true, termsVersion: "2026-11" };
+    expect(await request(stale)).toEqual({
+      ok: false,
+      refusal: "terms_changed",
+      field: "terms",
+      terms: { url: "https://acme.com/terms-v2", version: "2026-12" },
+    });
+    // A form drawn before root set any terms posts none.
+    // As the real form drawn before root set terms posts: no box, so nothing ticked.
+    expect(await request({ termsAccepted: false, termsVersion: "" })).toMatchObject({
+      refusal: "terms_changed",
+      terms: { url: "https://acme.com/terms-v2", version: "2026-12" },
+    });
+    // A stale form left unticked hears of the change first, too.
+    expect(await request({ termsAccepted: false, termsVersion: "2026-11" })).toMatchObject({
+      refusal: "terms_changed",
+    });
+    expect(await mails()).toEqual([]);
+    const asked = await started({ termsAccepted: true, termsVersion: "2026-12" });
+    await signUp.enterSignUpCode(deps(), {
+      id: asked.id,
+      code: codeIn((await mails())[0]?.text),
+      ip: null,
+    });
+    const accepted = await t.db.selectFrom("terms_acceptances").select(["version"]).execute();
+    expect(accepted).toEqual([{ version: "2026-12" }]);
   });
 
   it("waits for approval when root asks, decided when the account is made", async () => {

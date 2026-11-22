@@ -39,6 +39,7 @@ const SignUp = async () => {
         stamp={formStamp(authSecret, now)}
         challenge={policy.challenge ? JSON.stringify(issueChallenge(authSecret, now)) : null}
         termsUrl={policy.termsUrl}
+        termsVersion={policy.termsVersion}
         locale={await requestLocale()}
       />
       <p className="text-sm text-muted">

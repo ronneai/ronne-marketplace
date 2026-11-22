@@ -30,7 +30,10 @@ and standards".
   - **Also block throwaway email domains** (on by default): the bundled list of disposable-address
     domains, checked with the block step. It matters only with *Any domain*.
   - **Terms and privacy link** (optional): a URL and a version label root types (such as
-    `2026-11`). When set, the sign-up form shows it with a required checkbox.
+    `2026-11`). When set, the sign-up form shows it with a required checkbox. The version names
+    the document: a new link with the same version is the same terms, so a new document needs a new
+    version. The form posts the version it showed; a different one (root changed it while the form
+    was open) is refused with the new link and version to read, and nothing is sent.
     - When root changes the version, a box **Ask everyone to accept again** appears. Ticked, every
       existing person accepts it on the web, at their next page. Unticked, only new sign-ups accept it.
   - The switch can be turned on only while three things hold. Otherwise it's disabled with the

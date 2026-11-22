@@ -43,7 +43,7 @@ const clearCookie = async () =>
 
 /** The sign-up form (190). It works without JavaScript, but the challenge, when on, needs it. */
 export const signUpFromForm = serverAction(
-  async (_previous: SignUpFormState, form: FormData): Promise<SignUpFormState> => {
+  async (previous: SignUpFormState, form: FormData): Promise<SignUpFormState> => {
     const name = String(form.get("name") ?? "");
     const email = String(form.get("email") ?? "");
     const result = await signUp.requestSignUp(await requestHeaders(), {
@@ -51,6 +51,7 @@ export const signUpFromForm = serverAction(
       email,
       password: form.get("password"),
       termsAccepted: form.get("terms") === "on",
+      termsVersion: form.get("termsVersion") ?? "",
       locale: form.get("locale"),
       stamp: form.get("stamp"),
       honeypot: form.get("website"),
@@ -65,6 +66,8 @@ export const signUpFromForm = serverAction(
     return {
       error: result.refusal,
       ...(result.field ? { field: result.field } : {}),
+      // The terms shown after a change stay shown through any later refusal.
+      ...(result.terms || previous.terms ? { terms: result.terms ?? previous.terms } : {}),
       name: name.slice(0, 255),
       email: email.slice(0, 255),
       // Each answer is taken once: a refused form needs a new challenge, when it's on.

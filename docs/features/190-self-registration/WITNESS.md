@@ -635,3 +635,41 @@ Witnessed: 2026-11-21 23:03 EST, by a fresh agent (adversarial, a third round at
 **Overall:** met. With re-check 2 (blind) met, both latest passes are met. Notes: the no-time fallback could trap someone with `required` ≠ `current`, unreachable with the schema (`updated_at` is `NOT NULL`); sign-up records the policy's version at the request, not the one the form showed (task 5's, a follow-up in PLAN.md).
 
 Fix after re-check 3, from the pre-commit run: the telemetry's list of the app's route segments (`server/telemetry/sanitize.ts`) gains `terms`, the new page's segment (`route-segments.test.ts`). `vitest run src/server/telemetry` → 36 passed (rerun by the implementer). No code the witnesses checked changed.
+
+## Follow-up — The sign-up form's terms version
+
+From task 6's witnesses (PLAN.md Notes): sign-up recorded the version at the request, not the one the form showed. Witnessed adversarially, as part of task 5's risky work.
+
+### Adversarial pass
+
+Witnessed: 2026-11-22 00:09 EST, by a fresh agent (adversarial). Commit: 9130c014 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The form posts the version it showed | no | confirmed | hidden `termsVersion`; component test fails without it; no test of the action's wiring |
+| 2 | A different version refused with `terms_changed` and the current terms | no | confirmed | probe B: whitespace, case, arrays, objects, null → refused |
+| 3 | Terms a form didn't show refused with `terms_changed` | no | not met | probe A: a form drawn before any terms → `terms`, which that form can't show |
+| 4 | The form shows the new terms after the refusal | no | partly | lost on the next refusal of another kind |
+| 5–7, 9, 11–13 | Nothing written or sent; reveals nothing about an address; no bot path skips it; messages; component test; four databases; e2e | no | confirmed | probes D, E; 22 on each server; e2e 3 passed |
+| 8 | The version recorded is the one shown | no | confirmed | a changed link with the same version is accepted (a question for the owner) |
+| 10 | A db test covers the two cases | no | partly | the "before any terms" case posts what the real form can't |
+
+**Overall:** not met (rows 3, 4).
+
+Fixes: the version is checked before the box; the action keeps the new terms through later refusals; `features/sign-up/actions.test.ts`; SPEC.md: the version names the document, so a new link with the same version is the same terms.
+
+### Re-check 1 (adversarial)
+
+Witnessed: 2026-11-22 00:13 EST, by a fresh agent (adversarial). Commit: 9130c014 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The form posts the version, and the action passes it on | no | confirmed | `actions.test.ts`; `termsVersion: ""` in the action → 1 failed |
+| 3 | Terms a form didn't show refused with `terms_changed` | no | confirmed | probes A, A2, H; the old order → the db test fails |
+| 4 | The new terms shown through later refusals | no | confirmed | probe P; dropping `previous.terms` → fails |
+| 8 | The version shown is recorded; a new link with the same version is the same terms | no | confirmed | SPEC.md says so; probes C, G |
+| 10 | A db test covers both cases as the real form posts them | no | confirmed | fails with the old order |
+| 12 | Four databases | no | confirmed | 33 on SQLite; 22 on each server |
+| 13 | The sign-up e2e passes | no | confirmed | on a build newer than the edits → 3 passed |
+
+**Overall:** met.

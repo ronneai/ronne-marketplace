@@ -4,6 +4,8 @@ import type { CodeRefusal, SignUpRefusal } from "@/server/domains/identity/servi
 export type SignUpFormState = {
   error?: SignUpRefusal;
   field?: "name" | "email" | "password" | "terms";
+  /** Root's terms as they are now, after `terms_changed`: the form shows these instead. */
+  terms?: { url: string; version: string };
   name?: string;
   email?: string;
   /** A new challenge: each answer is taken once, so a refused form needs another. */

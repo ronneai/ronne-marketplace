@@ -18,7 +18,8 @@ import type { SignUpFormState } from "./types";
 export const SignUpForm = ({
   stamp,
   challenge,
-  termsUrl,
+  termsUrl: shownUrl,
+  termsVersion: shownVersion,
   locale,
   initial = {},
 }: {
@@ -27,12 +28,17 @@ export const SignUpForm = ({
   challenge: string | null;
   /** Root's terms and privacy link; empty for none. */
   termsUrl: string;
+  /** Its version, posted back: the person accepts the version they were shown. */
+  termsVersion: string;
   /** The page's language: the account and its emails get it. */
   locale: string;
   initial?: SignUpFormState;
 }) => {
   const t = useTranslations("auth.signUp");
   const [state, action, pending] = useActionState(signUpFromForm, initial);
+  // Root changed the terms while the form was open: the new ones, to read and accept.
+  const termsUrl = state.terms?.url ?? shownUrl;
+  const termsVersion = state.terms?.version ?? shownVersion;
   const solved = useChallenge(state.challenge ?? challenge);
   const waiting = solved.status === "solving";
   const error = (field: string) =>
@@ -41,6 +47,7 @@ export const SignUpForm = ({
     <form action={action} className="grid gap-4" noValidate>
       <input type="hidden" name="stamp" value={stamp} />
       <input type="hidden" name="locale" value={locale} />
+      {termsUrl ? <input type="hidden" name="termsVersion" value={termsVersion} /> : null}
       {challenge ? <input type="hidden" name="challengeOn" value="1" /> : null}
       {solved.status === "ready" ? (
         <input type="hidden" name="challenge" value={solved.answer} />

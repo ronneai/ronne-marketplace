@@ -68,13 +68,17 @@ export type SignUpRefusal =
   | "name"
   | "password_short"
   | "password_long"
-  | "terms";
+  | "terms"
+  /** Root changed the terms while the form was open: the new ones come back, to read. */
+  | "terms_changed";
 
 export type SignUpRequest = {
   name: unknown;
   email: unknown;
   password: unknown;
   termsAccepted: boolean;
+  /** The terms version the form showed: what the person accepts, and nothing else. */
+  termsVersion: unknown;
   locale: unknown;
   stamp: unknown;
   honeypot: unknown;
@@ -88,7 +92,13 @@ export type SignUpRequest = {
 export type SignUpRequested =
   /** The code page, for a new address and an existing one alike. `id` goes in the cookie. */
   | { ok: true; id: string }
-  | { ok: false; refusal: SignUpRefusal; field?: "name" | "email" | "password" | "terms" };
+  | {
+      ok: false;
+      refusal: SignUpRefusal;
+      field?: "name" | "email" | "password" | "terms";
+      /** With `terms_changed`: the link and version to show now. */
+      terms?: { url: string; version: string };
+    };
 
 const text = (value: unknown, max: number) =>
   typeof value === "string" ? value.slice(0, max) : "";
@@ -236,6 +246,15 @@ export const requestSignUp = async (
       };
     throw error;
   }
+  // A version other than the one the form showed (or terms the form didn't show at all): the
+  // person never saw these, so they read them and tick the box again.
+  if (policy.termsUrl && input.termsVersion !== policy.termsVersion)
+    return {
+      ok: false,
+      refusal: "terms_changed",
+      field: "terms",
+      terms: { url: policy.termsUrl, version: policy.termsVersion },
+    };
   if (policy.termsUrl && !input.termsAccepted)
     return { ok: false, refusal: "terms", field: "terms" };
   if (!signUpDomainAllowed(policy, email)) {
