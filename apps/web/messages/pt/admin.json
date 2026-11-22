@@ -774,6 +774,7 @@
           "sent": "um código foi enviado",
           "existing": "ele já tem conta, então o dono foi avisado",
           "domain_not_allowed": "o domínio não é permitido",
+          "domain_blocked": "o domínio está na lista de bloqueio",
           "limited": "tentativas demais",
           "bot": "parecia um robô, então nada foi enviado",
           "unknown": "não registrado"
@@ -784,6 +785,7 @@
           "expired": "o código tinha expirado",
           "used": "o código já tinha sido usado",
           "closed": "o cadastro tinha sido fechado",
+          "domain_blocked": "o domínio foi colocado na lista de bloqueio nesse meio-tempo",
           "none": "nenhum código foi enviado",
           "exists": "uma conta foi criada para o endereço nesse meio-tempo",
           "unknown": "não registrado"

@@ -640,3 +640,140 @@ describe("signing up (190)", () => {
     expect(apart(a, c)).toBeLessThan(0.35);
   });
 });
+
+describe("the block list in sign-up (191)", () => {
+  const block = (...domains: string[]) =>
+    settings().set("blocked_domains", JSON.stringify(domains), root.id, clock);
+  const codeFailures = async () =>
+    (await audits("auth.sign_up_code_failed")).map((e) => e.metadata.reason);
+
+  it("a blocked domain gets the answer of a domain that isn't allowed, though the list names it", async () => {
+    await block("acme.com");
+    expect(await request()).toEqual({
+      ok: false,
+      refusal: "domain_not_allowed",
+      field: "email",
+    });
+    expect(await mails()).toEqual([]);
+    expect((await audits("auth.sign_up_requested"))[0]?.metadata).toEqual({
+      email: "ana@acme.com",
+      outcome: "domain_blocked",
+    });
+  });
+
+  it("blocks with any domain too, exactly: a subdomain of a blocked domain isn't blocked", async () => {
+    await policy({ domainsMode: "any", domains: "" });
+    await block("gmail.com");
+    expect(await request({ email: "Sam@GMAIL.com" })).toMatchObject({
+      refusal: "domain_not_allowed",
+    });
+    expect(await request({ email: "sam@eu.gmail.com" })).toMatchObject({ ok: true });
+  });
+
+  it("a domain blocked while a code is pending: the code makes no account, and no new code is sent", async () => {
+    const asked = await started();
+    const [mail] = await mails();
+    await block("acme.com");
+    later(61_000);
+    expect(await signUp.resendSignUpCode(deps(), { id: asked.id, ip: null })).toEqual({
+      ok: false,
+      refusal: "closed",
+    });
+    // The refused resend ended the sign-up: no code page, and the old code makes nothing.
+    expect(await signUp.codePage(deps(), asked.id)).toBeNull();
+    expect((await mails()).length).toBe(1);
+    expect(
+      await signUp.enterSignUpCode(deps(), { id: asked.id, code: codeIn(mail?.text), ip: null }),
+    ).toEqual({ ok: false, refusal: "ended" });
+    expect(
+      await t.db.selectFrom("user").select("id").where("email", "=", "ana@acme.com").execute(),
+    ).toEqual([]);
+    expect(await t.db.selectFrom("pending_sign_ups").select("id").execute()).toEqual([]);
+  });
+
+  it("a new code asked for once sign-up is closed ends the sign-up, as a typed code does", async () => {
+    const asked = await started();
+    const [mail] = await mails();
+    await policy({ enabled: false });
+    later(61_000);
+    expect(await signUp.resendSignUpCode(deps(), { id: asked.id, ip: null })).toEqual({
+      ok: false,
+      refusal: "closed",
+    });
+    expect(await signUp.codePage(deps(), asked.id)).toBeNull();
+    expect((await mails()).length).toBe(1);
+    expect(
+      await signUp.enterSignUpCode(deps(), { id: asked.id, code: codeIn(mail?.text), ip: null }),
+    ).toEqual({ ok: false, refusal: "ended" });
+  });
+
+  it("a typed code for a domain blocked since is recorded as blocked, for root", async () => {
+    const asked = await started();
+    const [mail] = await mails();
+    await block("acme.com");
+    expect(
+      await signUp.enterSignUpCode(deps(), { id: asked.id, code: codeIn(mail?.text), ip: null }),
+    ).toEqual({ ok: false, refusal: "closed" });
+    expect(await codeFailures()).toEqual(["domain_blocked"]);
+  });
+
+  it("a new code asked for as root blocks the domain is never sent, and the sign-up ends", async () => {
+    const asked = await started();
+    const stale = deps();
+    const before = await stale.openness();
+    await block("acme.com");
+    later(61_000);
+    expect(
+      await signUp.resendSignUpCode(
+        { ...stale, openness: async () => before },
+        {
+          id: asked.id,
+          ip: null,
+        },
+      ),
+    ).toEqual({ ok: false, refusal: "closed" });
+    expect((await mails()).length).toBe(1);
+    expect(await signUp.codePage(deps(), asked.id)).toBeNull();
+  });
+
+  it("a sign-up sent as root blocks the domain gets no code, and the domain's answer", async () => {
+    const stale = deps();
+    const before = await stale.openness();
+    await block("acme.com");
+    expect(
+      await signUp.requestSignUp(
+        { ...stale, openness: async () => before },
+        { ip: null, ...form() },
+      ),
+    ).toEqual({ ok: false, refusal: "domain_not_allowed", field: "email" });
+    expect(await mails()).toEqual([]);
+    expect(await t.db.selectFrom("pending_sign_ups").select("id").execute()).toEqual([]);
+    expect((await audits("auth.sign_up_requested"))[0]?.metadata).toMatchObject({
+      outcome: "domain_blocked",
+    });
+  });
+
+  it("the account write reads the block list again, in its own transaction", async () => {
+    const asked = await started();
+    const [mail] = await mails();
+    // The settings as the step read them, before root blocked the domain.
+    const stale = deps();
+    const before = await stale.openness();
+    await block("acme.com");
+    expect(
+      await signUp.enterSignUpCode(
+        { ...stale, openness: async () => before },
+        { id: asked.id, code: codeIn(mail?.text), ip: null },
+      ),
+    ).toEqual({ ok: false, refusal: "closed" });
+    expect(
+      await t.db.selectFrom("user").select("id").where("email", "=", "ana@acme.com").execute(),
+    ).toEqual([]);
+    expect(await codeFailures()).toContain("domain_blocked");
+  });
+
+  it("a damaged block list lets nobody sign up", async () => {
+    await settings().set("blocked_domains", "not json", root.id, clock);
+    expect(await request()).toMatchObject({ ok: false, refusal: "domain_not_allowed" });
+  });
+});

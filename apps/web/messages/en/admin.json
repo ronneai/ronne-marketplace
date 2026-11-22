@@ -774,6 +774,7 @@
           "sent": "a code was sent",
           "existing": "it has an account, so its owner was told",
           "domain_not_allowed": "its domain isn't allowed",
+          "domain_blocked": "its domain is on the block list",
           "limited": "too many tries",
           "bot": "it looked like a bot, so nothing was sent",
           "unknown": "not recorded"
@@ -784,6 +785,7 @@
           "expired": "the code had ended",
           "used": "the code was used already",
           "closed": "sign-up had closed",
+          "domain_blocked": "its domain was put on the block list meanwhile",
           "none": "no code was sent",
           "exists": "an account was made for the address meanwhile",
           "unknown": "not recorded"

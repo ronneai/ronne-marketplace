@@ -196,3 +196,78 @@ Witnessed: 2026-11-22 12:04 EST, by a fresh agent (adversarial). Commit: 25b0cab
 **Overall:** met. Observations: with *Any domain*, addresses delivery leaves unchanged but can't reach (`ana@acme..com`, `ana@1.2.3.4`) still plan `create`, which doesn't get around the block list; and an unlinked account stored with a final dot can no longer be linked by email.
 
 Fix after the pass (wording): the comment at `sso-sign-in.ts:115-117` now says what the check does (a final dot, or a domain IDNA changes or can't read), not "a name delivery can't read".
+
+## Task 4 — The rule in email sign-up
+
+Witnessed: 2026-11-22 12:12 EST, by a fresh agent (blind). Commit: 73942376 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The request checks the block list before the allowed-domains rule, with the same answer (`domain_not_allowed` on `email`), sending nothing | no | confirmed | `sign-up.ts` `domainRefusal`; test "a blocked domain gets the answer…"; M1 → 4 of 5 new tests fail |
+| 2 | Exact match, any case; a subdomain isn't covered; with *Any domain* too | no | confirmed | `isDomainBlocked`; test "blocks with any domain too, exactly" |
+| 3 | The account write checks again, read in its transaction | no | confirmed | `enterSignUpCode` → `repo.accountRules()` on `trx`; M2 → that test fails |
+| 4 | A db test covers a domain blocked at request time | no | confirmed | the 191 describe; a damaged list too |
+| 5 | A db test covers a domain blocked while a code is pending | no | confirmed | resend → `closed`, code → `closed`, no `user`, no pending row |
+| 6 | Passes on all four databases; audit words in three languages | no | confirmed | 28 passed on each; `signUpOutcomes.domain_blocked`, `signUpCodeReasons.domain_blocked` in en, fr, pt; i18n tests 58 passed |
+
+**Overall:** met. Remark: on the usual path a refused code is recorded `closed`, `domain_blocked` only in the race.
+
+### Adversarial pass
+
+Witnessed: 2026-11-22 12:25 EST, by a fresh agent (adversarial). Commit: 73942376 + working-tree diff (8 files). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | No account for a blocked domain: before the form, while a code is pending, or between the read and the write | no | confirmed | probes P1, P6, P7, P8, P10 on all four databases |
+| 2 | The form refuses a blocked domain first, same answer, nothing sent, `domain_blocked` recorded | no | confirmed | `sign-up.ts:51-59`, `:277-281`; P1 (an existing account in a blocked domain), P2 (honeypot) |
+| 3 | *Any domain* too; compared as delivery reads them; a subdomain isn't blocked | no | confirmed | P3: a raw stored `["ACME.COM.","xn--bcher-kva.com"]`; 11 spellings refused, only `eu.acme.com` and `acme.co` pending |
+| 4 | Once blocked, no new code, no account, the sign-up ends | no | partly | a refused resend leaves the pending row and the code page (P5); a resend racing the block sends a new code (P9), and so does a request (P10) |
+| 5 | The account write reads the block list in its transaction | no | confirmed | `sign-up.ts:429`; M2 fails the test |
+| 6 | A damaged list lets nobody sign up | no | confirmed | P7 (6 damaged forms), P8 (damaged after the read) |
+| 7 | The answer never says an account exists or the domain is blocked | no | confirmed | P1; `domain_blocked` only in the audit |
+| 8 | 190's tests unchanged; all four databases | no | confirmed | `git diff --numstat` → 72 added, 0 removed; 28 passed on each |
+
+**Overall:** not met (row 4). Also: on the usual path a refused code is recorded `closed`, so root rarely sees `domain_blocked`.
+
+Fixes after the passes:
+- `requestSignUp` reads the block list again in the transaction that writes the sign-up: blocked meanwhile, no code, no pending row, the domain's answer, `domain_blocked` recorded.
+- `resendSignUpCode` reads it again in the transaction that sends the code, and a refused resend (closed, or the domain no longer taken) ends the sign-up, as a typed code does.
+- A typed code for a domain blocked since is recorded `domain_blocked` on the usual path too.
+- New db tests for each (a mutation of each in-transaction read fails its test); the pending test now checks the code page is gone. sign-up.db 31 passed on SQLite, PostgreSQL, MySQL and MariaDB.
+
+### Re-check 1 (adversarial)
+
+Witnessed: 2026-11-22 12:20 EST, by a fresh agent (adversarial). Commit: 73942376 + working-tree diff (8 files). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | No account for a blocked domain, at any step | no | confirmed | P1, P6, P7, P8, P10, P10b on all four databases |
+| 2 | The form refuses a blocked domain first, same answer, `domain_blocked` recorded | no | confirmed | P1, P2 |
+| 3 | *Any domain* too; delivery's reading; subdomains not blocked | no | confirmed | P3 |
+| 4 | Once blocked: no new code (the race included), no account, the sign-up ends after a refused resend | yes | confirmed | P5, P9, P10; mutations of each in-transaction read fail the repo's tests |
+| 5 | The account write reads the list in its transaction | no | confirmed | P8 |
+| 6 | A damaged list lets nobody sign up | no | confirmed | P7, P8 |
+| 7 | The answer never says an account exists or the domain is blocked | no | confirmed | P1, P10b, P13 (closed resend: same for `has@` and `none@`) |
+| 8 | A code for a domain blocked since is recorded `domain_blocked` on the usual path | yes | confirmed | P6; M4 fails the repo test |
+| 9 | A closed or narrowed sign-up stays `closed` | yes | confirmed | P11, P12 |
+| 10 | A resend while sign-up is closed ends the sign-up, keeps 190's behaviour, and has a test | yes | partly | it holds (P11), but returning without ending fails no repo test |
+| 11 | 190's tests unchanged; all four databases | no | confirmed | `--numstat` 121 added, 0 removed; 45 passed on each with the probes |
+
+**Overall:** not met (row 10). Remarks: in the request race the browser's previous sign-up is deleted first, as 190 does for `limited`; *Send a new code* doesn't clear the cookie on `closed`, unlike a typed code.
+
+Fixes after the pass:
+- `sign-up.db.test.ts`: "a new code asked for once sign-up is closed ends the sign-up" (closed resend → `closed`, no code page, no new mail, the code then `ended`); the mutation the pass named fails it. 32 passed on SQLite, PostgreSQL, MySQL and MariaDB.
+- `features/sign-up/actions.ts`: *Send a new code* clears the sign-up cookie when the sign-up ended (`ended`, `closed`), as the code form does. No test covers either action's cookie (the actions aren't unit-tested; the components mock them).
+
+### Re-check 2 (adversarial)
+
+Witnessed: 2026-11-22 12:23 EST, by a fresh agent (adversarial). Commit: 73942376 + working-tree diff (10 files). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | A resend while sign-up is closed ends the sign-up, keeps 190's behaviour, and a repo test fails without it | yes | confirmed | `services/sign-up.ts:541` → `end()`; test `sign-up.db.test.ts:694`; the mutation → 1 failed |
+| 12 | *Send a new code* clears the cookie only on `ended` and `closed`, so never for a live sign-up | yes | confirmed | `features/sign-up/actions.ts:108-109`; every `closed` comes from `end()` after `deletePending`; matches `signUpCodeFromForm` |
+| 13 | What the code page shows afterwards | yes | confirmed | the notice at once (`CodeStep.tsx:45-66`); on reload a 404 while closed, as after a typed code refused `closed`; "This sign-up has ended." when open (read from the code) |
+| 11 | `sign-up.db.test.ts` passes on all four databases | no | confirmed | 32 passed on each |
+
+**Overall:** met. Remark: no test covers either form action's cookie.

@@ -2,6 +2,7 @@ import { newId } from "../../../db/ids";
 import type { RateLimitStore } from "../../../rate-limit/rate-limiter";
 import type { QueuedMail } from "../../mail/services/outbox";
 import { renderMail } from "../../mail/services/templates";
+import { type AccountRules, isDomainBlocked } from "../../settings/models/account-rules";
 import { InvalidEmailError, InvalidNameError, InvalidPasswordError } from "../exceptions/errors";
 import { reserveEmailCodeSend } from "../models/email-code";
 import { isLocale, type Locale } from "../models/locale";
@@ -39,7 +40,23 @@ export type SignUpOpenness = {
   challenge: boolean;
   termsUrl: string;
   termsVersion: string;
+  /** The instance's block list (191), which every way in obeys first. */
+  blocked: Pick<AccountRules, "blockedDomains" | "damaged">;
 };
+
+/**
+ * Why sign-up won't take an address's domain, or null when it will (191): the block list first,
+ * then 190's own rule. The person hears the same for both.
+ */
+const domainRefusal = (
+  policy: SignUpOpenness,
+  email: string,
+): "domain_blocked" | "domain_not_allowed" | null =>
+  isDomainBlocked(policy.blocked, email)
+    ? "domain_blocked"
+    : signUpDomainAllowed(policy, email)
+      ? null
+      : "domain_not_allowed";
 
 export type SignUpDeps = {
   repo: SignUpRepository;
@@ -257,8 +274,9 @@ export const requestSignUp = async (
     };
   if (policy.termsUrl && !input.termsAccepted)
     return { ok: false, refusal: "terms", field: "terms" };
-  if (!signUpDomainAllowed(policy, email)) {
-    await audit("domain_not_allowed", email);
+  const refusedDomain = domainRefusal(policy, email);
+  if (refusedDomain) {
+    await audit(refusedDomain, email);
     return { ok: false, refusal: "domain_not_allowed", field: "email" };
   }
   const perAddress = await deps.limits.consume(
@@ -288,6 +306,9 @@ export const requestSignUp = async (
   const outcome = await deps.repo.transaction(async (repo) => {
     // Signing up again in this browser starts over: the sign-up before and its code end.
     if (input.previous) await repo.deletePending(input.previous, at);
+    // The block list again, in the transaction that writes the sign-up (191): a domain root blocks
+    // meanwhile gets no code.
+    if (isDomainBlocked(await repo.accountRules(), email)) return "domain_blocked" as const;
     const existing = await repo.findAccount(email);
     const issued = await repo.issueCode({
       purpose: PURPOSE,
@@ -329,6 +350,8 @@ export const requestSignUp = async (
   });
   await audit(outcome, email);
   if (outcome === "limited") return { ok: false, refusal: "limited" };
+  if (outcome === "domain_blocked")
+    return { ok: false, refusal: "domain_not_allowed", field: "email" };
   return { ok: true, id };
 };
 
@@ -401,9 +424,23 @@ export const enterSignUpCode = async (
     deps.repo.transaction(async (repo): Promise<CodeChecked> => {
       const pending = await repo.pending(id);
       if (!pending || pending.expiresAt <= at) return { ok: false, refusal: "ended" };
-      if (!policy.open || !signUpDomainAllowed(policy, pending.email)) {
+      if (!policy.open || domainRefusal(policy, pending.email)) {
         await repo.deletePending(id, at);
-        await failed(repo, pending.email, "closed");
+        // Root reads why (191): its domain blocked since, or sign-up closed or narrowed.
+        await failed(
+          repo,
+          pending.email,
+          policy.open && domainRefusal(policy, pending.email) === "domain_blocked"
+            ? "domain_blocked"
+            : "closed",
+        );
+        return { ok: false, refusal: "closed" };
+      }
+      // The block list again, read in the transaction that writes the account (191): a domain
+      // root blocks while a code is pending gets no account.
+      if (isDomainBlocked(await repo.accountRules(), pending.email)) {
+        await repo.deletePending(id, at);
+        await failed(repo, pending.email, "domain_blocked");
         return { ok: false, refusal: "closed" };
       }
       const check = await repo.verifyCode({
@@ -496,8 +533,12 @@ export const resendSignUpCode = async (
   const pending = await deps.repo.pending(id);
   if (!pending || pending.expiresAt <= at) return { ok: false, refusal: "ended" };
   const policy = await deps.openness();
-  if (!policy.open || !signUpDomainAllowed(policy, pending.email))
+  // Closed, or the domain no longer taken: the sign-up ends, as a typed code would end it.
+  const end = async (): Promise<ResendResult> => {
+    await deps.repo.transaction((repo) => repo.deletePending(id, at));
     return { ok: false, refusal: "closed" };
+  };
+  if (!policy.open || domainRefusal(policy, pending.email)) return end();
   const send = await reserveEmailCodeSend(
     deps.limits,
     deps.authSecret,
@@ -510,7 +551,9 @@ export const resendSignUpCode = async (
       : { ok: false, refusal: "limited" };
   const locale: Locale = isLocale(pending.locale) ? pending.locale : "en";
   const sender = await deps.mail();
-  return deps.repo.transaction(async (repo): Promise<ResendResult> => {
+  const result = await deps.repo.transaction(async (repo): Promise<ResendResult | "blocked"> => {
+    // The block list again, in the transaction that sends the code (191).
+    if (isDomainBlocked(await repo.accountRules(), pending.email)) return "blocked";
     const issued = await repo.issueCode({
       purpose: PURPOSE,
       subjectId: id,
@@ -542,6 +585,7 @@ export const resendSignUpCode = async (
     );
     return { ok: true };
   });
+  return result === "blocked" ? end() : result;
 };
 
 /** **Use another email**: this browser's sign-up ends. */

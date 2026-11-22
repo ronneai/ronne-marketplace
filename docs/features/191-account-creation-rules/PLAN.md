@@ -40,7 +40,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     - the existing tests pass unchanged;
     - the adversarial pass finds no way to link or create past the block list.
 
-- [ ] **4. The rule in email sign-up.** [risky]
+- [x] **4. The rule in email sign-up.** [risky]
   - 190's request checks the block list first, with the domain's refusal.
   - The account write checks it again.
   - *Done when:* db tests cover a blocked domain at request time and one blocked while a code is

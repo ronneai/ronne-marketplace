@@ -12,6 +12,7 @@ import { type QueuedMail, type QueueResult, queueMail } from "../../mail/service
 import { notify } from "../../notifications/services/notify";
 import { activeRoots } from "../../notifications/services/recipients";
 import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
+import { readAccountRules } from "../../settings/services/account-rules";
 import { kyselyChallengeRepository } from "./kysely-challenge-repository";
 import { kyselyEmailCodeRepository } from "./kysely-email-code-repository";
 import { kyselyIdentityRepository } from "./kysely-identity-repository";
@@ -184,6 +185,8 @@ export const kyselySignUpRepository = (
           .execute();
       return id;
     },
+
+    accountRules: () => readAccountRules(kyselySettingsRepository(db, dialect)),
 
     async notifyAwaitingApproval(userId, email, at) {
       await notify(

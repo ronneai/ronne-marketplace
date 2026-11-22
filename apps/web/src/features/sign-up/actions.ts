@@ -105,6 +105,8 @@ export const resendSignUpCodeFromForm = serverAction(
     const result = await signUp.resendSignUpCode(await requestHeaders(), await currentSignUp());
     if (result.ok) return { resent: true };
     if (result.refusal === "wait") return { error: "wait", seconds: result.seconds };
+    // The sign-up ended (191: a refused resend ends it, as a typed code does): so does the cookie.
+    if (result.refusal === "ended" || result.refusal === "closed") await clearCookie();
     return { error: result.refusal };
   },
 );
