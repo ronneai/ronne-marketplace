@@ -47,5 +47,17 @@
       "body": "Agora é possível entrar na sua conta em {host} com {provider}.",
       "notYou": "Se não foi você, fale com o seu administrador imediatamente."
     }
+  },
+  "signUp": {
+    "sign_up_code": {
+      "subject": "Seu código para {host}: {code}",
+      "body": "Seu código para criar uma conta em {host} é {code}. Ele vale por {minutes} minutos. Digite-o na janela em que você fez o cadastro.",
+      "notYou": "Se não foi você, ignore este e-mail: nenhuma conta é criada sem o código."
+    },
+    "sign_up_existing": {
+      "subject": "Você já tem uma conta em {host}",
+      "body": "Alguém tentou criar uma conta em {host} com este endereço, mas você já tem uma. Entre, ou peça ao seu administrador para redefinir sua senha.",
+      "notYou": "Se não foi você, ignore este e-mail: nada mudou na sua conta."
+    }
   }
 }

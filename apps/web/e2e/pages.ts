@@ -50,6 +50,19 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
     roles: "signedOut",
     urls: () => ["/sign-in/two-factor", "/sign-in/two-factor?method=backup"],
   },
+  // Self-registration (190): open only while root has it on, which the sweep's instance hasn't.
+  {
+    route: "/sign-up",
+    roles: "signedOut",
+    urls: () => ["/sign-up"],
+    skip: "Only while sign-up is on: sign-up.e2e.ts turns it on and covers the form",
+  },
+  {
+    route: "/sign-up/code",
+    roles: "signedOut",
+    urls: () => ["/sign-up/code"],
+    skip: "Only with a sign-up in this browser: sign-up.e2e.ts covers it",
+  },
   {
     route: "/setup",
     roles: "signedOut",

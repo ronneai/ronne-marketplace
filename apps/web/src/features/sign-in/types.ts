@@ -8,6 +8,9 @@ export type SignInFormState = { error?: "invalid_credentials" | "rate_limited"; 
 export const SIGN_IN_AGAIN = ["expired", "too_many"] as const;
 export type SignInAgain = (typeof SIGN_IN_AGAIN)[number];
 
+/** Back from sign-up's code page (190), as `?signedUp=`: `auth.signIn.signedUp.<code>`. */
+export const SIGNED_UP = ["ready", "waiting"] as const;
+
 /** What the second step (105) shows after a refused code (`auth.twoFactor.errors.<code>`). */
 export type TwoFactorStepState = {
   error?: "wrong_code" | "used" | "locked" | "refused" | "unreadable";

@@ -8,6 +8,7 @@ import {
   signInProviders,
 } from "@/server/domains/identity/actions/password-policy";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
+import { signUpOpenness } from "@/server/domains/identity/actions/sign-up";
 import { safeNextPath } from "@/server/domains/identity/models/route-guard";
 import { getAppAuthIfConfigured } from "@/server/domains/identity/repositories/auth-instance";
 import { requestHeaders } from "@/server/http/request-headers";
@@ -28,6 +29,7 @@ const SignIn = async ({
     setup?: string | string[];
     reason?: string | string[];
     error?: string | string[];
+    signedUp?: string | string[];
   }>;
 }) => {
   const params = await searchParams;
@@ -38,9 +40,14 @@ const SignIn = async ({
   if (await getCurrentUser(await requestHeaders())) redirect(next);
   // The identity providers that are on, and whether password sign-in is root only (106).
   const app = getAppAuthIfConfigured();
-  const [providers, policy] = app
-    ? await Promise.all([signInProviders(app), effectivePasswordPolicy(app)])
-    : [[], "everyone" as const];
+  const [providers, policy, signUp] = app
+    ? await Promise.all([
+        signInProviders(app),
+        effectivePasswordPolicy(app),
+        // Self-registration (190): its link only while it's open.
+        loadConfig().authSecret ? signUpOpenness(app) : null,
+      ])
+    : [[], "everyone" as const, null];
   return (
     <SignInPage
       next={next}
@@ -52,6 +59,8 @@ const SignIn = async ({
       providers={providers}
       rootOnly={policy === "root_only"}
       ssoError={one(params.error)}
+      signUpOpen={signUp?.open ?? false}
+      signedUp={one(params.signedUp)}
       here={await currentPath()}
       languages={await requestChoosableLocales()}
     />

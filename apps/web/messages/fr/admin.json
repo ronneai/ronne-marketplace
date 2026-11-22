@@ -744,6 +744,24 @@
           "termsOff": "aucun lien vers les conditions",
           "askAgain": "tout le monde accepte de nouveau la version {version}",
           "nothing": "rien"
+        },
+        "signUpOutcomes": {
+          "sent": "un code a été envoyé",
+          "existing": "elle a déjà un compte, donc son titulaire a été avisé",
+          "domain_not_allowed": "son domaine n’est pas permis",
+          "limited": "trop de tentatives",
+          "bot": "cela ressemblait à un robot, donc rien n’a été envoyé",
+          "unknown": "non consigné"
+        },
+        "signUpCodeReasons": {
+          "wrong": "code erroné",
+          "spent": "trop de codes erronés",
+          "expired": "le code avait expiré",
+          "used": "le code avait déjà servi",
+          "closed": "l’inscription avait été fermée",
+          "none": "aucun code n’avait été envoyé",
+          "exists": "un compte a été créé pour l’adresse entre-temps",
+          "unknown": "non consigné"
         }
       },
       "actions": {
@@ -781,7 +799,8 @@
           "disabled": "A désactivé <name>{who}</name>{ended}",
           "enabled": "A activé <name>{who}</name>",
           "erased": "A effacé <name>{who}</name>",
-          "data_exported": "A téléchargé les données de <name>{who}</name>{byRoot, select, true { (par root)} other {}}"
+          "data_exported": "A téléchargé les données de <name>{who}</name>{byRoot, select, true { (par root)} other {}}",
+          "signed_up": "<name>{who}</name> a créé son propre compte{waiting, select, true {, en attente de l’approbation d’un root} other {}}"
         },
         "auth": {
           "signed_in": "{sso, select, true {Connexion avec <code>{provider}</code>} other {{remember, select, true {Connexion (mémorisée pendant 30 jours)} other {Connexion}}}}",
@@ -796,7 +815,9 @@
           "two_factor_enabled": "A activé la double authentification",
           "two_factor_disabled": "A désactivé la double authentification",
           "backup_codes_regenerated": "A créé de nouveaux codes de secours; les anciens ont cessé de fonctionner",
-          "two_factor_failed": "Un code de double authentification a été refusé à la connexion ({reason})"
+          "two_factor_failed": "Un code de double authentification a été refusé à la connexion ({reason})",
+          "sign_up_requested": "A demandé de créer un compte pour <name>{email}</name> : {outcome}",
+          "sign_up_code_failed": "Un code d’inscription pour <name>{email}</name> a été refusé : {reason}"
         },
         "access_token": {
           "created": "A créé le jeton <name>{label}</name> ({expiry}{how, select, cli {, depuis rmk login} device {, par approbation dans le navigateur} other {}})",

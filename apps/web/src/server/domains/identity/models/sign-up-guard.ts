@@ -243,3 +243,52 @@ export const checkChallengeAnswer = (
     expiresAt: new Date(c.expires),
   };
 };
+
+// ---- The code page's cookie --------------------------------------------------------------------
+
+/** The cookie that ties the code page to the browser that signed up (190, Decision 10). */
+export const SIGN_UP_COOKIE = "ronne_sign_up";
+const COOKIE_INFO = "sign-up-cookie";
+
+/** The cookie's value: the pending sign-up's id, signed so no other id can be put there. */
+export const signUpCookieValue = (authSecret: string, pendingId: string): string =>
+  `${pendingId}.${sign(authSecret, COOKIE_INFO, pendingId)}`;
+
+/** The pending sign-up's id a cookie holds, or null when it isn't one this server signed. */
+export const signUpIdFromCookie = (
+  authSecret: string,
+  value: string | undefined,
+): string | null => {
+  if (!value || value.length > 200) return null;
+  const [id, signature, ...rest] = value.split(".");
+  if (rest.length > 0 || !id || !signature || !/^[0-9A-HJKMNP-TV-Z]{26}$/.test(id)) return null;
+  return sameHex(signature, sign(authSecret, COOKIE_INFO, id)) ? id : null;
+};
+
+/**
+ * Root's audit hears of sign-ups that sent nothing (a bot, a failed challenge, a domain that isn't
+ * allowed, a limit) at most this often, across the instance: each costs a forged post next to
+ * nothing, and without a client IP (TRUST_PROXY off) nothing else bounds them. Every code sent,
+ * and every existing address told, is recorded.
+ */
+export const SIGN_UP_BOT_AUDIT_LIMIT: Limit = {
+  name: "sign-up-bot-audit",
+  max: 100,
+  windowMs: HOUR,
+};
+
+/** A name as sign-up takes it: no control, line-separator or bidirectional characters. */
+export const plainName = (name: string): boolean =>
+  ![...name].some((ch) => {
+    const code = ch.codePointAt(0) ?? 0;
+    return (
+      code < 0x20 ||
+      (code >= 0x7f && code <= 0x9f) ||
+      code === 0x2028 ||
+      code === 0x2029 ||
+      code === 0x200e ||
+      code === 0x200f ||
+      (code >= 0x202a && code <= 0x202e) ||
+      (code >= 0x2066 && code <= 0x2069)
+    );
+  });

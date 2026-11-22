@@ -744,6 +744,24 @@
           "termsOff": "sem link para os termos",
           "askAgain": "todos aceitam de novo a versão {version}",
           "nothing": "nada"
+        },
+        "signUpOutcomes": {
+          "sent": "um código foi enviado",
+          "existing": "ele já tem conta, então o dono foi avisado",
+          "domain_not_allowed": "o domínio não é permitido",
+          "limited": "tentativas demais",
+          "bot": "parecia um robô, então nada foi enviado",
+          "unknown": "não registrado"
+        },
+        "signUpCodeReasons": {
+          "wrong": "código errado",
+          "spent": "códigos errados demais",
+          "expired": "o código tinha expirado",
+          "used": "o código já tinha sido usado",
+          "closed": "o cadastro tinha sido fechado",
+          "none": "nenhum código foi enviado",
+          "exists": "uma conta foi criada para o endereço nesse meio-tempo",
+          "unknown": "não registrado"
         }
       },
       "actions": {
@@ -781,7 +799,8 @@
           "disabled": "Desativou <name>{who}</name>{ended}",
           "enabled": "Ativou <name>{who}</name>",
           "erased": "Apagou <name>{who}</name>",
-          "data_exported": "Baixou os dados de <name>{who}</name>{byRoot, select, true { (pelo root)} other {}}"
+          "data_exported": "Baixou os dados de <name>{who}</name>{byRoot, select, true { (pelo root)} other {}}",
+          "signed_up": "<name>{who}</name> criou a própria conta{waiting, select, true {, aguardando a aprovação de um root} other {}}"
         },
         "auth": {
           "signed_in": "{sso, select, true {Entrou com <code>{provider}</code>} other {{remember, select, true {Entrou (sessão lembrada por 30 dias)} other {Entrou}}}}",
@@ -796,7 +815,9 @@
           "two_factor_enabled": "Ligou a autenticação de dois fatores",
           "two_factor_disabled": "Desligou a autenticação de dois fatores",
           "backup_codes_regenerated": "Gerou novos códigos de backup; os antigos deixaram de funcionar",
-          "two_factor_failed": "Um código de dois fatores foi recusado ao entrar ({reason})"
+          "two_factor_failed": "Um código de dois fatores foi recusado ao entrar ({reason})",
+          "sign_up_requested": "Pediu para criar uma conta para <name>{email}</name>: {outcome}",
+          "sign_up_code_failed": "Um código de cadastro para <name>{email}</name> foi recusado: {reason}"
         },
         "access_token": {
           "created": "Criou o token <name>{label}</name> ({expiry}{how, select, cli {, pelo rmk login} device {, por aprovação no navegador} other {}})",

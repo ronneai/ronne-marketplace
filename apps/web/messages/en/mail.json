@@ -47,5 +47,17 @@
       "body": "Your account on {host} can now be signed in to with {provider}.",
       "notYou": "If this wasn't you, contact your administrator at once."
     }
+  },
+  "signUp": {
+    "sign_up_code": {
+      "subject": "Your code for {host}: {code}",
+      "body": "Your code to create an account on {host} is {code}. It works for {minutes} minutes. Type it in the window where you signed up.",
+      "notYou": "If this wasn't you, ignore this email: no account is created without the code."
+    },
+    "sign_up_existing": {
+      "subject": "You already have an account on {host}",
+      "body": "Someone tried to create an account on {host} with this address, but you already have one. Sign in, or ask your administrator to reset your password.",
+      "notYou": "If this wasn't you, ignore this email: nothing about your account changed."
+    }
   }
 }

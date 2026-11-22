@@ -397,3 +397,140 @@ Witnessed: 2026-11-21 19:58 EST, by a fresh agent (blind). Commit: 6a988a23 + wo
 **Overall:** met.
 
 Fix after re-check 2, test only: the pre-commit run failed four tests in `admin-settings.test.tsx`, which mocks the tab's data sources and lacked the new panel's. The test now mocks `settings/actions/sign-up` (`adminSignUpSettings`); `vitest run src/features/admin-settings` → 239 passed (rerun by the implementer). No code the witness checked changed.
+
+## Task 5 — Sign-up and code pages [risky]
+
+### Blind pass
+
+Witnessed: 2026-11-21 21:05 EST, by a fresh agent (blind). Commit: 6b1aa881 + working-tree diff. Machine: macOS (Darwin 27.2), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass on SQLite | no | confirmed | `vitest run sign-up.db.test.ts sign-up.test.tsx templates.test.ts` → 62 passed |
+| 2 | The db tests pass on the three servers | no | confirmed | `test-db.mjs postgres\|mysql\|mariadb` → 15 passed on each |
+| 3 | New address: code by email; nothing in `user` before it; then a `user` in `global` with a personal workspace, verified, its locale, never root; pending row gone; audited; nobody signed in | no | confirmed | db test checks each; `createUserWithPassword` with `role: "user"`; redirect to `/sign-in?email=…&signedUp=ready` |
+| 4 | Existing address: same answer, "already have an account" email, no code that works | no | confirmed | db test; `passwordHash: null`, even the issued code is wrong |
+| 5 | A disallowed domain is refused at once | no | confirmed | db test, allow list and throwaway |
+| 6 | Closed while pending: refused, pending row deleted | no | confirmed | db test; mutation → fails |
+| 7 | Two sign-ups racing: one account, the other "exists" | no | confirmed | removing the catch fails 3/3 on PostgreSQL and MySQL; SQLite can't race |
+| 8 | An account made meanwhile → "exists" | no | confirmed | db test |
+| 9 | A lookalike address never stands beside a real one | no | confirmed | db test refuses five shapes; MySQL probe: same answer, no email, no account |
+| 10 | Existing and new paths take the same time | no | confirmed | timing test; hashing only for new → fails |
+| 11 | Emails through 189's outbox, in the sign-up's language, no sign-in link | no | confirmed | `queueMail` in the transaction, `mailQueued` after; `locale: "pt"` |
+| 12 | The three audit events | no | confirmed | `audit-event.ts`, `summary.ts`; db tests check outcomes |
+| 13 | `/sign-up` 404 while off; the link only while open | no | confirmed | `notFound()`; e2e |
+| 14 | Cookie-bound code page with CodeInput, resend, Use another email | no | confirmed | HttpOnly, Lax, path `/sign-up`, signed; component and db tests |
+| 15 | e2e signs up and signs in, the code from the test transport | no | confirmed | rebuilt; Playwright Chromium → 2 passed |
+| 16 | A bot sees the success page, nothing sent | no | partly | nothing sent, but the code page said "This sign-up has ended." |
+| 17 | Arrow functions, messages in en/pt/fr, typecheck, lint | no | confirmed | `tsc` exit 0; no-English test passes |
+
+**Overall:** not met (row 16). Remark: the "ask your administrator" wording differs from SPEC until 194.
+
+### Adversarial pass
+
+Witnessed: 2026-11-21 21:10 EST, by a fresh agent (adversarial). Commit: 6b1aa881 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1–12, 14–18 | Enumeration (answers, codes, resend for existing vs new identical, P1), limits, cookie forging, the race, re-checks at creation, challenge replay (1 of 5 racing), ≤5 racing guesses, timing (P7, four databases), the one transaction | no | confirmed | probes P1–P7 on all four databases; mutations M1–M4 each fail a test |
+| 13 | A bot sees the success page | no | partly | "This sign-up has ended." |
+| 19 | Audit | no | partly | bot rows written before any limit: 50 forged posts → 50 rows; a failed challenge not audited |
+| 20 | Every input a clean answer | no | partly | a NUL in the name → PostgreSQL 500 |
+| 21 | e2e | no | can't check here | left to the blind witness |
+
+**Overall:** not met. Also: a resend could email a code that never works (an existing account erased meanwhile); `used` read as "wrong"; a refused form solved a challenge with the challenge off.
+
+Fixes after the first passes: a decoy cookie for bots; the per-IP limit first; bot and challenge audits capped at 100 an hour; control, line-break and bidi names refused; resend for an erased account ends the sign-up; `used` reads as `spent`; a new challenge only when on; SPEC wording until 194.
+
+### Re-check 1 (blind)
+
+Witnessed: 2026-11-21 21:15 EST, by a fresh agent (blind). Commit: 6b1aa881 + working-tree diff. Machine: macOS (Darwin 27.2), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 16, 18–21, 23–25, 15, 17 | The decoy page, the fixes above, the e2e, typecheck | no | confirmed | 1326 tests passed; 18 on each server; e2e 3 passed; forged decoys refused |
+| 22 | On the decoy page, resend acts as usual | no | partly | the decoy's `issuedAt` never moves: back-to-back resends both answer "resent" |
+
+**Overall:** not met (row 22). Remark: the decoy shows the address as typed, and its code tries aren't counted per IP.
+
+### Re-check 1 (adversarial)
+
+Witnessed: 2026-11-21 21:12 EST, by a fresh agent (adversarial). Commit: 6b1aa881 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 19, 20, 22, 10, 11, 23 | The cap, names, resend, racing tries, replay, the challenge | no | confirmed | P2–P9 on all four databases; mutations M6–M8 fail tests |
+| 13 | A bot can't tell it was caught | no | partly | the decoy cookie's shape, its order before the field checks, codes never spent, resend with no wait, a 404 when closed |
+
+**Overall:** not met (row 13).
+
+Fix after re-check 1: the decoy is gone. A bot takes the existing address's path: the same checks and limits, a real pending row with no hash, a real cookie, the normal code page, no email. Resend for a row with no hash and no account sends nothing and answers ok.
+
+### Re-check 2 (blind)
+
+Witnessed: 2026-11-21 21:19 EST, by a fresh agent (blind). Commit: 6b1aa881 + working-tree diff. Machine: macOS (Darwin 27.2), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 16 | A bot goes the existing address's way, no email, no account | no | confirmed | db test; a bot keeping its hash → fails; a bot getting the email → fails; e2e passes |
+| 22 | Codes, resend and limits the same for a bot | no | confirmed | probe: person and bot both `wait,ok,wait,ok,limited,req-limited` |
+| 26, 21, 27, 15, 25 | Same fields asked; erased account resend sends nothing; decoy code gone; e2e; SPEC | no | confirmed | db tests; `tsc` exit 0; e2e 3 passed |
+
+**Overall:** met.
+
+### Re-check 2 (adversarial)
+
+Witnessed: 2026-11-21 21:18 EST, by a fresh agent (adversarial). Commit: 6b1aa881 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 13 | A bot can't be told apart | no | partly | responses, cookie and limits identical (P10, four databases); but a bot's sign-up ~12 ms faster (P11: it skipped the email) |
+| 19 | The audit cap | no | not met | P12, no IP: 150 forged posts → 147 `limited` rows, uncapped |
+| 22, 20, 10, 11, 3–9, 12, 14–18, 23 | Unchanged rows | no | confirmed | 19 tests on each database |
+
+**Overall:** not met. Also: a bot's post uses up the address's 3 codes an hour with nothing in the inbox; a bot's resend for an existing address emails its owner.
+
+Owner's decision after two re-checks (AskUserQuestion, 2026-11-21): fix the audit cap and the timing; accept the other two, recorded in SPEC.md under "A bot". Fixes: every outcome but `sent` and `existing` is audited under the cap; a bot's email is rendered and dropped through `rehearseMail` (queuing's reads, no insert); the timing test gained a bot leg.
+
+### Re-check 3 (adversarial)
+
+Witnessed: 2026-11-21 21:36 EST, by a fresh agent (adversarial, a third round at the owner's request). Commit: 6b1aa881 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 19 | Every refused outcome under the cap | no | confirmed | P12 on four databases, twice: 100 rows; `sent` recorded outside the cap; no cap → two tests fail |
+| 13 | A bot can't be told apart by any response, cookie, limit or timing | no | confirmed | P10 identical; P11 medians bot/existing/new: PostgreSQL 28.7/29.1/28.6, MySQL 27.7/28.4/28.2 |
+| 24 | The timing test guards the bot leg | no | partly | removing `rehearseMail` → still passes (a 22% gap on PostgreSQL, under the 35% tolerance) |
+
+**Overall:** not met (row 24, test strength).
+
+Fix after re-check 3, test only: "writes a bot's email and does queuing's reads, then drops it" checks a bot's sign-up calls `rehearseMail` once with the code email and a person's queues.
+
+### Re-check 4 (adversarial)
+
+Witnessed: 2026-11-21 22:18 EST, by a fresh agent (adversarial, a fourth round at the owner's request). Commit: 6b1aa881 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tests pass on four databases | no | confirmed | 21 passed on each |
+| 24 | A test fails when a bot skips the rehearsal | no | confirmed | M12 → the new test fails |
+| 25 | The repository's `rehearseMail` does queuing's reads | no | partly | emptying its body → all 21 still pass |
+
+**Overall:** not met (row 25, test strength).
+
+Owner's decision after re-check 4 (AskUserQuestion, 2026-11-21): add a repository test for `rehearseMail`, then a fifth round scoped to it (`pnpm witness:check` needs the latest adversarial pass met). The test, `kysely-sign-up-repository.db.test.ts`, watches the queries through a Kysely plugin: a select on `instance_settings` and on `mail_outbox`, nothing else.
+
+### Re-check 5 (adversarial)
+
+Witnessed: 2026-11-21 22:23 EST, by a fresh agent (adversarial, a fifth round at the owner's request, scoped to rows 21 and 25). Commit: 6b1aa881 + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The repository test passes with the service tests on four databases | no | confirmed | 1 passed on SQLite; 22 passed on PostgreSQL, MySQL and MariaDB |
+| 25 | `rehearseMail` does queuing's reads and writes nothing; a test fails when it does less | no | confirmed | code unchanged since re-check 4 (`cmp`); M13 (empty) and M14 (no setup read) → the test fails; M15 and M16 pass but keep the timing equal (P11 on PostgreSQL: bot 30.4 / existing 32.3 / new 31.2 ms) |
+| 21 | The e2e signs up and signs in, the code from 189's test transport | no | confirmed | `pnpm build`, then Playwright Chromium → 3 passed (sign up and sign in; a bot sees the same code page and gets no email; 404 while off) |
+| 1–24 | Rows confirmed in re-check 4 | no | confirmed | no service or repository code changed; 22/22 on four databases |
+
+**Overall:** met. With re-check 2 (blind) met, both latest passes are met.
+
+Fixes after re-check 5, from the pre-commit run's guard tests: `e2e/pages.ts` lists `/sign-up` and `/sign-up/code`, skipped by the sweep (open only while sign-up is on; `sign-up.e2e.ts` covers them); the honeypot field takes `inputClasses` (the touch rule); the four sign-up actions no longer run while a signed-in person is held (they're for people not signed in, and `server-action.test.ts` lists which actions may). `vitest run` on those three guard tests and `src/features/sign-up` → 60 passed (rerun by the implementer). No service or repository code changed.

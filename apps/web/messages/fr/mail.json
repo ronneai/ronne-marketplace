@@ -47,5 +47,17 @@
       "body": "Il est maintenant possible de se connecter à votre compte sur {host} avec {provider}.",
       "notYou": "Si ce n’était pas vous, communiquez sans tarder avec votre administrateur."
     }
+  },
+  "signUp": {
+    "sign_up_code": {
+      "subject": "Votre code pour {host} : {code}",
+      "body": "Votre code pour créer un compte sur {host} est {code}. Il vaut pendant {minutes} minutes. Tapez-le dans la fenêtre où vous vous êtes inscrit.",
+      "notYou": "Si ce n’était pas vous, ignorez ce courriel : aucun compte n’est créé sans le code."
+    },
+    "sign_up_existing": {
+      "subject": "Vous avez déjà un compte sur {host}",
+      "body": "Quelqu’un a tenté de créer un compte sur {host} avec cette adresse, mais vous en avez déjà un. Connectez-vous, ou demandez à votre administrateur de réinitialiser votre mot de passe.",
+      "notYou": "Si ce n’était pas vous, ignorez ce courriel : rien n’a changé dans votre compte."
+    }
   }
 }

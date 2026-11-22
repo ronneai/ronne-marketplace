@@ -263,6 +263,15 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     reason: h.word("signInReasons", text(m.reason)),
     via: h.via(m),
   }),
+  "auth.sign_up_requested": (m, _e, h) => ({
+    // `{ email, outcome }` (190): the address typed, and what came of it.
+    email: text(m.email) || h.part("fallback.unknownEmail"),
+    outcome: h.word("signUpOutcomes", text(m.outcome) || "unknown"),
+  }),
+  "auth.sign_up_code_failed": (m, _e, h) => ({
+    email: text(m.email) || h.part("fallback.unknownEmail"),
+    reason: h.word("signUpCodeReasons", text(m.reason) || "unknown"),
+  }),
   "auth.signed_out": () => ({}),
   "auth.two_factor_enabled": () => ({}),
   "auth.two_factor_disabled": () => ({}),
@@ -288,6 +297,10 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     change: flag(m.changeRequired === true),
     sso: flag(m.via === "sso"),
     provider: text(m.provider),
+  }),
+  "user.signed_up": (m, e, h) => ({
+    who: h.who(m, e),
+    waiting: flag(m.approval === true),
   }),
   "user.sso_linked": (m, e, h) => ({ email: h.who(m, e), provider: text(m.provider) }),
   "user.role_changed": (m, e, h) => ({

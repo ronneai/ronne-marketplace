@@ -744,6 +744,24 @@
           "termsOff": "no terms link",
           "askAgain": "everyone accepts version {version} again",
           "nothing": "nothing"
+        },
+        "signUpOutcomes": {
+          "sent": "a code was sent",
+          "existing": "it has an account, so its owner was told",
+          "domain_not_allowed": "its domain isn't allowed",
+          "limited": "too many tries",
+          "bot": "it looked like a bot, so nothing was sent",
+          "unknown": "not recorded"
+        },
+        "signUpCodeReasons": {
+          "wrong": "wrong code",
+          "spent": "too many wrong codes",
+          "expired": "the code had ended",
+          "used": "the code was used already",
+          "closed": "sign-up had closed",
+          "none": "no code was sent",
+          "exists": "an account was made for the address meanwhile",
+          "unknown": "not recorded"
         }
       },
       "actions": {
@@ -781,7 +799,8 @@
           "disabled": "Disabled <name>{who}</name>{ended}",
           "enabled": "Enabled <name>{who}</name>",
           "erased": "Erased <name>{who}</name>",
-          "data_exported": "Downloaded the data of <name>{who}</name>{byRoot, select, true { (by root)} other {}}"
+          "data_exported": "Downloaded the data of <name>{who}</name>{byRoot, select, true { (by root)} other {}}",
+          "signed_up": "<name>{who}</name> created their own account{waiting, select, true {, waiting for a root's approval} other {}}"
         },
         "auth": {
           "signed_in": "{sso, select, true {Signed in with <code>{provider}</code>} other {{remember, select, true {Signed in (remembered for 30 days)} other {Signed in}}}}",
@@ -796,7 +815,9 @@
           "two_factor_enabled": "Turned on two-factor sign-in",
           "two_factor_disabled": "Turned off two-factor sign-in",
           "backup_codes_regenerated": "Made new backup codes; the old ones stopped working",
-          "two_factor_failed": "A two-factor code was refused at sign-in ({reason})"
+          "two_factor_failed": "A two-factor code was refused at sign-in ({reason})",
+          "sign_up_requested": "Asked to create an account for <name>{email}</name>: {outcome}",
+          "sign_up_code_failed": "A sign-up code for <name>{email}</name> was refused: {reason}"
         },
         "access_token": {
           "created": "Created token <name>{label}</name> ({expiry}{how, select, cli {, from rmk login} device {, by browser approval} other {}})",

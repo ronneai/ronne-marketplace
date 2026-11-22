@@ -133,7 +133,8 @@ and standards".
   email".
 - **Audit:**
   - `auth.sign_up_requested`, with its outcome: `sent`, `existing`, `domain_not_allowed`,
-    `limited` or `bot`;
+    `limited`, `challenge` or `bot`. Every `sent` and `existing` is recorded; the others cost a
+    forged post next to nothing, so at most 100 of them an hour are, across the instance;
   - `auth.sign_up_code_failed`;
   - `user.signed_up`, with how: `password`;
   - `user.approved`, `user.declined` (with who, or `retention` when it ran out).
@@ -169,15 +170,22 @@ created, and the sign-in page opens with her email filled in and "Your account i
 **Someone tries an address that has an account.** They see exactly what Ana saw, and the code page.
 No code exists, so any code they type is wrong. The owner of the address gets "Someone tried to
 create an account at Acme Marketplace with this address, but you already have one. Sign in, or
-reset your password. If this wasn't you, ignore this email."
+reset your password. If this wasn't you, ignore this email." Until 194 (forgot password) exists,
+it says "ask your administrator to reset your password".
 
 **Approval is on.** After the code, Ana sees "Your account was created and waits for a root's
 approval. We'll email you." Each root sees a notification. One opens Users › *Awaiting approval*
 and approves her. Ana gets "Your account at Acme Marketplace is approved" and signs in.
 
 **A bot.** It fills the honeypot or posts in under 3 seconds: it sees the success page and nothing
-is sent. Without a valid challenge answer, the form is refused with "Your browser couldn't finish
-the check. Try again." Past the limits: "Too many tries. Wait a few minutes and try again."
+is sent. Its sign-up goes on as an existing address's does (the same checks, limits, cookie and
+code page), with no password kept and no email: every code is wrong. Its email is written and
+dropped, so it takes as long as a person's. Two consequences are accepted (owner, 2026-11-21): a
+bot's post counts against the address's limits like any other (3 codes an hour), so it can use
+them up with nothing reaching the inbox, as anyone could by signing up with that address; and a
+bot's **Send a new code** for an address that has an account emails its owner "you already have
+an account", as a person's would, since a bot and a person must look the same. Without a valid challenge answer, the form is refused with "Your
+browser couldn't finish the check. Try again." Past the limits: "Too many tries. Wait a few minutes and try again."
 
 ## Edge cases
 
