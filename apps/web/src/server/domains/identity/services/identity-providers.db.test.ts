@@ -222,6 +222,27 @@ describe("editing a provider", () => {
     });
   });
 
+  it("creates accounts exactly while it lists domains, never for any domain, with no approval (191)", async () => {
+    const off = { createsAccounts: false, anyDomain: false, needsApproval: false };
+    const on = { ...off, createsAccounts: true };
+    expect(await createProvider(deps, actor(), "acme", input())).toMatchObject(on);
+    expect(await createProvider(deps, actor(), "bare", input({ domains: "" }))).toMatchObject(off);
+    tick();
+    const emptied = await updateProvider(
+      deps,
+      actor(),
+      "acme",
+      input({ domains: "  " }),
+      await version(),
+    );
+    expect(emptied).toMatchObject(off);
+    tick();
+    const listed = await updateProvider(deps, actor(), "acme", input(), await version());
+    expect(listed).toMatchObject(on);
+    // As stored, not only as returned.
+    expect(await getProvider(deps, actor(), "acme")).toMatchObject(on);
+  });
+
   it("replaces the secret, says only that it changed, and needs a new test", async () => {
     await createProvider(deps, actor(), "acme", input());
     await markProviderTested(deps, actor(), "acme", await version());

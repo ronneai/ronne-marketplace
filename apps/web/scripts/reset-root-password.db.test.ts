@@ -80,7 +80,13 @@ describe("pnpm run reset-root-password --yes", () => {
     const { db, dialect } = createDb(databaseUrl());
     const repo = kyselyIdentityRepository(db, dialect);
     await repo.createUserWithPassword(
-      { email: "second@example.com", name: "Second", role: "root", passwordHash: "x" },
+      {
+        email: "second@example.com",
+        name: "Second",
+        role: "root",
+        createdVia: "root",
+        passwordHash: "x",
+      },
       new Date(Date.now() + 1000),
     );
     await repo.createUserWithPassword(
@@ -88,6 +94,7 @@ describe("pnpm run reset-root-password --yes", () => {
         email: "mod@example.com",
         name: "Mod",
         role: "user",
+        createdVia: "root",
         globalRole: "moderator",
         passwordHash: "x",
       },

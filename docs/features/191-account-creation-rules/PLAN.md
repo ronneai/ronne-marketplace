@@ -15,11 +15,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - `docs/features/README.md` lists 191 in M32.
   - *Done when:* both say what this spec says, and `pnpm witness:check` and `pnpm docs:check` pass.
 
-- [ ] **2. Migration.** [risky]
+- [x] **2. Migration.** [risky]
   - `creates_accounts`, `any_domain` and `needs_approval` on `identity_providers`, set from each
     provider's `domains`.
   - The `blocked_domains` and `account_rules_version` settings.
-  - `user.created_via`, backfilled (SCIM, the earliest provider link, sign-up, else `unknown`), and
+  - `user.created_via`, backfilled (sign-up, SCIM, the earliest provider link, else `unknown`), and
     written by setup, Create user, sign-up, SCIM and provider sign-ins (`insertUser` takes it).
     Shown on the user page (123) and in your data (104).
   - The domain model: normalise, validate, match exactly.

@@ -168,7 +168,7 @@ export const createProvider = async (
     name,
     config,
     secretEnc: secret ? encryptSecret(deps.authSecret, providerId, secret) : null,
-    domains: parseDomains(input.domains),
+    ...accountSettings(parseDomains(input.domains)),
     linkByEmail: input.linkByEmail !== false,
     groupsClaim: checkGroupsClaim(input.groupsClaim),
     testedAt: null,
@@ -193,6 +193,18 @@ export const createProvider = async (
     throw error;
   }
 };
+
+/**
+ * Who a provider creates accounts for (191), as 106's form still says it until the form gains
+ * 191's fields: accounts for its listed domains, none when the list is empty, never for any
+ * domain, with no approval. The migration set every existing provider the same way.
+ */
+const accountSettings = (domains: string[]) => ({
+  domains,
+  createsAccounts: domains.length > 0,
+  anyDomain: false,
+  needsApproval: false,
+});
 
 /** The fields whose change the audit names (never their values). */
 const changedFields = (
@@ -241,7 +253,7 @@ export const updateProvider = async (
       name: checkName(input.name),
       config,
       secretEnc: secret ? encryptSecret(deps.authSecret, id, secret) : stored.secretEnc,
-      domains: parseDomains(input.domains),
+      ...accountSettings(parseDomains(input.domains)),
       linkByEmail: input.linkByEmail !== false,
       groupsClaim: checkGroupsClaim(input.groupsClaim),
       testedAt: retest ? null : p.testedAt,

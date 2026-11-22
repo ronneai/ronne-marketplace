@@ -120,10 +120,11 @@ Also:
 - **`identity_providers`:** `creates_accounts` (boolean), `any_domain` (boolean), `needs_approval`
   (boolean). `domains` stays the allowed list.
 - **`user.created_via`** (string, 48): `setup`, `root`, `sign_up`, `scim`, `provider:<id>`, or
-  `unknown`. Backfilled as best it can:
-  - an account in `scim_users` gets `scim`;
-  - an account linked to a provider gets `provider:<id>` of its earliest link;
-  - an account with a sign-up time (190) gets `sign_up`;
+  `unknown`. Backfilled as best it can, the surest evidence first:
+  - an account with a sign-up time (190) gets `sign_up`: only a sign-up writes it, while a provider
+    link or SCIM can be added to an account that already existed;
+  - else an account in `scim_users` gets `scim` (SCIM provisions before the first sign-in);
+  - else an account linked to a provider gets `provider:<id>` of its earliest link;
   - the rest get `unknown`, since setup's root and Create user can't be told apart afterwards.
 - **Settings keys:** `blocked_domains` (a JSON list) and `account_rules_version`, for the stale
   check.

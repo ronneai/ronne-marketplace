@@ -198,6 +198,11 @@ describe("first sign-in from a listed domain", () => {
     expect(provider?.provider.lastSignedInAt).not.toBeNull();
   });
 
+  it("records that this provider made the account (191)", async () => {
+    await signIn({ next: "/items" });
+    expect((await userByEmail("ana@acme.com"))?.created_via).toBe("provider:acme");
+  });
+
   it("opens a session of 24 hours that ends with the browser and isn't extended (decision 12)", async () => {
     const before = Date.now();
     const { response } = await signIn();

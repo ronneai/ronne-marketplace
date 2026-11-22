@@ -37,8 +37,11 @@ export interface SsoRepository {
   linkAccount(userId: string, providerId: string, subject: string, now: Date): Promise<void>;
   findUser(userId: string): Promise<UserSummary | null>;
   findUserByEmail(email: string): Promise<UserSummary | null>;
-  /** A new `user`: in `global`, with a personal workspace, no password. Returns its id. */
-  createUser(user: { email: string; name: string }, now: Date): Promise<string>;
+  /**
+   * A new `user`: in `global`, with a personal workspace, no password, made by this provider
+   * (`created_via`, 191). Returns its id.
+   */
+  createUser(user: { email: string; name: string; providerId: string }, now: Date): Promise<string>;
   /** The provider's group mappings (a deleted workspace's mapping has a null workspace). */
   mappingsFor(
     providerId: string,

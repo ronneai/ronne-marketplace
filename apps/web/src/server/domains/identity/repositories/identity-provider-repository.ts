@@ -14,6 +14,9 @@ export type ProviderRow = {
   secretEnc: string | null;
   domains: string[];
   linkByEmail: boolean;
+  createsAccounts: boolean;
+  anyDomain: boolean;
+  needsApproval: boolean;
   groupsClaim: string | null;
   testedAt: Date | null;
   testedBy: string | null;

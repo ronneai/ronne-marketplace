@@ -1,5 +1,6 @@
 import type { AuditMetadata, AuditMetadataValue } from "../../audit/models/audit-event";
 import type { Locale } from "./locale";
+import type { CreatedVia } from "./user";
 
 /**
  * The file a person can download about themselves (feature 104): `version: 1`. Dates become ISO
@@ -42,6 +43,8 @@ export type UserDataAccount = {
   twoFactorEnabled: boolean;
   /** The language they chose (129); null is automatic. */
   locale: Locale | null;
+  /** The way the account was made (191): `setup`, `root`, `sign_up`, `scim`, `provider:<id>` or `unknown`. */
+  createdVia: CreatedVia;
   /** When the person made the account by signing up (190); null when root or a provider did. */
   signedUpAt: Date | null;
   /** Since when it waits for a root's approval (190); null when it doesn't. */

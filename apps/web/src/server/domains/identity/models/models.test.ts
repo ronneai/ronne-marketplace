@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { InvalidEmailError, InvalidNameError, InvalidPasswordError } from "../exceptions/errors";
 import { validatePassword } from "./password";
-import { normalizeEmail, normalizeName } from "./user";
+import { createdVia, normalizeEmail, normalizeName } from "./user";
 
 describe("validatePassword", () => {
   it.each(["a".repeat(12), "a".repeat(128), "correct horse battery", "ééééééééééééé"])(
@@ -40,4 +40,20 @@ describe("normalizeName", () => {
     expect(() => normalizeName("   ")).toThrowError(InvalidNameError);
     expect(() => normalizeName("x".repeat(256))).toThrowError(InvalidNameError);
   });
+});
+
+describe("createdVia (191)", () => {
+  it.each(["setup", "root", "sign_up", "scim", "provider:entra", "unknown"])(
+    "keeps %j",
+    (value) => {
+      expect(createdVia(value)).toBe(value);
+    },
+  );
+
+  it.each([null, undefined, "", "web", "SETUP", "provider:", "Provider:entra"])(
+    "reads %j as unknown",
+    (value) => {
+      expect(createdVia(value)).toBe("unknown");
+    },
+  );
 });

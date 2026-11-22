@@ -187,7 +187,10 @@ export const signInWithProvider = async (
         linked: true,
       };
     }
-    const id = await trx.createUser({ email: plan.email, name: plan.name }, context.now);
+    const id = await trx.createUser(
+      { email: plan.email, name: plan.name, providerId: provider.id },
+      context.now,
+    );
     await trx.linkAccount(id, provider.id, identity.subject, context.now);
     await trx.recordAudit(
       {

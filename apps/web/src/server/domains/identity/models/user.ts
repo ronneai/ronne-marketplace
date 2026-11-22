@@ -9,6 +9,23 @@ import type { ScimAccountState } from "./scim-user";
 export type Role = "root" | "user";
 
 /**
+ * The way an account was made (191, `user.created_via`): setup's root, root's Create user, a
+ * sign-up (190), SCIM (108) or an identity provider's first sign-in (106). `unknown` is only an
+ * account from before 191 that the migration couldn't place.
+ */
+export type CreatedVia = "setup" | "root" | "sign_up" | "scim" | `provider:${string}` | "unknown";
+
+/** A stored `created_via` as the type: anything else reads as `unknown`. */
+export const createdVia = (value: string | null | undefined): CreatedVia =>
+  value === "setup" ||
+  value === "root" ||
+  value === "sign_up" ||
+  value === "scim" ||
+  (typeof value === "string" && value.startsWith("provider:") && value.length > 9)
+    ? (value as CreatedVia)
+    : "unknown";
+
+/**
  * A role in a workspace (`workspace_members.role`, feature 091): user, moderator, or admin (092), a
  * moderator who also runs the workspace: its members, scopes and description.
  */
@@ -57,6 +74,8 @@ export type UserSummary = {
   passwordChangeRequiredAt?: Date | null;
   /** Since when the account, made by signing up, waits for a root's approval (190); null for none. */
   approvalPendingAt?: Date | null;
+  /** The way the account was made (191). */
+  createdVia?: CreatedVia;
   /** Its roles per workspace (091), moderated ones first, for the users list; ignored for root. */
   workspaces?: { name: string; role: WorkspaceRole }[];
   /** Two-factor is on (the flag and a confirmed record, 105), for the users list. */

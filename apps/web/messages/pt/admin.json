@@ -139,6 +139,7 @@
       "role": "Papel",
       "status": "Situação",
       "created": "Criada em",
+      "createdVia": "Criada por",
       "language": "Idioma",
       "lastSignIn": "Último acesso",
       "provider": "Provedor",
@@ -204,6 +205,14 @@
       "body": "Ela foi criada por cadastro, <date></date>. Não consegue entrar até um root aprová-la; se aguardar 30 dias, é recusada.",
       "approve": "Aprovar",
       "decline": "Recusar"
+    },
+    "createdVia": {
+      "setup": "Configuração (o primeiro root)",
+      "root": "Um root, com Criar usuário",
+      "sign_up": "Cadastro pela própria pessoa",
+      "scim": "Provisionamento SCIM",
+      "provider": "Primeiro acesso com {provider}",
+      "unknown": "Não registrado (anterior a este registro)"
     }
   },
   "actions": {

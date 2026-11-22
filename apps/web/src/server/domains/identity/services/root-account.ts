@@ -48,7 +48,10 @@ export const createRootUser = async (
   return deps.repo.transaction(async (repo) => {
     const existing = await repo.findFirstRoot();
     if (existing) throw new RootAlreadyExistsError(existing.email);
-    const id = await repo.createUserWithPassword({ email, name, role: "root", passwordHash }, now);
+    const id = await repo.createUserWithPassword(
+      { email, name, role: "root", passwordHash, createdVia: "setup" },
+      now,
+    );
     // Nobody is signed in yet, so there's no actor; the origin says where setup ran.
     await repo.recordAudit(
       {

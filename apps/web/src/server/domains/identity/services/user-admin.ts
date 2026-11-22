@@ -202,7 +202,10 @@ export const createUser = async (
   const id = await deps.repo.transaction(async (repo) => {
     await lockAndRecheckActor(repo, actor);
     if (await repo.emailTaken(email)) throw new EmailTakenError(email);
-    const created = await repo.createUserWithPassword({ email, name, role, passwordHash }, at);
+    const created = await repo.createUserWithPassword(
+      { email, name, role, passwordHash, createdVia: "root" },
+      at,
+    );
     if (requireChange) await repo.setPasswordChangeRequired(created, true, at);
     await repo.recordAudit(
       {

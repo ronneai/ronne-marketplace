@@ -139,6 +139,7 @@
       "role": "Role",
       "status": "Status",
       "created": "Created",
+      "createdVia": "Created by",
       "language": "Language",
       "lastSignIn": "Last sign-in",
       "provider": "Provider",
@@ -204,6 +205,14 @@
       "body": "It was made by signing up, <date></date>. It can't sign in until a root approves it; left waiting for 30 days, it's declined.",
       "approve": "Approve",
       "decline": "Decline"
+    },
+    "createdVia": {
+      "setup": "Setup (the first root)",
+      "root": "A root, with Create user",
+      "sign_up": "Signing up",
+      "scim": "SCIM provisioning",
+      "provider": "First sign-in with {provider}",
+      "unknown": "Not recorded (before this was kept)"
     }
   },
   "actions": {

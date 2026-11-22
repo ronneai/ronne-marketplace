@@ -186,9 +186,22 @@ describe("signing up (190)", () => {
     });
   });
 
+  it("records that a sign-up made the account (191)", async () => {
+    const asked = await started();
+    const [mail] = await mails();
+    later(30_000);
+    await signUp.enterSignUpCode(deps(), { id: asked.id, code: codeIn(mail?.text), ip: null });
+    const user = await t.db
+      .selectFrom("user")
+      .select("created_via")
+      .where("email", "=", "ana@acme.com")
+      .executeTakeFirstOrThrow();
+    expect(user.created_via).toBe("sign_up");
+  });
+
   it("an existing address: the same answer, its owner told, and no code that works", async () => {
     await kyselyIdentityRepository(t.db, t.dialect).createUserWithPassword(
-      { email: "ana@acme.com", name: "Ana", role: "user", passwordHash: "x" },
+      { email: "ana@acme.com", name: "Ana", role: "user", createdVia: "root", passwordHash: "x" },
       clock,
     );
     const asked = await started();
@@ -213,7 +226,7 @@ describe("signing up (190)", () => {
 
   it("an existing address whose account goes meanwhile: Send a new code sends nothing", async () => {
     const existing = await kyselyIdentityRepository(t.db, t.dialect).createUserWithPassword(
-      { email: "ana@acme.com", name: "Ana", role: "user", passwordHash: "x" },
+      { email: "ana@acme.com", name: "Ana", role: "user", createdVia: "root", passwordHash: "x" },
       clock,
     );
     const asked = await started();
@@ -287,7 +300,7 @@ describe("signing up (190)", () => {
     const asked = await started();
     const code = codeIn((await mails())[0]?.text);
     await kyselyIdentityRepository(t.db, t.dialect).createUserWithPassword(
-      { email: "ana@acme.com", name: "Ana", role: "user", passwordHash: "x" },
+      { email: "ana@acme.com", name: "Ana", role: "user", createdVia: "root", passwordHash: "x" },
       clock,
     );
     expect(await signUp.enterSignUpCode(deps(), { id: asked.id, code, ip: null })).toEqual({
@@ -299,7 +312,7 @@ describe("signing up (190)", () => {
 
   it("a lookalike address is refused before anything: not plain ASCII, or not one address", async () => {
     await kyselyIdentityRepository(t.db, t.dialect).createUserWithPassword(
-      { email: "kate@acme.com", name: "Kate", role: "user", passwordHash: "x" },
+      { email: "kate@acme.com", name: "Kate", role: "user", createdVia: "root", passwordHash: "x" },
       clock,
     );
     for (const email of [
@@ -597,7 +610,7 @@ describe("signing up (190)", () => {
 
   it("takes as long for an existing address as for a new one", async () => {
     await kyselyIdentityRepository(t.db, t.dialect).createUserWithPassword(
-      { email: "old@acme.com", name: "Old", role: "user", passwordHash: "x" },
+      { email: "old@acme.com", name: "Old", role: "user", createdVia: "root", passwordHash: "x" },
       clock,
     );
     const time = async (email: string, fields: Partial<signUp.SignUpRequest> = {}) => {

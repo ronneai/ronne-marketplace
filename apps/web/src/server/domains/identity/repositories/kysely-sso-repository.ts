@@ -126,7 +126,11 @@ export const kyselySsoRepository = (
     findUser: (userId) => identity.findUser(userId),
     findUserByEmail: (email) => identity.findUserByEmail(email),
 
-    createUser: (user, now) => identity.createUserWithoutPassword({ ...user, role: "user" }, now),
+    createUser: ({ providerId, ...user }, now) =>
+      identity.createUserWithoutPassword(
+        { ...user, role: "user", createdVia: `provider:${providerId}` },
+        now,
+      ),
 
     async mappingsFor(providerId) {
       const rows = await db

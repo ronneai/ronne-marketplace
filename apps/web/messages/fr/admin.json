@@ -139,6 +139,7 @@
       "role": "Rôle",
       "status": "Statut",
       "created": "Créé le",
+      "createdVia": "Créé par",
       "language": "Langue",
       "lastSignIn": "Dernière connexion",
       "provider": "Fournisseur",
@@ -204,6 +205,14 @@
       "body": "Il a été créé par inscription, <date></date>. Il ne peut pas se connecter tant qu’un root ne l’a pas approuvé; s’il attend 30 jours, il est refusé.",
       "approve": "Approuver",
       "decline": "Refuser"
+    },
+    "createdVia": {
+      "setup": "Configuration (le premier root)",
+      "root": "Un root, avec Créer un utilisateur",
+      "sign_up": "Inscription par la personne",
+      "scim": "Provisionnement SCIM",
+      "provider": "Première connexion avec {provider}",
+      "unknown": "Non consigné (avant cet enregistrement)"
     }
   },
   "actions": {

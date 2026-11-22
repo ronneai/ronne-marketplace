@@ -50,7 +50,13 @@ const twoRoots = async () => {
   });
   const repo = kyselyIdentityRepository(t.db, t.dialect);
   const second = await repo.createUserWithPassword(
-    { email: "second@example.com", name: "Second", role: "root", passwordHash: "x" },
+    {
+      email: "second@example.com",
+      name: "Second",
+      role: "root",
+      createdVia: "root",
+      passwordHash: "x",
+    },
     new Date(Date.now() + 1000),
   );
   await repo.createUserWithPassword(
@@ -58,6 +64,7 @@ const twoRoots = async () => {
       email: "mod@example.com",
       name: "Mod",
       role: "user",
+      createdVia: "root",
       globalRole: "moderator",
       passwordHash: "x",
     },

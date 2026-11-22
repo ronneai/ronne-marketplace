@@ -486,7 +486,7 @@ describe("exportUserData (104)", () => {
     const signedUp = new Date("2026-11-01T09:00:00.000Z");
     await t.db
       .updateTable("user")
-      .set({ signed_up_at: at(signedUp) })
+      .set({ signed_up_at: at(signedUp), created_via: "sign_up" })
       .where("id", "=", id)
       .execute();
     for (const [rowId, version, when] of [
@@ -499,6 +499,7 @@ describe("exportUserData (104)", () => {
         .execute();
     const { data } = await exportAs(asSam, id);
     expect(data.account).toMatchObject({
+      createdVia: "sign_up",
       signedUpAt: signedUp,
       approvalPendingAt: null,
       termsAcceptances: [
@@ -509,6 +510,8 @@ describe("exportUserData (104)", () => {
     // Someone who didn't sign up: nothing to say.
     const { data: root } = await exportAs(asRoot, rootId);
     expect(root.account).toMatchObject({ signedUpAt: null, termsAcceptances: [] });
+    // The way each account was made (191): this root came from setup.
+    expect(root.account.createdVia).toBe("setup");
   });
 
   it("gives each event where it came from (166), and the client only of what the person did", async () => {

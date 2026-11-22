@@ -131,6 +131,18 @@ describe("a user's page (123)", () => {
     expect(html).toContain("Not rmk");
   });
 
+  it("says which way the account was made (191)", () => {
+    const by = (createdVia: UserSummary["createdVia"]) =>
+      page(detail({ createdVia })).match(/Created by<\/dt><dd[^>]*>([^<]*)</)?.[1];
+    expect(by("setup")).toBe("Setup (the first root)");
+    expect(by("root")).toBe("A root, with Create user");
+    expect(by("sign_up")).toBe("Signing up");
+    expect(by("scim")).toBe("SCIM provisioning");
+    expect(by("provider:entra")).toBe("First sign-in with entra");
+    expect(by("unknown")).toBe("Not recorded (before this was kept)");
+    expect(page(detail())).not.toContain("Created by");
+  });
+
   it("shows two-factor, and a disabled account's date", () => {
     expect(page(detail({ twoFactor: true }))).toMatch(/Two-factor<\/dt><dd[^>]*>On</);
     const html = page(detail({ disabledAt: new Date("2026-10-01T10:00:00Z") }));

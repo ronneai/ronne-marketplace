@@ -153,7 +153,13 @@ export const kyselySignUpRepository = (
     async createAccount(input: NewSignedUpAccount): Promise<string> {
       const { now } = input;
       const id = await kyselyIdentityRepository(db, dialect, queued ?? []).createUserWithPassword(
-        { email: input.email, name: input.name, role: "user", passwordHash: input.passwordHash },
+        {
+          email: input.email,
+          name: input.name,
+          role: "user",
+          passwordHash: input.passwordHash,
+          createdVia: "sign_up",
+        },
         now,
       );
       await db

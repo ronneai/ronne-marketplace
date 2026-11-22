@@ -19,6 +19,12 @@ export type IdentityProvider = {
    */
   domains: string[];
   linkByEmail: boolean;
+  /** Whether a first sign-in creates an account (191); off, it signs in linked accounts only. */
+  createsAccounts: boolean;
+  /** Whether it creates accounts in any domain the block list allows, `domains` unused (191). */
+  anyDomain: boolean;
+  /** Whether a new account waits for a root's approval (191, 190's mechanism). */
+  needsApproval: boolean;
   groupsClaim: string | null;
   testedAt: Date | null;
   testedBy: string | null;

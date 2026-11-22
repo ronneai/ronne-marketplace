@@ -38,6 +38,8 @@ export interface UserTable {
   approval_pending_at: Timestamp | null;
   /** When the person created the account themselves (migration 0046, feature 190); null for every other account. */
   signed_up_at: Timestamp | null;
+  /** The way the account was made (migration 0047, feature 191): `setup`, `root`, `sign_up`, `scim`, `provider:<id>` or `unknown`; null reads as `unknown`. */
+  created_via: string | null;
 }
 
 export interface SessionTable {
@@ -200,6 +202,16 @@ export interface IdentityProviderTable {
   secret_enc: string | null;
   domains: string;
   link_by_email: GeneratedDbBoolean;
+  /** Whether a first sign-in creates an account (migration 0047, feature 191); null reads as off. */
+  creates_accounts: ColumnType<
+    boolean | number | null,
+    boolean | number | null,
+    boolean | number | null
+  >;
+  /** Whether it creates them for any domain, `domains` then unused for creating (0047, 191). */
+  any_domain: GeneratedDbBoolean;
+  /** Whether a new account waits for a root's approval (0047, 191). */
+  needs_approval: GeneratedDbBoolean;
   groups_claim: string | null;
   tested_at: Timestamp | null;
   tested_by: string | null;
