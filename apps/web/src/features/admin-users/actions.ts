@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { errorText } from "@/i18n/errors";
 import { adminRevokeToken } from "@/server/domains/identity/actions/access-tokens";
+import { approveAccount, declineAccount } from "@/server/domains/identity/actions/approval";
 import { adminEraseUser } from "@/server/domains/identity/actions/erase-user";
 import {
   adminChangeRole,
@@ -142,6 +144,31 @@ export const enableUserFromForm = serverAction(
       await adminEnableUser(await requestHeaders(), text(form, "userId"));
       return { done: (await getTranslations("admin.done.users"))("enabled") };
     }),
+);
+
+/** **Approve** an account waiting since sign-up (190): it can sign in, and its owner is told. */
+export const approveUserFromForm = serverAction(
+  async (_previous: AdminActionState, form: FormData): Promise<AdminActionState> =>
+    attempt(async () => {
+      await approveAccount(await requestHeaders(), text(form, "userId"));
+      return { done: (await getTranslations("admin.done.users"))("approved") };
+    }),
+);
+
+/**
+ * **Decline** an account waiting since sign-up (190): it's deleted and its owner told. Its page
+ * goes with it, so the list of those still waiting opens, saying so.
+ */
+export const declineUserFromForm = serverAction(
+  async (_previous: AdminActionState, form: FormData): Promise<AdminActionState> => {
+    const result = await attempt(async () => {
+      await declineAccount(await requestHeaders(), text(form, "userId"));
+      return { done: "declined" };
+    });
+    if (result.error) return result;
+    await flashToast("accountDeclined");
+    redirect("/admin/users?status=awaiting");
+  },
 );
 
 export const resetPasswordFromForm = serverAction(

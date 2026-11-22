@@ -438,5 +438,13 @@
   "user.terms_accepted": {
     "empty": "Accepted the terms, version ?",
     "rich": "Accepted the terms, version 1.2.0"
+  },
+  "user.approved": {
+    "empty": "Approved the account of an unknown email",
+    "rich": "Approved the account of ana@example.com"
+  },
+  "user.declined": {
+    "empty": "Declined the account of an unknown email, and deleted it",
+    "rich": "Declined the account of ana@example.com, and deleted it"
   }
 }

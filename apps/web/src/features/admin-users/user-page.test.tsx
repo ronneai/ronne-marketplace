@@ -57,6 +57,38 @@ const slots = {
 const page = (d: UserDetail, self = false, withSlots = true) =>
   renderToStaticMarkup(<UserPage detail={d} self={self} slots={withSlots ? slots : {}} />);
 
+describe("an account waiting for approval, on its page (190)", () => {
+  it("says it waits, since when, with Approve and Decline, and a badge", () => {
+    const waiting = page(
+      detail({ approvalPendingAt: new Date("2026-11-20T10:00:00Z") }),
+      false,
+      true,
+    );
+    expect(waiting).toContain("This account waits for a root&#x27;s approval");
+    expect(waiting).toContain("awaiting approval");
+    const withButtons = renderToStaticMarkup(
+      <UserPage
+        detail={detail({ approvalPendingAt: new Date("2026-11-20T10:00:00Z") })}
+        self={false}
+        slots={{ ...slots, approval: <button type="button">SLOT-APPROVAL</button> }}
+      />,
+    );
+    expect(withButtons).toContain("SLOT-APPROVAL");
+  });
+
+  it("says nothing of approval for an account that doesn't wait", () => {
+    const html = renderToStaticMarkup(
+      <UserPage
+        detail={detail()}
+        self={false}
+        slots={{ ...slots, approval: <button type="button">SLOT-APPROVAL</button> }}
+      />,
+    );
+    expect(html).not.toContain("SLOT-APPROVAL");
+    expect(html).not.toContain("awaiting approval");
+  });
+});
+
 describe("a user's page (123)", () => {
   it("shows the account, the access counts, the workspaces and the way back", () => {
     const html = page(detail());

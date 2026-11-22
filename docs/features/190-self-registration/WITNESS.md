@@ -673,3 +673,70 @@ Witnessed: 2026-11-22 00:13 EST, by a fresh agent (adversarial). Commit: 9130c01
 | 13 | The sign-up e2e passes | no | confirmed | on a build newer than the edits → 3 passed |
 
 **Overall:** met.
+
+## Task 7 — Approval [risky]
+
+### Blind pass
+
+Witnessed: 2026-11-22 00:30 EST, by a fresh agent (blind). Commit: d3a879cd + working-tree diff. Machine: macOS (Darwin 27.2), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1–4 | Password sign-in, the token exchange and the device flow refuse a waiting account, only after the right password; a wrong one says nothing | no | confirmed | `approval.db.test.ts` 8/8; mutations in `session.ts`, `token-exchange.ts`, `findActiveUser` → fail; upper-case address probe |
+| 5 | Roots notified, nobody else | no | confirmed | probe on four databases: one row, root only; link null after a decline |
+| 6–8 | Approve, Decline (all its rows, email with no user), the race under a row lock | no | confirmed | four databases; without `forUpdate` the race test fails on PostgreSQL |
+| 9 | The race message in the root's language | no | not met | `ApprovalAnsweredError` not in `errors.json` |
+| 10–13 | The 30-day decline; approval off keeps waiting accounts; roots only; the filter's query | no | confirmed | 28-day mutation fails; probes |
+| 14 | Component tests cover the filter | no | partly | deleting the option passes every test |
+| 15–18 | Approve and Decline with confirms in three languages; the spec's change; emails; typecheck | no | confirmed | `approval-dialogs.test.tsx`, `user-page.test.tsx`; snapshots; `tsc` exit 0 |
+
+**Overall:** not met (rows 9, 14).
+
+### Adversarial pass
+
+Witnessed: 2026-11-22 00:37 EST, by a fresh agent (adversarial). Commit: d3a879cd + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1–3, 5–7, 9, 10, 13, 14 | Refusals (timing P8 equal), notifications, approve, decline (nothing else deleted, P1), the race, the job in batches (230 accounts) and without `AUTH_SECRET`, the page's buttons, the spec's change | no | confirmed | probes P1–P8 on four databases; mutations M1–M6 |
+| 4 | No other way in | no | partly | no test of the SSO refusal; the linked SSO path and token auth don't check approval (unreachable) |
+| 8 | Only roots answer | no | partly | Decline's permission untested |
+| 11 | One bad account doesn't stop the job | no | partly | one failure aborts the run and every later one |
+| 12 | The filter, with tests | no | partly | option and query untested |
+| 15 | The race message translated | no | not met | — |
+
+**Overall:** not met. Also: a declined person's email outlives the decline (audit, notifications), handed to task 8 in PLAN.md.
+
+Fixes after the first passes: `ApprovalAnsweredError` in errors.json (en, pt, fr) with test cases; tests for the filter's option, status cell and query, Decline's permission, the SSO refusal (email and linked), a token made before the mark; the linked SSO path and token auth refuse a waiting account; *Active* excludes waiting accounts; the job makes one pass of at most 1000, logging and skipping one it can't decline.
+
+### Re-check 1 (blind)
+
+Witnessed: 2026-11-22 00:43 EST, by a fresh agent (blind). Commit: d3a879cd + working-tree diff. Machine: macOS (Darwin 27.2), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | The race message in the root's language | no | confirmed | `errors.test.ts`; renaming the pt key → fails |
+| 14 | Component tests cover the filter | no | confirmed | deleting the option → the new test fails |
+| 19–22 | The filter's query, a token from before the mark, SSO both ways, Decline's permission | no | confirmed | four databases; each mutation fails its test |
+| 23 | The job logs and skips an account it can't decline | no | confirmed | probe on three databases; no repository test |
+| 24 | Affected tests and typecheck | no | confirmed | 182 passed; 53/53 on each server; `tsc` exit 0 |
+
+**Overall:** met.
+
+### Re-check 1 (adversarial)
+
+Witnessed: 2026-11-22 00:43 EST, by a fresh agent (adversarial). Commit: d3a879cd + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | No other way in | no | confirmed | M4a, M4b, M11 each fail a test |
+| 8 | Only roots answer | no | confirmed | M9 → fails; P9 on four databases |
+| 11 | One bad account doesn't stop the job | no | confirmed | P9 on four databases: one declined, the bad one kept, the next run declines it |
+| 12 | The filter, with tests | no | confirmed | M7, M7b, M8 each fail a test |
+| 15 | The race message translated | no | confirmed | M12 → fails |
+| — | The email kept after a decline | no | confirmed | handed to task 8 (PLAN.md) |
+| all | The task's tests on every database | no | confirmed | 62 passed on each |
+
+**Overall:** met. With re-check 1 (blind) met, both latest passes are met.
+
+Fix after re-check 1, test only, from the blind remark: "skips an account the job can't decline, and still declines the others". Making the job rethrow there → it fails (rerun by the implementer, file restored and matched with `cmp`); 11/11 on four databases.

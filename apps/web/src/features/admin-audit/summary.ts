@@ -303,6 +303,12 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     waiting: flag(m.approval === true),
   }),
   "user.terms_accepted": (m) => ({ version: text(m.version) || "?" }),
+  // `{ email }`, and for a decline `{ by: root | retention }` (190).
+  "user.approved": (m, _e, h) => ({ email: text(m.email) || h.part("fallback.unknownEmail") }),
+  "user.declined": (m, _e, h) => ({
+    email: text(m.email) || h.part("fallback.unknownEmail"),
+    job: flag(m.by === "retention"),
+  }),
   "user.sso_linked": (m, e, h) => ({ email: h.who(m, e), provider: text(m.provider) }),
   "user.role_changed": (m, e, h) => ({
     who: h.who(m, e),

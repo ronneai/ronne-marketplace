@@ -52,8 +52,10 @@ export const NotificationFilters = ({ state }: { state: NotificationsListState }
   const kindOptions: FilterOption<NotificationKind>[] = KIND_GROUPS.flatMap(({ group, kinds }) =>
     kinds.map((kind) => ({
       value: kind,
-      name: t(`kinds.${kind}`),
-      label: t(`kinds.${kind}`),
+      // The key type stops resolving past this many kinds; every kind's label is in each language
+      // (the notifications tests check it), as for the groups below.
+      name: t(`kinds.${kind as "feedback.new"}`),
+      label: t(`kinds.${kind as "feedback.new"}`),
       group: t(`groups.${group as "submission"}`),
     })),
   );

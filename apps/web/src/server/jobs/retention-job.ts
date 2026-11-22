@@ -1,5 +1,10 @@
+import { loadConfig } from "../config";
+import { kyselyApprovalRepository } from "../domains/identity/repositories/kysely-approval-repository";
 import { kyselyEraseRepository } from "../domains/identity/repositories/kysely-erase-repository";
+import { declineExpiredAccounts } from "../domains/identity/services/approval";
 import { finishErasures } from "../domains/identity/services/erase-user";
+import { instanceHost } from "../domains/mail/services/mail-admin";
+import { storedMailSetup } from "../domains/mail/services/mail-setup";
 import { kyselySettingsRepository } from "../domains/settings/repositories/kysely-settings-repository";
 import { retentionPolicy } from "../domains/settings/services/settings";
 import { type PurgeCounts, runRetentionPurge } from "./retention-purge";
@@ -12,7 +17,11 @@ export const RETENTION_JOB = "retention_purge";
  * The counts as the log line and `last_result` carry them: the IPs of the three tables added up,
  * and the erasures (103) whose rewrite the run finished.
  */
-export const flattenCounts = (counts: PurgeCounts, erasuresFinished = 0): JobCounts => ({
+export const flattenCounts = (
+  counts: PurgeCounts,
+  erasuresFinished = 0,
+  signUpsDeclined = 0,
+): JobCounts => ({
   ipsCleared:
     counts.ipsCleared.auditLog + counts.ipsCleared.sessions + counts.ipsCleared.deviceGrants,
   emailsCleared: counts.emailsCleared,
@@ -23,6 +32,7 @@ export const flattenCounts = (counts: PurgeCounts, erasuresFinished = 0): JobCou
   rateLimitsDeleted: counts.rateLimitsDeleted,
   mailDeleted: counts.mailDeleted,
   erasuresFinished,
+  signUpsDeclined,
 });
 
 /** The run, with the purge's own counts (per table) when it ran: the command prints those. */
@@ -49,7 +59,20 @@ export const runRetentionJob = async (
       { repo: kyselyEraseRepository(deps.db, deps.dialect), now: deps.now },
       { job: true },
     );
-    return flattenCounts(purge, erasuresFinished);
+    // Accounts left waiting for a root's approval for 30 days are declined, with their email (190).
+    const config = loadConfig();
+    const settings = kyselySettingsRepository(deps.db, deps.dialect);
+    const signUpsDeclined = config.authSecret
+      ? await declineExpiredAccounts({
+          repo: kyselyApprovalRepository(deps.db, deps.dialect, config.authSecret),
+          mail: async () => ({
+            host: instanceHost(config.publicUrl),
+            contact: (await storedMailSetup(settings)).contact,
+          }),
+          ...(deps.now ? { now: deps.now } : {}),
+        })
+      : 0;
+    return flattenCounts(purge, erasuresFinished, signUpsDeclined);
   });
   return purge ? { ...run, purge } : run;
 };

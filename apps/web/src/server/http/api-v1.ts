@@ -43,6 +43,12 @@ export const postToken = async (request: Request, app: AppAuth = getAppAuth()) =
         `This account uses two-factor sign-in. Create a token at ${page}, or run rmk login --web.`,
       );
     }
+    if (result.error === "approval_pending")
+      return errorResponse(
+        403,
+        "approval_pending",
+        "Your account is waiting for a root's approval. You'll get an email once it's approved.",
+      );
     if (result.error === "password_sign_in_disabled")
       return errorResponse(
         403,

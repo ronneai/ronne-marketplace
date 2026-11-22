@@ -1,5 +1,8 @@
 /** What the sign-in form shows after a failed attempt. The email is kept; the password never is. */
-export type SignInFormState = { error?: "invalid_credentials" | "rate_limited"; email?: string };
+export type SignInFormState = {
+  error?: "invalid_credentials" | "rate_limited" | "approval_pending";
+  email?: string;
+};
 
 /**
  * Why the sign-in page was opened again from the second step (105), as `?reason=`. The words are

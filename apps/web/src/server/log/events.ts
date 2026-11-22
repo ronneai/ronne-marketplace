@@ -173,6 +173,7 @@ export const EVENTS = {
       "mailFailed",
       "mailDropped",
       "erasuresFinished",
+      "signUpsDeclined",
     ],
   },
   "job.skipped": { level: "debug", msg: "Job skipped", fields: ["job", "reason"] },

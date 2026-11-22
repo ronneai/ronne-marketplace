@@ -80,6 +80,12 @@ const User = async ({ params }: { params: Promise<{ id: string }> }) => {
       ),
       data: <DownloadDataButton user={{ id: user.id, email: user.email }} />,
       erase: <EraseUserButton user={row} />,
+      approval: user.approvalPendingAt ? (
+        <>
+          <UserActionButton kind="approve" user={row} />
+          <UserActionButton kind="decline" user={row} />
+        </>
+      ) : undefined,
     };
   }
   return (

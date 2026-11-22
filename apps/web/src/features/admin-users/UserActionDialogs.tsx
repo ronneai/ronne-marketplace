@@ -9,7 +9,9 @@ import { FieldError, Label, selectClasses } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { useToastWhen } from "@/components/ui/toast";
 import {
+  approveUserFromForm,
   changeRoleFromForm,
+  declineUserFromForm,
   disableImpactFor,
   disableUserFromForm,
   enableUserFromForm,
@@ -49,7 +51,9 @@ export type Kind =
   | "reset"
   | "twoFactor"
   | "askChange"
-  | "clearChange";
+  | "clearChange"
+  | "approve"
+  | "decline";
 type FormAction = (state: AdminActionState, form: FormData) => Promise<AdminActionState>;
 
 /** Every dialog's title: messages, the password-change ones from 128's. */
@@ -64,6 +68,8 @@ export const useTitles = (): Record<Kind, string> => {
     twoFactor: titles("twoFactor"),
     askChange: t("askTitle"),
     clearChange: t("clearTitle"),
+    approve: titles("approve"),
+    decline: titles("decline"),
   };
 };
 
@@ -75,6 +81,8 @@ const ACTIONS: Record<Kind, FormAction> = {
   twoFactor: resetTwoFactorFromForm,
   askChange: setPasswordChangeFromForm,
   clearChange: setPasswordChangeFromForm,
+  approve: approveUserFromForm,
+  decline: declineUserFromForm,
 };
 
 type Impact = { error: string } | { sessions: number; tokens: number } | null;
@@ -208,6 +216,12 @@ export const ActionForm = ({
         <ScimManagedNotice managedBy={user.managedBy} />
       ) : null}
       {kind === "enable" ? <p className="text-sm text-muted">{a("enableBody")}</p> : null}
+      {kind === "approve" ? (
+        <p className="text-sm text-muted">{a("approveBody", { email: user.email })}</p>
+      ) : null}
+      {kind === "decline" ? (
+        <Notice kind="warn" title={a("declineBody", { email: user.email })} />
+      ) : null}
       {kind === "reset" && user.role === "root" ? (
         <Notice kind="warn" title={a("isRoot", { email: user.email })} />
       ) : null}

@@ -447,6 +447,7 @@ export const enterSignUpCode = async (
         now: at,
       });
       await repo.deletePending(id, at);
+      if (policy.approval) await repo.notifyAwaitingApproval(userId, pending.email, at);
       await repo.recordAudit(
         {
           actorId: userId,

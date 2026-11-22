@@ -21,7 +21,8 @@
     "draftDeleted": "Brouillon supprimé",
     "tokenRevoked": "Révoqué. Il cesse de fonctionner à sa prochaine requête.",
     "languageSaved": "Langue enregistrée. Les écrans utilisent maintenant la langue que vous avez choisie.",
-    "languageAutomatic": "Langue enregistrée. Les écrans suivent maintenant la langue de votre navigateur."
+    "languageAutomatic": "Langue enregistrée. Les écrans suivent maintenant la langue de votre navigateur.",
+    "accountDeclined": "Refusé. Le compte est supprimé, et un courriel le dit à la personne."
   },
   "done": {
     "draftSaved": "Brouillon enregistré",

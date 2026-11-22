@@ -22,5 +22,7 @@ export const notificationHref = (link: NotificationLink): string => {
       return "/admin/feedback";
     case "updates":
       return "/admin/settings?tab=updates";
+    case "user":
+      return `/admin/users/${encodeURIComponent(link.id)}`;
   }
 };

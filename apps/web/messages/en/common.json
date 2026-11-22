@@ -21,7 +21,8 @@
     "draftDeleted": "Draft deleted",
     "tokenRevoked": "Revoked. It stops working on its next request.",
     "languageSaved": "Language saved. The screens now use the language you chose.",
-    "languageAutomatic": "Language saved. The screens now follow your browser's language."
+    "languageAutomatic": "Language saved. The screens now follow your browser's language.",
+    "accountDeclined": "Declined. The account is deleted, and an email tells them."
   },
   "done": {
     "draftSaved": "Draft saved",

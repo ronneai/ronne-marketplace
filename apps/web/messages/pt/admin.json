@@ -64,7 +64,8 @@
     "status": {
       "active": "ativo",
       "disabled": "desativado",
-      "erased": "apagado"
+      "erased": "apagado",
+      "awaiting": "aguardando aprovação"
     },
     "columns": {
       "name": "Nome",
@@ -152,7 +153,8 @@
     },
     "badge": {
       "disabled": "Desativada",
-      "erased": "Apagada"
+      "erased": "Apagada",
+      "awaiting": "aguardando aprovação"
     },
     "automatic": "Automático",
     "never": "Nunca",
@@ -196,6 +198,12 @@
       "body": "Revogar <strong>{name}</strong>? Tudo o que o usa, como o rmk na máquina da pessoa, para de funcionar até ela criar um novo token.",
       "cancel": "Cancelar",
       "submit": "Revogar token"
+    },
+    "waiting": {
+      "title": "Esta conta aguarda a aprovação de um root",
+      "body": "Ela foi criada por cadastro, <date></date>. Não consegue entrar até um root aprová-la; se aguardar 30 dias, é recusada.",
+      "approve": "Aprovar",
+      "decline": "Recusar"
     }
   },
   "actions": {
@@ -211,7 +219,9 @@
       "disable": "Desativar usuário",
       "enable": "Ativar usuário",
       "reset": "Redefinir senha",
-      "twoFactor": "Redefinir dois fatores"
+      "twoFactor": "Redefinir dois fatores",
+      "approve": "Aprovar conta",
+      "decline": "Recusar conta"
     },
     "erasedDownload": "Baixar os dados (conta apagada)",
     "erasedReason": "Esta conta foi apagada: não há nada da pessoa para baixar.",
@@ -235,7 +245,9 @@
       "title": "Tirar o papel root de {email}?",
       "body": "A pessoa perde a administração de usuários, os escopos, as configurações e o registro de auditoria na próxima requisição."
     },
-    "changeRole": "Alterar o papel de <from></from> para <to></to>."
+    "changeRole": "Alterar o papel de <from></from> para <to></to>.",
+    "approveBody": "{email} poderá entrar depois de aprovada, e recebe um e-mail avisando.",
+    "declineBody": "A conta de {email} é excluída, com o que a pessoa digitou, e ela recebe um e-mail dizendo que não foi aprovada. Não é possível desfazer."
   },
   "erase": {
     "button": "Apagar",
@@ -627,7 +639,8 @@
           "rate_limited": "tentativas demais",
           "two_factor_required": "a conta usa autenticação de dois fatores",
           "password_disabled": "o login com senha é só para o root",
-          "password_sign_in_disabled": "o login com senha é só para o root"
+          "password_sign_in_disabled": "o login com senha é só para o root",
+          "approval_pending": "a conta aguarda aprovação"
         },
         "policies": {
           "off": "desligada",
@@ -801,7 +814,9 @@
           "erased": "Apagou <name>{who}</name>",
           "data_exported": "Baixou os dados de <name>{who}</name>{byRoot, select, true { (pelo root)} other {}}",
           "signed_up": "<name>{who}</name> criou a própria conta{waiting, select, true {, aguardando a aprovação de um root} other {}}",
-          "terms_accepted": "Aceitou os termos, versão <code>{version}</code>"
+          "terms_accepted": "Aceitou os termos, versão <code>{version}</code>",
+          "approved": "Aprovou a conta de <name>{email}</name>",
+          "declined": "{job, select, true {Recusou a conta de <name>{email}</name>, que aguardou 30 dias, e a excluiu} other {Recusou a conta de <name>{email}</name> e a excluiu}}"
         },
         "auth": {
           "signed_in": "{sso, select, true {Entrou com <code>{provider}</code>} other {{remember, select, true {Entrou (sessão lembrada por 30 dias)} other {Entrou}}}}",
@@ -1678,7 +1693,8 @@
       "enabled": "Ativado. A pessoa pode entrar de novo.",
       "twoFactorOff": "Autenticação de dois fatores desligada. A pessoa foi desconectada de todos os lugares, e os tokens de acesso dela foram revogados.",
       "twoFactorNone": "A pessoa não tinha autenticação de dois fatores: nada mudou.",
-      "erased": "Apagado. A conta agora é deleted-user e nada da pessoa pode ser recuperado."
+      "erased": "Apagado. A conta agora é deleted-user e nada da pessoa pode ser recuperado.",
+      "approved": "Aprovada. A pessoa pode entrar, e um e-mail a avisa."
     },
     "scopes": {
       "created": "@{name} criado.",

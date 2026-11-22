@@ -61,4 +61,6 @@ export interface SignUpRepository {
    */
   createAccount(account: NewSignedUpAccount): Promise<string>;
   recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
+  /** Tells every root an account waits for their approval (139, 190). */
+  notifyAwaitingApproval(userId: string, email: string, at: Date): Promise<void>;
 }

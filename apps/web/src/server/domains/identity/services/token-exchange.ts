@@ -34,6 +34,8 @@ export type ExchangeResult =
   | { ok: false; error: "two_factor_required" }
   /** The password is right, but only root may use a password here (106): sign in with the provider. */
   | { ok: false; error: "password_sign_in_disabled" }
+  /** The password is right, but a root hasn't approved the account yet (190). */
+  | { ok: false; error: "approval_pending" }
   | { ok: false; error: "rate_limited"; retryAfterSeconds: number };
 
 // Checked against when the email is unknown, so the response takes as long as for a real account.
@@ -90,6 +92,7 @@ export const exchangePasswordForToken = async (
       | "disabled"
       | "rate_limited"
       | "two_factor_required"
+      | "approval_pending"
       | "password_sign_in_disabled",
   ) => {
     if (reason === "rate_limited") log.event("auth.rate_limited", { limit: "token_exchange" });
@@ -134,6 +137,11 @@ export const exchangePasswordForToken = async (
   if (!found?.passwordHash || !matches) return invalid("invalid");
   // An erased account (103) has no password row, so it never gets here; the row says so anyway.
   if (found.disabledAt || found.erasedAt) return invalid("disabled");
+  // Only after the right password: it tells nothing to someone guessing (190).
+  if (found.approvalPending) {
+    await failed("approval_pending");
+    return { ok: false, error: "approval_pending" };
+  }
   // Only after the right password, like two-factor's answer: it tells nothing without it.
   if ((await deps.passwordPolicy?.()) === "root_only" && found.user.role !== "root") {
     await failed("password_sign_in_disabled");

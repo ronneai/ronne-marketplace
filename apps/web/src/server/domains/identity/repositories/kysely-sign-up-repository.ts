@@ -9,6 +9,8 @@ import { kyselyOutboxRepository } from "../../mail/repositories/kysely-outbox-re
 import { storedMailSetup } from "../../mail/services/mail-setup";
 import { mailQueued } from "../../mail/services/notices";
 import { type QueuedMail, type QueueResult, queueMail } from "../../mail/services/outbox";
+import { notify } from "../../notifications/services/notify";
+import { activeRoots } from "../../notifications/services/recipients";
 import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
 import { kyselyChallengeRepository } from "./kysely-challenge-repository";
 import { kyselyEmailCodeRepository } from "./kysely-email-code-repository";
@@ -175,6 +177,21 @@ export const kyselySignUpRepository = (
           })
           .execute();
       return id;
+    },
+
+    async notifyAwaitingApproval(userId, email, at) {
+      await notify(
+        db,
+        dialect,
+        {
+          recipients: await activeRoots(db),
+          kind: "user.awaiting_approval",
+          actorId: userId,
+          subject: { type: "user", id: userId },
+          params: { email },
+        },
+        at,
+      );
     },
 
     async recordAudit(event, now) {

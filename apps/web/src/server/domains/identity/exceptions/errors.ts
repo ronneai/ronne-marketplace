@@ -349,3 +349,15 @@ export class DataExportLimitError extends IdentityError {
     );
   }
 }
+
+/** Approve or Decline on an account that no longer waits (190): another root answered first. */
+export class ApprovalAnsweredError extends IdentityError {
+  override readonly name: string = "ApprovalAnsweredError";
+  constructor(readonly answer: "approved" | "declined") {
+    super(
+      answer === "approved"
+        ? "This account was already approved."
+        : "This account was already declined, and is gone.",
+    );
+  }
+}

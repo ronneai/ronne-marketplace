@@ -64,7 +64,8 @@
     "status": {
       "active": "actif",
       "disabled": "désactivé",
-      "erased": "effacé"
+      "erased": "effacé",
+      "awaiting": "en attente d’approbation"
     },
     "columns": {
       "name": "Nom",
@@ -152,7 +153,8 @@
     },
     "badge": {
       "disabled": "Désactivé",
-      "erased": "Effacé"
+      "erased": "Effacé",
+      "awaiting": "en attente d’approbation"
     },
     "automatic": "Automatique",
     "never": "Jamais",
@@ -196,6 +198,12 @@
       "body": "Révoquer <strong>{name}</strong>? Tout ce qui l’utilise, comme rmk sur sa machine, cesse de fonctionner jusqu’à ce que la personne crée un nouveau jeton.",
       "cancel": "Annuler",
       "submit": "Révoquer le jeton"
+    },
+    "waiting": {
+      "title": "Ce compte attend l’approbation d’un root",
+      "body": "Il a été créé par inscription, <date></date>. Il ne peut pas se connecter tant qu’un root ne l’a pas approuvé; s’il attend 30 jours, il est refusé.",
+      "approve": "Approuver",
+      "decline": "Refuser"
     }
   },
   "actions": {
@@ -211,7 +219,9 @@
       "disable": "Désactiver l’utilisateur",
       "enable": "Activer l’utilisateur",
       "reset": "Réinitialiser le mot de passe",
-      "twoFactor": "Réinitialiser la double authentification"
+      "twoFactor": "Réinitialiser la double authentification",
+      "approve": "Approuver le compte",
+      "decline": "Refuser le compte"
     },
     "erasedDownload": "Télécharger ses données (compte effacé)",
     "erasedReason": "Ce compte a été effacé : il n’y a rien à télécharger.",
@@ -235,7 +245,9 @@
       "title": "Retirer le rôle root à {email}?",
       "body": "La personne perdra l’administration des utilisateurs, les portées, les réglages et le journal d’audit à sa prochaine requête."
     },
-    "changeRole": "Faire passer son rôle de <from></from> à <to></to>."
+    "changeRole": "Faire passer son rôle de <from></from> à <to></to>.",
+    "approveBody": "{email} pourra se connecter une fois approuvé, et reçoit un courriel le lui disant.",
+    "declineBody": "Le compte de {email} est supprimé, avec ce que la personne a tapé, et elle reçoit un courriel disant qu’il n’a pas été approuvé. Impossible d’annuler."
   },
   "erase": {
     "button": "Effacer",
@@ -627,7 +639,8 @@
           "rate_limited": "trop de tentatives",
           "two_factor_required": "le compte utilise la double authentification",
           "password_disabled": "la connexion par mot de passe est réservée à root",
-          "password_sign_in_disabled": "la connexion par mot de passe est réservée à root"
+          "password_sign_in_disabled": "la connexion par mot de passe est réservée à root",
+          "approval_pending": "le compte attend une approbation"
         },
         "policies": {
           "off": "désactivée",
@@ -801,7 +814,9 @@
           "erased": "A effacé <name>{who}</name>",
           "data_exported": "A téléchargé les données de <name>{who}</name>{byRoot, select, true { (par root)} other {}}",
           "signed_up": "<name>{who}</name> a créé son propre compte{waiting, select, true {, en attente de l’approbation d’un root} other {}}",
-          "terms_accepted": "A accepté les conditions, version <code>{version}</code>"
+          "terms_accepted": "A accepté les conditions, version <code>{version}</code>",
+          "approved": "A approuvé le compte de <name>{email}</name>",
+          "declined": "{job, select, true {A refusé le compte de <name>{email}</name>, qui attendait depuis 30 jours, et l’a supprimé} other {A refusé le compte de <name>{email}</name> et l’a supprimé}}"
         },
         "auth": {
           "signed_in": "{sso, select, true {Connexion avec <code>{provider}</code>} other {{remember, select, true {Connexion (mémorisée pendant 30 jours)} other {Connexion}}}}",
@@ -1678,7 +1693,8 @@
       "enabled": "Activé. La personne peut se reconnecter.",
       "twoFactorOff": "Double authentification désactivée. La personne est déconnectée partout, et ses jetons d’accès sont révoqués.",
       "twoFactorNone": "La personne n’avait pas de double authentification : rien n’a changé.",
-      "erased": "Effacé. Le compte est maintenant deleted-user et rien de ce qui le concernait ne peut être relu."
+      "erased": "Effacé. Le compte est maintenant deleted-user et rien de ce qui le concernait ne peut être relu.",
+      "approved": "Approuvé. La personne peut se connecter, et un courriel le lui dit."
     },
     "scopes": {
       "created": "@{name} créée.",

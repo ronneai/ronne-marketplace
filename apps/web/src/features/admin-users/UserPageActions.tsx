@@ -42,7 +42,12 @@ export const UserActionButton = ({
       {hidden ? null : (
         <Button variant="secondary" onClick={() => setOpened(kind)}>
           {children ??
-            (kind === "askChange" || kind === "clearChange" ? titles[kind] : labels(kind))}
+            (kind === "askChange" ||
+            kind === "clearChange" ||
+            kind === "approve" ||
+            kind === "decline"
+              ? titles[kind]
+              : labels(kind))}
         </Button>
       )}
       <Dialog open={opened !== null} onClose={close} title={titles[opened ?? kind]}>

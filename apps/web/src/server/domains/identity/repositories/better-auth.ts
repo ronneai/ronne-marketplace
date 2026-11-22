@@ -103,8 +103,8 @@ export const createAuth = ({
           // Disabled users get no session. Sign-in then fails with the same 401 as a wrong password
           // (returning false would make it a 500).
           before: async (session, context) => {
-            const user = await kyselyIdentityRepository(db, dialect).findActiveUser(session.userId);
-            if (!user)
+            const repo = kyselyIdentityRepository(db, dialect);
+            if (!(await repo.mayHaveSession(session.userId)))
               throw new APIError("UNAUTHORIZED", {
                 message: "Invalid email or password",
                 code: "INVALID_EMAIL_OR_PASSWORD",

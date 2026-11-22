@@ -56,6 +56,8 @@ export type SignInResult =
    */
   | { ok: true; headers: Headers; twoFactor?: true }
   | { ok: false; error: "invalid_credentials" }
+  /** The password is right, but a root hasn't approved the account yet (190). */
+  | { ok: false; error: "approval_pending" }
   | { ok: false; error: "rate_limited"; retryAfterSeconds: number };
 
 const log = logger.child({ domain: "identity" });
@@ -78,7 +80,9 @@ export const signIn = async (
   context: RequestContext,
   input: SignInInput,
 ): Promise<SignInResult> => {
-  const failed = async (reason: "invalid" | "disabled" | "rate_limited" | "password_disabled") => {
+  const failed = async (
+    reason: "invalid" | "disabled" | "rate_limited" | "password_disabled" | "approval_pending",
+  ) => {
     // The log has the reason, never the email: that's in the audit log, under 102's retention.
     if (reason === "rate_limited") log.event("auth.rate_limited", { limit: "sign_in" });
     else log.event("auth.sign_in_failed", { reason });
@@ -152,6 +156,13 @@ export const signIn = async (
       (await deps.repo.userStatusByEmail(email)) === "disabled" ? "disabled" : "invalid",
     );
     return { ok: false, error: "invalid_credentials" };
+  }
+  // Waiting for a root's approval (190): said only now that the password was right, so it tells
+  // nothing to someone guessing. The session Better Auth just opened ends at once.
+  if ((await deps.repo.findCredentialByEmail(email))?.approvalPending) {
+    if ("session" in result) await deps.repo.deleteSessions(result.session.userId);
+    await failed("approval_pending");
+    return { ok: false, error: "approval_pending" };
   }
   if ("challenge" in result) return { ok: true, headers: result.headers, twoFactor: true };
   await deps.repo.recordAudit(

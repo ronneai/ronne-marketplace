@@ -18,8 +18,16 @@ export const MAIL_NOTICES = [
 export type MailNotice = (typeof MAIL_NOTICES)[number];
 
 /** The emails self-registration sends (190): the code, and "you already have an account". */
-export const SIGN_UP_MAILS = ["sign_up_code", "sign_up_existing"] as const;
+export const SIGN_UP_MAILS = [
+  "sign_up_code",
+  "sign_up_existing",
+  // A root's answer to an account waiting for approval (190), or the retention job's after 30 days.
+  "sign_up_approved",
+  "sign_up_declined",
+] as const;
 export type SignUpMail = (typeof SIGN_UP_MAILS)[number];
+const isSignUpMail = (template: string): template is SignUpMail =>
+  (SIGN_UP_MAILS as readonly string[]).includes(template);
 
 /** Every email Ronne writes: root's test email, the notices and sign-up's. */
 export type MailTemplate = "test" | MailNotice | SignUpMail;
@@ -102,7 +110,7 @@ export const renderMail = async (
     namespace: "mail",
   });
   const { host, contact } = values;
-  const signUp = (SIGN_UP_MAILS as readonly string[]).includes(template);
+  const signUp = isSignUpMail(template);
   const words =
     template === "test"
       ? {
@@ -110,7 +118,7 @@ export const renderMail = async (
           body: t("test.body"),
           notYou: t("test.notYou"),
         }
-      : template === "sign_up_code" || template === "sign_up_existing"
+      : isSignUpMail(template)
         ? {
             subject: t(`signUp.${template}.subject`, { host, code: values.code ?? "" }),
             body: t(`signUp.${template}.body`, {

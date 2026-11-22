@@ -44,6 +44,7 @@ const ICONS: Record<NotificationKind, LucideIcon> = {
   "request.item_move_waiting": Inbox,
   "feedback.new": Megaphone,
   "instance.update_available": CircleArrowUp,
+  "user.awaiting_approval": UserPlus,
 };
 
 /** Kinds that say something went against the person's work: the only ones drawn in red. */

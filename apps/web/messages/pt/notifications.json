@@ -66,7 +66,8 @@
       "membership": "Sua participação",
       "request": "Solicitações à sua espera",
       "feedback": "Feedback",
-      "instance": "Atualizações"
+      "instance": "Atualizações",
+      "user": "Contas novas"
     },
     "kinds": {
       "submission": {
@@ -106,6 +107,9 @@
       },
       "instance": {
         "update_available": "Atualização disponível"
+      },
+      "user": {
+        "awaiting_approval": "Aguardando aprovação"
       }
     },
     "columns": {
@@ -141,5 +145,8 @@
   },
   "instance": {
     "update_available": "O Ronne AI Marketplace {version} foi lançado. Você usa a versão {current}."
+  },
+  "user": {
+    "awaiting_approval": "{actor} ({email}) criou uma conta e está aguardando a aprovação de um root."
   }
 }

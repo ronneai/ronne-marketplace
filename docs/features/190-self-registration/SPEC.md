@@ -93,7 +93,9 @@ and standards".
     someone guessing.
   - Every root gets an in-app notification (139).
   - Users gains the status filter *Awaiting approval* (`features/admin-users/list.ts`). The user
-    page (123) gains **Approve** and **Decline**, and the list's selection gains Approve many.
+    page (123) gains **Approve** and **Decline**, each with a confirm that says what follows. The
+    list has no selection to add *Approve many* to; its filter lists who waits, and each is answered
+    on its page (Claude, 2026-11-22).
   - Approve clears the mark and emails the person.
   - Decline deletes the account (it holds nothing yet) and emails the person.
   - An account left waiting for 30 days is declined by the retention job, with the same email.

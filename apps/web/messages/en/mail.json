@@ -58,6 +58,16 @@
       "subject": "You already have an account on {host}",
       "body": "Someone tried to create an account on {host} with this address, but you already have one. Sign in, or ask your administrator to reset your password.",
       "notYou": "If this wasn't you, ignore this email: nothing about your account changed."
+    },
+    "sign_up_approved": {
+      "subject": "Your account on {host} is approved",
+      "body": "A root approved the account you created on {host}. You can sign in now, with the email and password you chose.",
+      "notYou": "If you didn't create an account there, contact your administrator."
+    },
+    "sign_up_declined": {
+      "subject": "Your account on {host} wasn't approved",
+      "body": "The account you created on {host} wasn't approved, so it was deleted, with what you typed. You can ask your administrator why.",
+      "notYou": "If you didn't create an account there, ignore this email: nothing is left of it."
     }
   }
 }

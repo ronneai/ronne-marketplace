@@ -104,6 +104,23 @@ describe("domain errors in three languages (129)", () => {
         fr: "Ce compte n’a pas de mot de passe (il se connecte par un fournisseur); il n’y a donc rien à remplacer.",
       },
     ],
+    // 190: another root answered first.
+    [
+      new identityErrors.ApprovalAnsweredError("approved"),
+      {
+        en: "This account was already approved.",
+        pt: "Esta conta já foi aprovada.",
+        fr: "Ce compte a déjà été approuvé.",
+      },
+    ],
+    [
+      new identityErrors.ApprovalAnsweredError("declined"),
+      {
+        en: "This account was already declined, and is gone.",
+        pt: "Esta conta já foi recusada e não existe mais.",
+        fr: "Ce compte a déjà été refusé, et n’existe plus.",
+      },
+    ],
     // 190: the Self-registration panel's errors.
     [
       new InvalidSignUpSettingError("domains"),
