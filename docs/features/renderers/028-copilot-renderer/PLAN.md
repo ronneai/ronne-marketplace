@@ -19,7 +19,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     and 030 `specified` (re-checked when each starts).
   - *Done when:* the three agree with SPEC.md, and `pnpm witness:check` and `pnpm docs:check` pass.
 
-- [ ] **2. The file types.**
+- [x] **2. The file types.**
   - `packages/core/src/render/copilot/{renderer.ts,mappings.ts,renderer.test.ts}`, with `skill`,
     `command`, `agent` and `rule`.
   - The shared skill helpers (`agents-skills.ts`, `skill-frontmatter.ts`) take a root, so Copilot

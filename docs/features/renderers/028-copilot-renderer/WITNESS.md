@@ -79,3 +79,27 @@ Witnessed: 2026-11-22 15:29 EST, by a fresh agent (blind, re-check of row 13 onl
 | 13b | `RONNE_WEB_DIR=../ronne-web-028 pnpm docs:check` exits 0 | no | confirmed | exit 0 |
 
 **Overall:** met.
+
+## Task 2 — The file types
+
+Witnessed: 2026-11-22 15:32 EST, by a fresh agent (blind). Commit: 8628d80c + working tree (`M packages/core/src/render/agents-skills.ts`, `?? packages/core/src/render/copilot/`). Machine: macOS (Darwin 27.2.0), Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `copilot/{renderer.ts,mappings.ts,renderer.test.ts}` exist and render `skill`, `command`, `agent` and `rule` | no | confirmed | `find packages/core/src/render/copilot`; renderer.ts:178–200; `vitest run src/render/copilot/renderer.test.ts` → 11 passed |
+| 2 | The shared skill helpers take a root/place; Codex's and Cursor's defaults are unchanged | no | confirmed | `git diff agents-skills.ts`; the shared warning still says "Codex and Cursor"; `vitest run src/render src/plugins` → 107 passed |
+| 3 | Skills and commands go to `.github/skills/<n>/` / `.copilot/skills/<n>/` with the shared copy's bytes | no | confirmed | `cmp` codex vs copilot goldens, both scopes → identical; mutation (root → `.agents/skills`) → 3 tests fail |
+| 4 | A skill's `agent:` and `context:` are dropped, with a warning (097) | no | confirmed | probe: CRLF SKILL.md with both keys → neither written, CRLF and "é" kept, warning |
+| 5 | A command is a skill with `disable-model-invocation: true`, named after its folder | no | confirmed | review-diff golden = Codex's bytes; test checks `name: review-diff` |
+| 6 | An agent goes to `.github/agents/<n>.agent.md` / `.copilot/agents/…` with name, description, tools and the prompt | no | confirmed | code-reviewer goldens, both scopes |
+| 7 | Agent `tools` follow the Mappings table, each alias once | no | confirmed | mappings.ts:8–19; test "maps every canonical tool"; probe: repeated `mcp:gh/x` once, unknown → `unmapped_tool`; mutation → 3 tests fail |
+| 8 | `model` only from `targets.copilot.overrides.model`; hints warn; other overrides refused; skills not preloaded warn | no | confirmed | renderer.ts:62–87; probes `model: fast` / `default`; override test; golden warnings |
+| 9 | Rules: `always` → `"**"`, `glob` → comma-joined globs, `model`/`manual` → skills | no | confirmed | house-style goldens; probes; mutations (`"*"`, `", "`, no disable-model-invocation) → each fails a test |
+| 10 | `detect()` true for the 8 spec paths, false for `.github/` alone and other tools' files | no | confirmed | renderer.ts:160–172; probes; mutation (adds `.github`) → detect test fails |
+| 11 | Goldens for secure-coding, review-diff, code-reviewer, house-style, both scopes, checked by the test | no | confirmed | `__golden__/<item>/{project,user}/…`; `checkGolden` passes, mutations make it fail |
+| 12 | The other types' goldens claim no output this task doesn't produce | no | confirmed | hook, mcp-server, lsp-server, statusline, permission-policy, output-style → `changes: []` + "isn't rendered for GitHub Copilot yet"; bundle → `[]` |
+| 13 | The other renderers' goldens are unchanged | no | confirmed | `git status --short` on their `__golden__`, `plugins/`, `examples/` → nothing; 107/107 pass |
+| 14 | The renderer isn't in `RENDERERS` yet (task 4) | no | confirmed | registry.ts:11–15 |
+| 15 | The new code typechecks and lints | no | confirmed | `tsc --noEmit -p packages/core/tsconfig.json` → 0; `biome check` → no issues |
+
+**Overall:** met.

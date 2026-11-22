@@ -16,6 +16,14 @@ import type { Change, RenderInput, RenderWarning } from "./types.js";
 export const AGENTS_SKILLS = ".agents/skills";
 
 /**
+ * Where a skill folder goes and who reads it, for a tool that keeps its own copy of the same bytes
+ * elsewhere, as Copilot does in `.github/skills/` (028). The default is the shared folder.
+ */
+export type SkillPlace = { root: string; readers: string };
+
+const SHARED: SkillPlace = { root: AGENTS_SKILLS, readers: "Codex and Cursor" };
+
+/**
  * A `skill` item's folder as it is, with its entry file renamed to `SKILL.md` and without the
  * `agent` and `context` keys Codex and Cursor don't read (097), saying so when there were some.
  */
@@ -23,11 +31,12 @@ export const skillFolder = (
   item: RenderInput,
   n: string,
   entry: string,
+  place: SkillPlace = SHARED,
 ): { changes: Change[]; warnings: RenderWarning[] } => {
   let dropped = false;
   const change: Change = {
     kind: "dir",
-    path: `${AGENTS_SKILLS}/${n}`,
+    path: `${place.root}/${n}`,
     files: item.files.map((file) => {
       if (file.path !== entry)
         return { path: file.path, content: file.bytes, executable: file.executable };
@@ -42,7 +51,7 @@ export const skillFolder = (
       ? [
           {
             code: "unsupported_field",
-            message: `${item.name} names the agent that runs it; Codex and Cursor don't choose an agent for a skill, so it runs in the current one.`,
+            message: `${item.name} names the agent that runs it; ${place.readers} don't choose an agent for a skill, so it runs in the current one.`,
           },
         ]
       : [],
@@ -55,9 +64,10 @@ export const writtenSkill = (
   n: string,
   front: Frontmatter,
   body: string,
+  root: string = AGENTS_SKILLS,
 ): Change => ({
   kind: "dir",
-  path: `${AGENTS_SKILLS}/${n}`,
+  path: `${root}/${n}`,
   files: [{ path: "SKILL.md", content: frontmatterMarkdown(item, [["name", n], ...front], body) }],
 });
 
@@ -69,6 +79,7 @@ export const commandSkill = (
   item: RenderInput,
   n: string,
   block: Record<string, unknown>,
+  root: string = AGENTS_SKILLS,
 ): { change: Change; warnings: RenderWarning[] } => {
   const args = (Array.isArray(block.args) ? block.args : []).map(record);
   let body = trimTrailingNewlines(fileText(item.files, block.body));
@@ -90,6 +101,7 @@ export const commandSkill = (
         ["disable-model-invocation", true],
       ],
       body,
+      root,
     ),
     warnings: args.length
       ? [
