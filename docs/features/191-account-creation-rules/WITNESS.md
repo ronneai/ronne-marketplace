@@ -328,3 +328,36 @@ Witnessed: 2026-11-22 12:57 EST, by a fresh agent (blind). Commit: 5f8a1f0f + wo
 | 14 | *Create anyway* appears whenever the server would ask, and the server asks only for a listed domain | yes | confirmed | `services/user-admin.ts:217-220`; probe `probe-ip-literal.db.test.ts`: `sam@[1.2.3.4]` created without asking; `sam@bücher.example`, `sam@XN--BCHER-KVA.example`, `sam@acme.org.` ask; probe `probe-parity.test.tsx`: 16 inputs, no case where the server asks and the dialog hides the box; restoring `isDomainBlocked` fails the test; `user-admin.db.test.ts` 53 passed (1 skipped) on SQLite, 54 on each server |
 
 **Overall:** met. Remark: for `sam@acme.org:80` with `acme.org` blocked, the dialog shows the box though the server can't read the domain and doesn't ask: the safe way round.
+
+## Task 6 — Languages
+
+Witnessed: 2026-11-22 13:04 EST, by a fresh agent (blind). Commit: 38d62c39. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every new or changed key in `admin`, `errors` and `mail` exists in pt and fr, none extra | no | confirmed | `191-t6-blind/compare.mjs` → 71 keys, 0 missing, 0 extra |
+| 2 | The same ICU placeholders and tags in the three | no | confirmed | `compare.mjs`; the parity test (row 6) |
+| 3 | No pt or fr message copies the English | no | confirmed | `compare.mjs` → 0; `admin-untranslated.test.ts` passes |
+| 4 | The glossary's terms, matching the existing screens | no | confirmed | `side.mjs`: lista de bloqueio / liste de blocage, descartável / jetable, the Any domain words as `settings.signUp.domains` |
+| 5 | The pt and fr read naturally, in the glossary's register, matching existing screens | no | partly | 8 findings: `domainsHint`, `blockedHint` ("Comparados/Comparés exatamente" vs the sign-up panel's "Cada um corresponde / Chacun correspond"), pt `needsApproval` word order, `linkByEmailAny` ("fiable"), `done.saved`, fr `approvalWithoutMail`, `createsAccountsHint` comma, pt "como xn--", "do root" for "a root's" |
+| 6 | The translation tests pass and catch a missing key or placeholder | no | confirmed | 26 files, 500 passed at the commit; two mutations fail `messages.parity.test.ts` |
+| 7 | The new screens render in pt and fr | no | confirmed | `account-rules.test.tsx` "reads in each language"; `admin-settings/translations.test.tsx` |
+| 8 | No raw text; the raw-text lint passes | no | confirmed | `pnpm lint` exit 0, no i18n plugin warning; grep of the added JSX lines |
+
+**Overall:** not met (row 5, wording).
+
+Fixes after the pass (wording): each of the 8 findings as suggested, in `admin.json` (pt, fr) and `errors.json` (`InvalidBlockedDomainError` pt "no formato xn--…"; `ProviderApprovalNeedsMailError` "de um root" / "d’un root"). The i18n, admin-settings and admin-users tests: 776 passed.
+
+### Re-check 1
+
+Witnessed: 2026-11-22 13:04 EST, by a fresh agent (blind, wording; rows 1–3 and 6 for the diff). Commit: 38d62c39 + working-tree `apps/web/messages/{pt,fr}/{admin,errors}.json`. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every new or changed key exists in pt and fr, none extra | yes | confirmed | `compare.mjs` → 71 keys, 0 missing, 0 extra |
+| 2 | The same placeholders and tags | yes | confirmed | `compare.mjs`: none for admin or errors (4 known false positives in `mail`'s select branches, not in this diff); the parity test passes |
+| 3 | No copy of the English | yes | confirmed | `compare.mjs` → 0 |
+| 5 | The pt and fr read naturally, in the glossary's register, matching existing screens | yes | confirmed | all 8 findings fixed (`git diff`); "Cada um corresponde exatamente" / "Chacun correspond exactement" as `settings.signUp.domains.listHint`; "de um root" / "d’un root" as the glossary (i18n.md:231); placeholders unchanged |
+| 6 | The translation tests pass | yes | confirmed | `src/i18n` → 20 files, 420 passed |
+
+**Overall:** met.

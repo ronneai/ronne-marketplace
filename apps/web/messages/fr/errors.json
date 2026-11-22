@@ -182,7 +182,7 @@
   "SignUpUnavailableError": "{reason, select, mail {Configurez d’abord le courriel : les gens reçoivent un code par courriel pour créer un compte.} contact {Définissez d’abord le contact de l’instance dans l’onglet Courriel : chaque avis dit à qui s’adresser.} password {Permettez d’abord à tout le monde de se connecter avec un mot de passe : un compte créé ici se connecte avec un.} other {L’inscription ne peut pas encore être activée.}}",
   "ApprovalAnsweredError": "{answer, select, approved {Ce compte a déjà été approuvé.} other {Ce compte a déjà été refusé, et n’existe plus.}}",
   "InvalidBlockedDomainError": "« {domain} » n’est pas un domaine de courriel. Écrivez des domaines comme example.com, en ASCII simple (un domaine internationalisé sous la forme xn--…), séparés par des virgules ou des lignes.",
-  "ProviderApprovalNeedsMailError": "Configurez d’abord le courriel avec le contact de l’instance : le titulaire d’un compte en attente reçoit la réponse du root par courriel.",
+  "ProviderApprovalNeedsMailError": "Configurez d’abord le courriel avec le contact de l’instance : le titulaire d’un compte en attente reçoit la réponse d’un root par courriel.",
   "ProviderDomainsRequiredError": "Indiquez au moins un domaine pour lequel ce fournisseur crée des comptes, ou choisissez N’importe quel domaine.",
   "StaleAccountRulesError": "Quelqu’un a enregistré ces règles depuis que vous les avez ouvertes. Rechargez pour voir les siennes, puis enregistrez de nouveau.",
   "TooManyBlockedDomainsError": "La liste de blocage contient au plus {limit} domaines.",

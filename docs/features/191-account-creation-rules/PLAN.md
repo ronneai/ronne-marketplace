@@ -56,7 +56,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* component tests cover the overview, the warnings and the form's rules, and action
     db tests cover saving, the stale check and the audit rows.
 
-- [ ] **6. Languages.**
+- [x] **6. Languages.**
   - Every new message in the `admin` namespace, in all three languages.
   - *Done when:* the translation tests and the raw-text lint pass.
 

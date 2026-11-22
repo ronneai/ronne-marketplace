@@ -1110,7 +1110,7 @@
       "scopesHint": "O openid é sempre pedido.{groupsScope, select, none {} other { Adicione {groupsScope} ao mapear grupos.}}",
       "whoLegend": "Quem pode entrar",
       "domains": "Domínios permitidos",
-      "domainsHint": "Um endereço novo nesses domínios ganha uma conta no primeiro acesso, e uma conta existente em um deles é vinculada se a caixa abaixo estiver marcada. Comparados exatamente.",
+      "domainsHint": "Um endereço novo nesses domínios ganha uma conta no primeiro acesso, e uma conta existente em um deles é vinculada se a caixa abaixo estiver marcada. Cada um corresponde exatamente.",
       "domainsList": "Só estes domínios",
       "domainsAnyHint": "Qualquer domínio que a lista de bloqueio permita. Domínios descartáveis são recusados enquanto Quem pode criar contas os bloqueia.",
       "blockedDomain": "{domain} está na lista de bloqueio, então este provedor não pode criar contas nele.",
@@ -1119,12 +1119,12 @@
         "list": "Só estes domínios"
       },
       "createsAccounts": "Cria contas no primeiro acesso",
-      "createsAccountsHint": "Desligado, só entram contas já vinculadas, ou vinculadas por e-mail abaixo.",
-      "needsApproval": "Novas contas aguardam a aprovação de um root",
-      "needsApprovalHint": "A pessoa é avisada de que a conta aguarda e recebe a resposta do root por e-mail. Os grupos valem depois da aprovação.",
-      "needsApprovalNoMail": "Configure primeiro o e-mail com o contato da instância: o dono de uma conta aguardando aprovação recebe a resposta do root por e-mail.",
+      "createsAccountsHint": "Desligado: só entram contas já vinculadas, ou vinculadas por e-mail abaixo.",
+      "needsApproval": "Contas novas aguardam a aprovação de um root",
+      "needsApprovalHint": "A pessoa é avisada de que a conta aguarda e recebe a resposta de um root por e-mail. Os grupos valem depois da aprovação.",
+      "needsApprovalNoMail": "Configure primeiro o e-mail com o contato da instância: o dono de uma conta aguardando aprovação recebe a resposta de um root por e-mail.",
       "linkByEmail": "Vincular contas existentes por e-mail verificado, só nos domínios permitidos",
-      "linkByEmailAny": "Desligado com Qualquer domínio: um provedor confiável para todo domínio poderia tomar qualquer conta, inclusive a do root.",
+      "linkByEmailAny": "Desligado com Qualquer domínio: um provedor em que se confia para todos os domínios poderia assumir qualquer conta, inclusive a do root.",
       "groupsLegend": "Grupos",
       "groupsClaim": "Claim de grupos",
       "warnTitle": "O espaço de trabalho de um grupo foi excluído.",
@@ -1560,13 +1560,13 @@
       "intro": "Toda forma de criar uma conta obedece primeiro à lista de bloqueio, depois às suas próprias configurações. Contas que já existem continuam entrando.",
       "formLabel": "Lista de bloqueio",
       "blockedLabel": "Domínios de e-mail bloqueados",
-      "blockedHint": "Um por linha ou separados por vírgulas, como example.com. Comparados exatamente: example.com não bloqueia eu.example.com. Escreva um domínio internacionalizado como xn--….",
+      "blockedHint": "Um por linha ou separados por vírgulas, como example.com. Cada um corresponde exatamente: example.com não bloqueia eu.example.com. Escreva um domínio internacionalizado no formato xn--….",
       "throwaway": "Bloquear também domínios de e-mail descartáveis",
       "throwawayHint": "Para toda forma de entrar que aceita qualquer domínio: endereços de serviços de e-mail descartável da lista que acompanha o Ronne são recusados.",
       "save": "Salvar",
       "staleHint": "Recarregue a página para ver o que está salvo agora.",
       "done": {
-        "saved": "Quem pode criar contas foi salvo.",
+        "saved": "As regras de quem pode criar contas foram salvas.",
         "unchanged": "Nada mudou."
       },
       "damaged": {
@@ -1589,7 +1589,7 @@
       "no": "Não",
       "warnings": {
         "blocked": "{domain} está bloqueado, então {way} não pode criar contas nele.",
-        "approvalWithoutMail": "{way} faz novas contas aguardarem aprovação, mas o e-mail não está configurado: ninguém receberá a resposta do root."
+        "approvalWithoutMail": "Com {way}, as contas novas aguardam aprovação, mas o e-mail não está configurado: ninguém receberá a resposta de um root."
       }
     },
     "signUp": {
