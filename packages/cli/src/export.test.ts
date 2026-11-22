@@ -1202,6 +1202,131 @@ describe("Codex's and Cursor's files (043)", () => {
   });
 });
 
+describe("Copilot's files (028)", () => {
+  const project = () => {
+    io = fakeIo(exportRoutes().routes);
+    write(
+      io.cwd,
+      ".github/agents/triage.agent.md",
+      "---\nname: triage\ndescription: Triages issues.\ntools: ['read', 'search', 'gh/*']\nmodel: gpt-5\n---\nTriage it.\n",
+    );
+    write(io.cwd, ".github/agents/notes.md", "not an agent file");
+    write(
+      io.cwd,
+      ".github/instructions/frontend/style.instructions.md",
+      '---\napplyTo: "src/**/*.tsx"\n---\n# Style\n',
+    );
+    write(
+      io.cwd,
+      ".github/skills/deploy/SKILL.md",
+      "---\nname: deploy\ndescription: Deploys.\n---\nDeploy.\n",
+    );
+    write(
+      io.cwd,
+      ".github/mcp.json",
+      JSON.stringify({
+        mcpServers: {
+          gh: {
+            type: "local",
+            command: "gh-mcp",
+            // biome-ignore lint/suspicious/noTemplateCurlyInString: Copilot's own reference syntax
+            env: { T: "${T}" },
+            tools: ["*"],
+          },
+        },
+      }),
+    );
+  };
+
+  it("finds Copilot's agents, instructions, skills and MCP servers in a project", () => {
+    project();
+    expect(
+      discoverLocalItems(io, "project").map((i) => `${i.tool}:${i.type}:${i.name}:${i.display}`),
+    ).toEqual([
+      "copilot:skill:deploy:.github/skills/deploy",
+      "copilot:rule:frontend-style:.github/instructions/frontend/style.instructions.md",
+      "copilot:mcp-server:gh:.github/mcp.json (mcpServers.gh)",
+      "copilot:agent:triage:.github/agents/triage.agent.md",
+    ]);
+  });
+
+  it("finds them under ~/.copilot in the home folder, and not .github there", () => {
+    io = fakeIo({});
+    write(io.home, ".copilot/agents/helper.agent.md", "---\nname: helper\n---\nHelp.\n");
+    write(
+      io.home,
+      ".copilot/instructions/mine.instructions.md",
+      '---\napplyTo: "**"\n---\nMine.\n',
+    );
+    write(
+      io.home,
+      ".copilot/skills/notes/SKILL.md",
+      "---\nname: notes\ndescription: N.\n---\nN.\n",
+    );
+    write(
+      io.home,
+      ".copilot/mcp-config.json",
+      JSON.stringify({ mcpServers: { personal: { command: "p" } } }),
+    );
+    write(io.home, ".github/agents/stray.agent.md", "---\nname: stray\n---\nS.\n");
+    expect(discoverLocalItems(io, "user").map((i) => `${i.tool}:${i.type}:${i.name}`)).toEqual([
+      "copilot:agent:helper",
+      "copilot:rule:mine",
+      "copilot:skill:notes",
+      "copilot:mcp-server:personal",
+    ]);
+  });
+
+  it("lists a Copilot skill folder only in its own scope", () => {
+    io = fakeIo({});
+    write(io.home, ".github/skills/stray/SKILL.md", "---\nname: stray\ndescription: S.\n---\nS.\n");
+    write(
+      io.cwd,
+      ".copilot/skills/stray2/SKILL.md",
+      "---\nname: stray2\ndescription: S.\n---\nS.\n",
+    );
+    expect(discoverLocalItems(io, "user").map((i) => i.name)).not.toContain("stray");
+    expect(discoverLocalItems(io, "project").map((i) => i.name)).not.toContain("stray2");
+  });
+
+  it("plans each Copilot item with its reader, and --from copilot picks them", async () => {
+    project();
+    const api = apiClient(io.fetch, REGISTRY, "rmk_test_token");
+    const plan = await planExport(io, api, {
+      items: ["triage", "frontend-style", "deploy", "gh"],
+      to: "team",
+      from: "copilot",
+      descriptions: { "frontend-style": "The front end's style.", gh: "GitHub's tools." },
+    });
+    expect(plan.refused).toEqual([]);
+    const manifest = (name: string) =>
+      plan.items.find((i) => i.name === `@team/${name}`)?.manifestText ?? "";
+    expect(manifest("triage")).toContain("- mcp:gh");
+    expect(manifest("triage")).toContain("model: gpt-5");
+    expect(manifest("frontend-style")).toContain("activation: glob");
+    expect(manifest("deploy")).toContain("type: skill");
+    expect(manifest("gh")).toContain("transport: stdio");
+    expect(manifest("gh")).not.toMatch(/^\s*tools:/m);
+  });
+
+  it("reads a file given by path by its extension: .agent.md and .instructions.md are Copilot's", async () => {
+    io = fakeIo(exportRoutes().routes);
+    write(
+      io.cwd,
+      "docs/reviewer.agent.md",
+      "---\nname: reviewer\ndescription: Reviews.\n---\nReview.\n",
+    );
+    const api = apiClient(io.fetch, REGISTRY, "rmk_test_token");
+    const plan = await planExport(io, api, {
+      items: ["docs/reviewer.agent.md"],
+      type: "agent",
+      to: "team",
+    });
+    expect(plan.refused).toEqual([]);
+    expect(plan.items[0]?.manifestText).toContain("prompt: prompt.md");
+  });
+});
+
 describe("updating your drafts (051)", () => {
   const notPublished: Route = () => ({
     status: 404,

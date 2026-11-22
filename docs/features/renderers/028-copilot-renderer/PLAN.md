@@ -44,9 +44,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* unit tests cover every row of the "also a target" table, `install.test.ts` covers
     `--target claude-code,copilot`, and Cursor's goldens are unchanged.
 
-- [ ] **5. Export.**
-  - `packages/core/src/read/copilot/` (agents, rules, MCP and language servers; skills and commands
-    through the shared reader), with tests from the renderer's goldens.
+- [x] **5. Export.**
+  - `packages/core/src/read/copilot/` (agents, rules and MCP servers; skills through the shared
+    reader), with tests from the renderer's output. Language servers aren't read: `rmk export`
+    reads no `lsp-server` for any tool (changed while building, 2026-11-22).
   - `copilot` in `packages/cli/src/export.ts` (`SourceTool`, `EXPORT_TOOLS`, the folder tables) and
     `export-proposal.ts`, and in the MCP server's export tools.
   - `native-readers.md` gets a Copilot section.

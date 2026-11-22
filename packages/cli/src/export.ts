@@ -22,6 +22,7 @@ import {
   CURSOR_COMMAND_EXTENSIONS,
   codexAgentName,
   commandName,
+  copilotAgentName,
   cursorAgentName,
   cursorCommandName,
   givenDescription,
@@ -33,6 +34,9 @@ import {
   readCodexAgent,
   readCodexMcpServer,
   readCommand,
+  readCopilotAgent,
+  readCopilotMcpServer,
+  readCopilotRule,
   readCursorAgent,
   readCursorCommand,
   readCursorMcpServer,
@@ -64,8 +68,32 @@ import { itemPath } from "./registry-commands.js";
  * turns the files into an item. Nothing here writes to the project.
  */
 
-/** Where skills live, relative to the project or the home folder (native-readers.md §4). */
-export const SKILL_FOLDERS = [".claude/skills", ".agents/skills"] as const;
+/**
+ * Where skills live, relative to the project or the home folder (native-readers.md §4, §11):
+ * Claude Code's, the shared folder, and Copilot's (`.github/skills/` in a project,
+ * `~/.copilot/skills/` in the home folder).
+ */
+export const SKILL_FOLDERS = [
+  ".claude/skills",
+  ".agents/skills",
+  ".github/skills",
+  ".copilot/skills",
+] as const;
+
+/** Copilot's skill folders belong to one scope each, as its agents and rules do. */
+const SKILL_FOLDER_SCOPE: Partial<Record<(typeof SKILL_FOLDERS)[number], Scope>> = {
+  ".github/skills": "project",
+  ".copilot/skills": "user",
+};
+
+/** The tool a skill folder is written for, by where it is. */
+export const skillTool = (path: string): SourceTool => {
+  const slashed = `/${toSlashes(path)}/`;
+  if (slashed.includes("/.claude/skills/")) return "claude-code";
+  if (slashed.includes("/.github/skills/") || slashed.includes("/.copilot/skills/"))
+    return "copilot";
+  return "shared";
+};
 
 /** The types `rmk export` reads from Claude Code's files (038, 040). */
 export type ExportType = "skill" | "agent" | "command" | "rule" | "mcp-server";
@@ -77,13 +105,19 @@ export const EXPORT_TYPES: readonly ExportType[] = [
   "mcp-server",
 ];
 
-/** The AI tool an item was written for; `shared` is `.agents/skills/`, which Codex and Cursor read. */
-export type SourceTool = "claude-code" | "codex" | "cursor" | "shared";
+/**
+ * The AI tool an item was written for; `shared` is `.agents/skills/`, which Codex, Cursor and the
+ * Copilot CLI read.
+ */
+export type SourceTool = "claude-code" | "codex" | "cursor" | "copilot" | "shared";
 /** The tools `--from` names (043). */
 export type ExportTool = Exclude<SourceTool, "shared">;
-export const EXPORT_TOOLS: readonly ExportTool[] = ["claude-code", "codex", "cursor"];
+export const EXPORT_TOOLS: readonly ExportTool[] = ["claude-code", "codex", "cursor", "copilot"];
 
-/** Whether an item is one `--from <tool>` means: the shared skills folder counts for Codex and Cursor. */
+/**
+ * Whether an item is one `--from <tool>` means: the shared skills folder counts for every tool that
+ * reads it (Codex, Cursor and the Copilot CLI), not Claude Code.
+ */
 export const fromTool = (item: { tool: SourceTool }, from: ExportTool | undefined) =>
   !from || item.tool === from || (item.tool === "shared" && from !== "claude-code");
 
@@ -126,6 +160,8 @@ export const findSkills = (io: Io, scope: Scope): LocalItem[] => {
   const seen = new Set<string>();
   const found: LocalItem[] = [];
   for (const folder of SKILL_FOLDERS) {
+    const only = SKILL_FOLDER_SCOPE[folder];
+    if (only && only !== scope) continue;
     const parent = join(root, folder);
     if (!realFolder(parent)) continue;
     for (const name of readdirSync(parent).sort()) {
@@ -135,7 +171,7 @@ export const findSkills = (io: Io, scope: Scope): LocalItem[] => {
       seen.add(real);
       found.push({
         type: "skill",
-        tool: folder === ".claude/skills" ? "claude-code" : "shared",
+        tool: skillTool(dir),
         name,
         path: dir,
         display: toSlashes(relative(root, dir)),
@@ -165,6 +201,8 @@ type FileSource = {
   extensions: readonly string[];
   /** Cursor keeps user rules in its settings, not in files. */
   projectOnly?: boolean;
+  /** Copilot's home-folder files are under `~/.copilot/`, its project's under `.github/`. */
+  userOnly?: boolean;
 };
 
 /** Where each tool keeps agents, commands and rules, read recursively (native-readers.md §5–10). */
@@ -186,6 +224,34 @@ export const FILE_SOURCES: readonly FileSource[] = [
     type: "command",
     folder: ".cursor/commands",
     extensions: CURSOR_COMMAND_EXTENSIONS,
+  },
+  {
+    tool: "copilot",
+    type: "agent",
+    folder: ".github/agents",
+    extensions: [".agent.md"],
+    projectOnly: true,
+  },
+  {
+    tool: "copilot",
+    type: "agent",
+    folder: ".copilot/agents",
+    extensions: [".agent.md"],
+    userOnly: true,
+  },
+  {
+    tool: "copilot",
+    type: "rule",
+    folder: ".github/instructions",
+    extensions: [".instructions.md"],
+    projectOnly: true,
+  },
+  {
+    tool: "copilot",
+    type: "rule",
+    folder: ".copilot/instructions",
+    extensions: [".instructions.md"],
+    userOnly: true,
   },
 ];
 
@@ -225,6 +291,10 @@ export const suggestedName = (
   const base = basename(under);
   if (source.tool === "codex")
     return codexAgentName(tomlOf(new TextDecoder().decode(file.bytes)), base);
+  if (source.tool === "copilot")
+    return source.type === "agent"
+      ? copilotAgentName(file, base)
+      : nameFromPath(under, source.extensions);
   if (source.tool === "cursor")
     return source.type === "agent"
       ? cursorAgentName(file, base)
@@ -241,6 +311,7 @@ export const suggestedName = (
 /** The agents, commands and rules of one source in a scope, named as the readers name them. */
 const findFiles = (io: Io, scope: Scope, source: FileSource): LocalItem[] => {
   if (source.projectOnly && scope === "user") return [];
+  if (source.userOnly && scope === "project") return [];
   const { root } = places(io, scope);
   const folder = join(root, source.folder);
   return filesUnder(folder, source.extensions).map((under) => {
@@ -270,6 +341,11 @@ const MCP_SOURCES: readonly {
   },
   { tool: "codex", file: () => ".codex/config.toml", toml: true },
   { tool: "cursor", file: () => ".cursor/mcp.json", toml: false },
+  {
+    tool: "copilot",
+    file: (scope) => (scope === "project" ? ".github/mcp.json" : ".copilot/mcp-config.json"),
+    toml: false,
+  },
 ];
 
 /** The table MCP servers are under: Codex's `mcp_servers`, everyone else's `mcpServers`. */
@@ -321,9 +397,22 @@ export const readMcpServers = (io: Io, scope: Scope) => {
  */
 const findMcpServers = (io: Io, scope: Scope): LocalItem[] => {
   const { root, state } = places(io, scope);
-  const entries = readState(state).entries.filter(
+  const all = readState(state).entries;
+  const entries = all.filter(
     (e) => e.item === MCP_SETUP_ITEM && (e.kind === "json-key" || e.kind === "toml-key"),
   );
+  /**
+   * A project's `.mcp.json` is Claude Code's, unless `rmk` wrote the key for Copilot alone, which
+   * reads that file too (028): then it's Copilot's render, and a proposal compares it with that.
+   */
+  const toolOf = (tool: SourceTool, file: string, key: string): SourceTool => {
+    if (tool !== "claude-code" || file !== ".mcp.json") return tool;
+    const targets = all.find(
+      (e) =>
+        e.kind === "json-key" && e.path === file && Array.isArray(e.key) && e.key.at(-1) === key,
+    )?.targets;
+    return targets?.includes("copilot") && !targets.includes("claude-code") ? "copilot" : tool;
+  };
   return mcpConfigs(io, scope).flatMap(({ tool, path, servers }) => {
     const file = toSlashes(relative(root, path));
     const setup = new Set(
@@ -336,7 +425,7 @@ const findMcpServers = (io: Io, scope: Scope): LocalItem[] => {
       .sort()
       .map((key) => ({
         type: "mcp-server" as const,
-        tool,
+        tool: toolOf(tool, file, key),
         name: mcpServerName(key),
         path,
         key,
@@ -785,7 +874,13 @@ const sourceOfFile = (path: string, type?: ExportType): FileSource | null => {
   );
   if (inFolder) return inFolder;
   if (type !== "agent" && type !== "command" && type !== "rule") return null;
-  const tool = path.endsWith(".toml") ? "codex" : path.endsWith(".mdc") ? "cursor" : "claude-code";
+  const tool = path.endsWith(".toml")
+    ? "codex"
+    : path.endsWith(".mdc")
+      ? "cursor"
+      : path.endsWith(".agent.md") || path.endsWith(".instructions.md")
+        ? "copilot"
+        : "claude-code";
   return FILE_SOURCES.find((source) => source.tool === tool && source.type === type) ?? null;
 };
 
@@ -820,7 +915,7 @@ const resolveItems = (io: Io, request: ExportRequest): Target[] => {
       return {
         local: arg,
         type: "skill",
-        tool: toSlashes(path).includes("/.claude/") ? "claude-code" : "shared",
+        tool: skillTool(path),
         path,
       };
     }
@@ -1253,7 +1348,9 @@ export const planExport = async (
             ? readCodexMcpServer
             : target.tool === "cursor"
               ? readCursorMcpServer
-              : readMcpServer;
+              : target.tool === "copilot"
+                ? readCopilotMcpServer
+                : readMcpServer;
         read = reader(key, value, {
           itemName: `@${scope}/${short}`,
           ...(description ? { description } : {}),
@@ -1301,6 +1398,8 @@ export const planExport = async (
         }
         const itemName = `@${scope}/${short}`;
         if (target.tool === "codex") read = readCodexAgent(toml, { itemName, fileName: file.path });
+        else if (target.tool === "copilot")
+          read = (type === "agent" ? readCopilotAgent : readCopilotRule)(file, { itemName });
         else if (target.tool === "cursor")
           read = (
             type === "agent"

@@ -6,6 +6,9 @@ export { mcpServerName, readMcpServer } from "./claude-code/mcp-server.js";
 export { readRule, ruleName } from "./claude-code/rule.js";
 export { codexAgentName, readCodexAgent } from "./codex/agent.js";
 export { readCodexMcpServer } from "./codex/mcp-server.js";
+export { copilotAgentName, readCopilotAgent } from "./copilot/agent.js";
+export { readCopilotMcpServer } from "./copilot/mcp-server.js";
+export { readCopilotRule } from "./copilot/rule.js";
 export { cursorAgentName, readCursorAgent } from "./cursor/agent.js";
 export {
   CURSOR_COMMAND_EXTENSIONS,

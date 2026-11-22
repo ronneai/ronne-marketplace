@@ -283,3 +283,48 @@ Witnessed: 2026-11-22 16:21 EST, by a fresh agent (blind). Commit: d82b75b8 + th
 | 14 | Spec Decision 5 is what the code does | no | confirmed | SPEC.md:331, as row 3 |
 
 **Overall:** met.
+
+## Task 5 — Export
+
+Witnessed: 2026-11-22 16:34 EST, by a fresh agent (blind). Commit: d4efaa65 + uncommitted working tree (8 modified, 4 untracked files under `packages/core/src/read/copilot/`). Machine: macOS 27.2.1 (Darwin 27.2.0), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's own tests pass (core readers, CLI export and proposal, MCP) | no | confirmed | `vitest run src/read` → 79 passed; export and proposal → 69 passed; mcp → 53 passed |
+| 2 | `read/copilot/` reads agents, rules and MCP servers, exported from `read/index.ts` | no | confirmed | `read/index.ts` exports; `agent.ts`, `rule.ts`, `mcp-server.ts` |
+| 3 | Reading back each Copilot golden output (both scopes) gives the example item, or the warnings §11 names | no | confirmed | probe over every example × scope: code-reviewer, house-style, github-mcp re-render identical; skills give the same files; review-diff back as a skill |
+| 4 | Tests cover the round trip | no | confirmed | mutations (`search: ["grep"]`, no `local`→`stdio`) → 1 failed each |
+| 5 | §11 agent and rule tables match the code | no | confirmed | agent.ts:19–27; `copilotAgentName`; rule.ts; probe for `excludeAgent`, `target` |
+| 6 | §11 MCP table matches the code | no | partly | `${K:-fallbackvalue}` → `${K}` with a warning (§8), not kept; `$API_KEY` in args kept literal, no `env`, no warning; §11 said both are the manifest's syntax |
+| 7 | No secret value survives the Copilot MCP reader | no | confirmed | `ghp_…` token in args and URL replaced by references; `env` values never read; `JSON.stringify(plan).includes(tok)` → false |
+| 8 | Copilot sources are listed under the right tool and scope | no | not met | agents, rules, MCP right; skills not: `~/.github/skills/` listed in user scope and `<project>/.copilot/skills/` in the project (`SKILL_FOLDERS` scanned in both scopes) |
+| 9 | `copilot` is in `SourceTool`, `EXPORT_TOOLS`, the tables, `sourceOfFile`, the dispatch; `--from copilot` takes `.agents/skills/` | no | confirmed | `export.ts` diff; `fromTool`; 4 CLI tests; mutation → 2 failed |
+| 10 | A file given by path is Copilot's by `.agent.md` / `.instructions.md` | no | confirmed | export.ts:853–859; CLI test |
+| 11 | A change proposal for an item installed for Copilot reaches the Copilot readers | no | partly | agent and rule → place `copilot`, edits read right; a server installed for Copilot alone lands in `.mcp.json`, is discovered as `claude-code`, and unedited shows `mcp-server.args → []` and a `tools` warning |
+| 12 | The MCP server's export tools take `copilot` | no | confirmed | packages/mcp/src/server.ts:213, 215, 255 |
+| 13 | `native-readers.md` has §11 Copilot and §12 "Not read", no stale pointer | no | confirmed | `git grep` for `§11`, `§12`, `#11-`, `not-read` |
+| 14 | Language servers are not read for any tool | no | confirmed | no `lsp-server` in export.ts or `ExportType` |
+
+**Overall:** not met (rows 6, 8, 11).
+
+Fixes after the pass:
+- Row 8: Copilot's skill folders belong to one scope each (`SKILL_FOLDER_SCOPE`: `.github/skills` project, `.copilot/skills` user), with a test; undoing the fix fails it. §11 says "project only" / "home only".
+- Row 11: `findMcpServers` attributes a project `.mcp.json` key to Copilot when the state file says `rmk` wrote it for Copilot and not Claude Code, so a proposal renders the base with Copilot's renderer. A test installs a server for Copilot only: unedited → `unchanged: true`; an `args` edit → only `mcp-server.args`. Undoing the fix fails it. §11 and SPEC "Export (reader)" say so.
+- Row 6: §11's MCP row now says what §8's rules do: `${VAR}` stays, a default is dropped with a warning, a bare `$VAR` is kept as written and declares no variable.
+- The stale `fromTool` comment names Copilot too.
+
+### Re-check 1
+
+Witnessed: 2026-11-22 16:38 EST, by a fresh agent (blind). Commit: d4efaa65 + uncommitted working tree (10 modified files, plus untracked `packages/core/src/read/copilot/`). Machine: macOS 27.2.1 (Darwin 27.2.0), Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's own CLI tests pass | no | confirmed | scratch copy `cmp`-identical; `vitest run src/export.test.ts src/export-proposal.test.ts` → 71 passed |
+| 6 | §11's MCP row matches what the code does with `${VAR}`, `${VAR:-default}` and `$VAR` | yes | confirmed | probe-vars: default dropped with the warning; `$API_KEY` and `/$PATHVAR/` kept as written, no `env`, no warning; native-readers.md §11 line 326 says so |
+| 8 | Copilot skill folders are listed only in their own scope | yes | confirmed | stray-skills probe: only `.copilot/skills` in user scope, `.github/skills` in the project; mutation (scope check removed) → 1 failed; §11 line 284 |
+| 11 | A proposal for a server installed for Copilot alone in `.mcp.json` is Copilot's and `unchanged` when unedited; shared or claude-code-only servers stay Claude Code's | yes | confirmed | proposal probe: Copilot only → place `copilot`, `unchanged`; edited `args` → only `mcp-server.args`; `[claude-code, copilot]` and `[claude-code]` → `claude-code`, `unchanged`; mutation → 1 failed; §11 and SPEC.md:222 |
+| 15 | The `fromTool` comment names Copilot | yes | confirmed | export.ts:117–120 |
+
+**Overall:** met.
+
+After Re-check 1, the pre-commit hook's `pnpm test` stopped the commit: `packages/repo-tools/src/item-names.test.js` ("item names are never split by hand outside names.ts") flagged `read/copilot/agent.ts:59 .indexOf("/")`, which splits a Copilot tool alias (`<server>/<tool>`), not an item name. The alias is now split with `split("/")` and a rest join, with a comment saying what it is; same behaviour (the reader's 6 tests and the repo-tools test pass). No claim above changes.

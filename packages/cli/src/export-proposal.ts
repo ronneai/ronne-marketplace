@@ -10,6 +10,9 @@ import {
   readCodexAgent,
   readCodexMcpServer,
   readCommand,
+  readCopilotAgent,
+  readCopilotMcpServer,
+  readCopilotRule,
   readCursorAgent,
   readCursorCommand,
   readCursorMcpServer,
@@ -99,7 +102,9 @@ const readContent = (
         ? readCodexMcpServer
         : place.tool === "cursor"
           ? readCursorMcpServer
-          : readMcpServer;
+          : place.tool === "copilot"
+            ? readCopilotMcpServer
+            : readMcpServer;
     return reader(content.key, content.value, {
       ...options,
       ...(description ? { description } : {}),
@@ -108,6 +113,8 @@ const readContent = (
   const file = stripped(content.file);
   if (place.tool === "codex")
     return readCodexAgent(parseToml(decoder.decode(file.bytes)), { itemName, fileName: file.path });
+  if (place.tool === "copilot")
+    return (place.type === "agent" ? readCopilotAgent : readCopilotRule)(file, options);
   if (place.tool === "cursor")
     return (
       place.type === "agent"

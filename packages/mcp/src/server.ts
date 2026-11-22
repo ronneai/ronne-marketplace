@@ -210,9 +210,9 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     .describe("Only items of this type: skill, agent, command, rule or mcp-server");
 
   const exportFrom = z
-    .enum(["claude-code", "codex", "cursor"])
+    .enum(["claude-code", "codex", "cursor", "copilot"])
     .optional()
-    .describe("Only items written for this AI tool: claude-code, codex or cursor");
+    .describe("Only items written for this AI tool: claude-code, codex, cursor or copilot");
 
   server.registerTool(
     "list_local_items",
@@ -252,7 +252,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
           "skill, agent, command, rule or mcp-server: needed when a name is more than one item",
         ),
         from: exportFrom.describe(
-          "claude-code, codex or cursor: needed when a name is an item in more than one tool",
+          "claude-code, codex, cursor or copilot: needed when a name is an item in more than one tool",
         ),
         description: z
           .string()

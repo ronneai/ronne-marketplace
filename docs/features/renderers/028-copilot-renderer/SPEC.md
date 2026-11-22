@@ -208,17 +208,22 @@ VS Code has its own language servers.
 
 ## Export (reader)
 
-`packages/core/src/read/copilot/`, the reverse of the renderer, like Cursor's (043, contract
-`native-readers.md` gets a Copilot section). It reads:
-- **agents** from `.github/agents/*.agent.md`, with tool aliases back to canonical tools; an alias
-  that stands for several, such as `edit`, becomes all of them, with a warning;
-- **rules** from `.github/instructions/*.instructions.md`, where `applyTo: "**"` → `always` and
-  other globs → `glob`;
-- **skills and commands** from `.github/skills/`, through the shared skill reader, where
-  `disable-model-invocation: true` → a command;
-- **MCP servers** from `.github/mcp.json`, `.mcp.json` (read in the shape Claude Code's reader uses)
-  and `~/.copilot/mcp-config.json`;
-- **language servers** from `.github/lsp.json`.
+`packages/core/src/read/copilot/`, the reverse of the renderer, like Cursor's (043; contract
+`native-readers.md` §11). It reads:
+- **agents** from `.github/agents/*.agent.md` (`~/.copilot/agents/`), with tool aliases back to
+  canonical tools; an alias that stands for several, such as `edit`, becomes all of them, with a
+  warning, and an MCP server named in `tools` is a reference to it;
+- **rules** from `.github/instructions/*.instructions.md` (`~/.copilot/instructions/`), where
+  `applyTo: "**"` → `always`, other globs → `glob`, and none → `manual`;
+- **skills** from `.github/skills/` (`~/.copilot/skills/`) through the shared skill reader. A
+  command written there comes back as a skill, as one from `.agents/skills/` does;
+- **MCP servers** from `.github/mcp.json` and `~/.copilot/mcp-config.json`, `type: "local"` as
+  stdio and `tools` left out. The project's `.mcp.json` is Claude Code's source already (the same
+  file and shape), except a key `rmk` wrote there for Copilot alone, which is Copilot's, so a
+  change proposal compares it with Copilot's render.
+
+Language servers aren't read: `rmk export` reads no `lsp-server` for any tool (native-readers.md
+§12). A file given by path is Copilot's by its extension, `.agent.md` or `.instructions.md`.
 
 `rmk export --from copilot`, the MCP export tools and the change proposal (042) take `copilot`.
 
@@ -300,7 +305,7 @@ The support matrix (026) picks the renderer up from `RENDERERS`.
 - [ ] Tools and events map as in the tables; anything unmappable, a tool filter Copilot can't express, and every `none` type, is a warning.
 - [ ] With Claude Code or Codex as a target too, Copilot leaves out exactly what the "also a target" table says, through the shared helper, and Cursor's goldens don't change.
 - [ ] MCP servers go to `.mcp.json` / `~/.copilot/mcp-config.json` with `env` as `${NAME}` references and `tools`, and no `env` value is written.
-- [ ] `rmk export --from copilot` reads agents, rules, skills, commands, MCP and language servers, with goldens and warnings per `native-readers.md`.
+- [ ] `rmk export --from copilot` reads agents, rules, skills and MCP servers, reading back what the renderer writes, with warnings per `native-readers.md` §11.
 - [ ] `rmk telemetry` installs and removes Copilot's run hook, and a real `postToolUse` payload is counted.
 - [ ] Copilot plugins build for every example item with goldens; the git mirror has `.github/plugin/marketplace.json`; `rmk feed build --tools copilot` works.
 - [ ] Every tool list above includes `copilot`, with messages in en, pt and fr.

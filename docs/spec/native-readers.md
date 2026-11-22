@@ -274,7 +274,65 @@ also reads `.claude/agents/` and `.codex/agents/`; those are §5's and §9's.)
 - Cursor's documentation shows `type: "stdio"` as required for stdio servers; the Cursor renderer
   (025) writes it since this check. Either way the reader reads a `command` as stdio.
 
-## 11. Not read
+## 11. GitHub Copilot (028)
+
+Checked against Copilot's documentation (docs.github.com: custom agents configuration, add custom
+instructions, add MCP servers, the CLI config-dir reference; code.visualstudio.com: agent skills)
+and the Copilot renderer (028) on **2026-11-22**.
+
+**Skill.** Source: `.github/skills/<n>/` (project only) and `~/.copilot/skills/<n>/` (home only),
+read by §4.
+A command the renderer wrote there as a skill (`disable-model-invocation: true`) comes back as a
+skill, as one from `.agents/skills/` does. `--from copilot` also lists `.agents/skills/`, which the
+Copilot CLI reads.
+
+**Agent.** Source: `.github/agents/**/*.agent.md` (project) and `~/.copilot/agents/**/*.agent.md`
+(home). (The CLI also reads `.claude/agents/`; those are §5's.)
+
+| Manifest | From |
+|---|---|
+| name | frontmatter `name`, else the file's name without `.agent.md` |
+| `description` | `description` |
+| `agent.prompt` | `prompt.md`, the body |
+| `agent.tools` | each alias: `read` → `read`; `edit` → `edit`, `write`; `search` → `grep`, `glob`; `execute` → `shell`; `web` → `web-fetch`, `web-search`; `<s>/*` → `mcp:<s>`; `<s>/<t>` → `mcp:<s>/<t>`. An alias that stands for several gives all of them, with a warning |
+| `targets.copilot.overrides.model` | `model` |
+
+- An MCP server named in `tools` is a reference to that server (as §5).
+- Dropped, with a warning each: an alias Ronne has no name for (`agent`, `todo`, …), and any
+  other field (`target`, `mcp-servers`, `handoffs`, …).
+
+**Rule.** Source: `.github/instructions/**/*.instructions.md` (project) and
+`~/.copilot/instructions/**/*.instructions.md` (home).
+
+| Manifest | From |
+|---|---|
+| `description` | frontmatter `description`, else the body's first line |
+| `rule.body` | `rule.md`, the body |
+| `rule.activation` | `applyTo` with `**` → `always`; other globs → `glob`; no `applyTo` → `manual` (Copilot applies it only when it's attached by hand) |
+| `rule.globs` | `applyTo`, comma-separated |
+
+- Dropped, with a warning each: `excludeAgent`, and any other field.
+
+**MCP server.** Source: `mcpServers.<n>` in `.github/mcp.json` (project) and
+`~/.copilot/mcp-config.json` (home). A server in the project's `.mcp.json`, which Copilot also
+reads, is listed as Claude Code's (§8): the same file and shape. The exception is a key `rmk`
+wrote there for Copilot and not for Claude Code (the state file says which): that one is Copilot's,
+so a change proposal (042) compares it with Copilot's render.
+
+| Manifest | From |
+|---|---|
+| `transport` | `stdio` for `type: "local"` or `"stdio"`, or a `command`; `http` with a `url` |
+| `command`, `args`, `url`, `headers` | as written, through §8's rules: `${VAR}` is the manifest's syntax and stays; a `${VAR:-default}` loses its default, with a warning; a bare `$VAR`, which Copilot also expands, is kept as written and declares no variable; literals through §8's credential rules |
+| `env` | the keys of `env` (never the values); secret by §8's rule |
+
+- `tools: ["*"]` is what an item means anyway. A list that picks some tools is dropped, with a
+  warning: an item offers all of a server's tools.
+
+**Not read for Copilot:** language servers (`.github/lsp.json`), hooks (`.github/hooks/`) and VS
+Code's prompt files, for §12's reasons; prompt files are also VS Code's deprecated Local harness's
+only.
+
+## 12. Not read
 
 Hooks, permission policies, status lines and LSP servers live as keys inside the tools' settings
 files next to the person's own settings; output styles and bundles are rare. They're authored in
