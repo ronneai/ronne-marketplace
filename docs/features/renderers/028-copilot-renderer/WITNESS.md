@@ -388,3 +388,23 @@ Witnessed: 2026-11-22 17:36 EST, by a fresh agent (blind). Commit: 357288af + un
 **Overall:** met.
 
 After the re-check, plugin-feed.db.test.ts:807's loop ("caps only Claude Code's marketplace") includes `copilot`, the coverage the re-check noted; it passes. No claim above changes.
+
+## Task 7 — End to end and the Documentation
+
+Witnessed: 2026-11-22 18:31 EST, by a fresh agent (blind). Commit: bb111246 + working tree (6 modified files) in ronne-marketplace-028; ronne-web-028 at 14ded47 (clean). Machine: macOS 27.2.1, Node 26.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The e2e test passes alone with Playwright: Copilot picked by itself, agent with its skill and MCP server, hook and rule installed, then with Claude Code, then removed cleanly | no | confirmed | `pnpm build`; `pnpm exec playwright test e2e/rmk.e2e.ts --project chromium` → "rmk installs for GitHub Copilot, alone and with Claude Code, and removes cleanly", 9 passed; rmk.e2e.ts:287–374 asserts each step |
+| 2 | Status line: the owner ran `"$HOME"/…` on a real Copilot CLI and a shell ran it; recorded in PLAN Notes; SPEC's open question settled | no | confirmed | fakehome `.copilot/settings.json` has the `scriptCommand` form; `statusline-stdin.json` (18:29) holds the session JSON with `"version":"1.0.114"`; PLAN Notes; SPEC:185; "Open questions" removed |
+| 3 | The GitHub Copilot page in en, pt and fr with its five sections, covered by the render tests | no | confirmed | ronne-web-028/www `pnpm test` → 224 passed; docs.test.ts:64 (topics and sections per locale), :82 (renders every section, list parity) |
+| 4 | Every claim on the Copilot page is true of the code | no | confirmed | paths, covered rows, aliases, matchers (incl. `<server>-.*` overlap), warnings, none types, trust note, plugins, marketplace and plugin names, against renderer.ts, mappings.ts, install.ts:513, plugins/copilot.ts, marketplace.ts:48, names.ts:14 |
+| 5 | Your AI tools row, and the export, usage, MCP, rmk and plugin-feed sections in three languages | no | confirmed | `git diff main` in ronne-web: items, export, rmk (the 8 detect paths), mcp, plugins, usage; usage facts match usage-hooks.ts:34, :427; list parity passes |
+| 6 | Export reads agents, rules, skills and MCP servers from Copilot | no | confirmed | read/index.ts:9–11; cli/src/export.ts:73–93 |
+| 7 | App helpers and `topics.ts` on both sides | no | confirmed | app topics.ts `copilot` (5 sections, Installing items); tool-paths.ts:85; ronne-web topics.ts the same; `pnpm docs:links` → "Compared 39 topics with the website's."; 18 passed |
+| 8 | MVP §3.3 and §15 as built | no | confirmed | MVP.md:237–247; §15 "Copilot's files (028)" and "Native plugin feeds" |
+| 9 | `RONNE_WEB_DIR=../ronne-web-028 pnpm docs:check` and `pnpm witness:check` pass | no | confirmed | exit 0 both |
+
+**Overall:** met.
+
+After the pass: PLAN Notes add that the owner saw `STATUS-OK` in Copilot's status line; SPEC's MCP paragraph says the project's hooks also wait for folder trust (as the page and PLAN Notes say); the acceptance criteria are ticked and 028 is `done` in the index. No claim above changes.

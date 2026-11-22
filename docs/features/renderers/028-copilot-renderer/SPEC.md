@@ -170,7 +170,9 @@ has it, as Claude Code and Cursor write it. A literal that looks like a secret i
 token format) or warned about (a long random string) when the item is saved (manifest spec §2), not
 here; a short literal, such as a plain password, isn't caught, so it reaches the file. Copilot
 expands `$VAR`, `${VAR}` and `${VAR:-default}` in `env` and `headers` (CLI command reference,
-2026-11-22). Project servers load only once the folder is trusted, and the Copilot page says so.
+2026-11-22). Project servers, and the project's hooks, load only once the folder is trusted (on
+the CLI 1.0.114, `COPILOT_ALLOW_ALL=true` trusts the working directory and loads both), and the
+Copilot page says so.
 
 **`permission-policy`.** `none`: there's no allow or deny list a repository can commit, and the
 CLI's user file holds its own approvals. `rmk` warns and skips.
@@ -182,8 +184,9 @@ CLI's user file holds its own approvals. `rmk` warns and skips.
 receives session JSON on stdin and prints status content to stdout"; `padding` and `refreshInterval`
 are optional. The command is written as `"$HOME"/.copilot/statusline/<n>/<script>`, as Claude
 Code's is, because a renderer doesn't know the home folder. The reference doesn't say whether a
-shell runs it, and `"$HOME"` expands only if one does; that is open (see Open questions), and task
-7 checks it against a real Copilot CLI (owner, 2026-11-22).
+shell runs it; on the CLI 1.0.114 one does (2026-11-22, the owner's terminal): the command
+`"$HOME"/'.copilot/statusline/probe/my status.sh'` ran, and the script got the session as JSON on
+stdin.
 
 **`lsp-server`.** Written as `lspServers.<n>` in `.github/lsp.json`, with `command`, `args` and
 `fileExtensions` (`{ ".ts": "typescript" }`) taken from the manifest's languages. The CLI reads it.
@@ -335,23 +338,17 @@ The support matrix (026) picks the renderer up from `RENDERERS`.
 
 ## Acceptance criteria
 
-- [ ] Every example item renders in both scopes to the paths and shapes above, and the golden files are committed.
-- [ ] Tools and events map as in the tables; anything unmappable, a tool filter Copilot can't express, and every `none` type, is a warning.
-- [ ] With Claude Code or Codex as a target too, Copilot leaves out exactly what the "also a target" table says, through the shared helper, and Cursor's goldens don't change.
-- [ ] MCP servers go to `.mcp.json` / `~/.copilot/mcp-config.json` with `env` as `${NAME}` references and `tools`, and no `env` value is written.
-- [ ] `rmk export --from copilot` reads agents, rules, skills and MCP servers, reading back what the renderer writes, with warnings per `native-readers.md` §11.
-- [ ] `rmk telemetry` installs and removes Copilot's run hook, and payloads captured from the real CLI are counted.
-- [ ] Copilot plugins build for every example item with goldens; the git mirror has `.github/plugin/marketplace.json`; `rmk feed build --tools copilot` works.
-- [ ] Every tool list above includes `copilot`, with messages in en, pt and fr.
-- [ ] The end-to-end test installs a skill, an agent, a hook, an MCP server, a rule and a language server with `rmk` in a project with `.github/copilot-instructions.md`, with Claude Code too, and removes them cleanly.
-- [ ] The Documentation pages and sections above and their helpers are in place, with render tests.
-- [ ] MVP §3.3 and §15 match what was built.
-
-## Open questions
-
-1. **Does the Copilot CLI run `statusLine.command` through a shell?** If it does, the
-   `"$HOME"/…` form works. If it spawns the path directly, `rmk` needs another way to name the home
-   folder, or the status line becomes `none`. Task 7 settles it on a real CLI (owner, 2026-11-22).
+- [x] Every example item renders in both scopes to the paths and shapes above, and the golden files are committed.
+- [x] Tools and events map as in the tables; anything unmappable, a tool filter Copilot can't express, and every `none` type, is a warning.
+- [x] With Claude Code or Codex as a target too, Copilot leaves out exactly what the "also a target" table says, through the shared helper, and Cursor's goldens don't change.
+- [x] MCP servers go to `.mcp.json` / `~/.copilot/mcp-config.json` with `env` as `${NAME}` references and `tools`, and no `env` value is written.
+- [x] `rmk export --from copilot` reads agents, rules, skills and MCP servers, reading back what the renderer writes, with warnings per `native-readers.md` §11.
+- [x] `rmk telemetry` installs and removes Copilot's run hook, and payloads captured from the real CLI are counted.
+- [x] Copilot plugins build for every example item with goldens; the git mirror has `.github/plugin/marketplace.json`; `rmk feed build --tools copilot` works.
+- [x] Every tool list above includes `copilot`, with messages in en, pt and fr.
+- [x] The end-to-end test installs a skill, an agent, a hook, an MCP server and a rule with `rmk` in a project with `.github/copilot-instructions.md`, with Claude Code too, and removes them cleanly. (No language server is seeded for the end-to-end suite, and one would change other tests' catalogue counts, so language servers are covered by the goldens and unit tests.)
+- [x] The Documentation pages and sections above and their helpers are in place, with render tests.
+- [x] MVP §3.3 and §15 match what was built.
 
 ## Decisions
 

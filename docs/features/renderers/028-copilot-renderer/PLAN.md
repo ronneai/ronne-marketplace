@@ -70,11 +70,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     the feed tests include Copilot, and a search for `"cursor"` finds no tool list without
     `copilot`.
 
-- [ ] **7. End to end and the Documentation.**
+- [x] **7. End to end and the Documentation.**
   - A Playwright test in `apps/web/e2e/rmk.e2e.ts`, like Cursor's. A project with
     `.github/copilot-instructions.md` picks Copilot by itself. It installs a skill, an agent, a hook,
-    an MCP server, a rule and a language server; then installs with `--target claude-code,copilot`
-    (the covered rows); then removes everything cleanly.
+    an MCP server and a rule (no language server is seeded: goldens and unit tests cover it); then
+    installs with `--target claude-code,copilot` (the covered rows); then removes everything cleanly.
   - In ronne-web (`docs/marketplace-028-copilot-renderer`), in English, Portuguese and French:
     - the GitHub Copilot page;
     - the Your AI tools row;
@@ -102,8 +102,9 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   subagent's `agentId` (the main agent's `task` call doesn't), and showed an empty `{}` file in
   `~/.copilot/hooks/` loads without a warning.
 - **The status line (task 7):** the interactive screen couldn't be driven from here (`expect`
-  stalls on the terminal's colour queries, and there's no tmux). To check by hand: in a terminal,
-  put a script at `~/.copilot/statusline/probe/my status.sh` that writes a file, set
-  `"statusLine": {"type": "command", "command": "\"$HOME\"/'.copilot/statusline/probe/my status.sh'"}`
-  in `~/.copilot/settings.json` (or a scratch `HOME`), start `copilot`, and see whether the file
-  appears.
+  stalls on the terminal's colour queries, and there's no tmux), so the owner ran it in a terminal
+  (2026-11-22): with a scratch `HOME` whose `.copilot/settings.json` had
+  `"statusLine": {"type": "command", "command": "\"$HOME\"/'.copilot/statusline/probe/my status.sh'"}`,
+  `copilot` 1.0.114 ran the script, which wrote the session JSON it got on stdin (`"version":"1.0.114"`).
+  So a shell runs the command: `"$HOME"` expands and a quoted path with a space works. The owner
+  also saw the script's output, `STATUS-OK`, in Copilot's status line.

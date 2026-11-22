@@ -82,7 +82,7 @@ export const TOOL_PAGES: Record<string, TopicSlug> = {
   "claude-code": "claude-code",
   codex: "codex",
   cursor: "cursor",
-  // Copilot's page comes with its Documentation (028 task 7).
+  copilot: "copilot",
 };
 
 /**

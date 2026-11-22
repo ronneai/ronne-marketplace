@@ -454,6 +454,19 @@ export const TOPICS = [
       { id: "plugins", title: "Plugins" },
     ],
   },
+  {
+    slug: "copilot",
+    title: "GitHub Copilot",
+    summary:
+      "Where rmk puts each type of item for GitHub Copilot, which part of Copilot reads it, and how it works with Claude Code and Codex.",
+    sections: [
+      { id: "paths", title: "Where each type goes" },
+      { id: "surfaces", title: "Which part of Copilot reads what" },
+      { id: "with-other-tools", title: "With Claude Code and Codex" },
+      { id: "notes", title: "Good to know" },
+      { id: "plugins", title: "Plugins" },
+    ],
+  },
 ] as const;
 
 export type Topic = (typeof TOPICS)[number];
@@ -485,7 +498,7 @@ export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
   },
   {
     label: "Installing items",
-    topics: ["rmk", "plugins", "mcp", "usage", "claude-code", "codex", "cursor"],
+    topics: ["rmk", "plugins", "mcp", "usage", "claude-code", "codex", "cursor", "copilot"],
   },
   { label: "Organising", topics: ["workspaces", "scopes", "items"] },
   { label: "Publishing", topics: ["export", "review", "versions", "changes"] },
