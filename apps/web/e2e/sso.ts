@@ -87,7 +87,7 @@ export const ssoFlow = async ({
     await page.getByLabel("Issuer URL").fill(fake.issuer);
     await page.getByLabel("Client ID").fill(fake.clientId);
     await page.getByLabel("Client secret").fill(fake.clientSecret);
-    await page.getByLabel("Email domains this provider signs in").fill(`${suffix}.e2e.test`);
+    await page.getByRole("textbox", { name: "Only these domains" }).fill(`${suffix}.e2e.test`);
     await page.getByRole("button", { name: "Add a group" }).click();
     await page.getByLabel("Group", { exact: true }).fill("e2e-sso-team");
     await page.getByLabel("Workspace", { exact: true }).selectOption({ label: E2E_WORKSPACE });

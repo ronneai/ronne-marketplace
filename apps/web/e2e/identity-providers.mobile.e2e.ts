@@ -35,6 +35,8 @@ test("the identity provider form fits a phone: cards, fields, steps, group rows 
   await expect(page.getByLabel("Issuer URL")).toHaveValue("https://sso.acme.internal/realms/acme");
   await page.getByLabel("Client ID").fill("ronne");
   await page.getByLabel("Client secret").fill("phone-test-secret");
+  // No domains, so it creates no accounts (191).
+  await page.getByRole("checkbox", { name: /^Creates accounts on first sign-in/ }).uncheck();
   await expect(page.getByRole("heading", { name: "Set it up at the provider" })).toBeVisible();
   await noSidewaysScroll(page, "the new provider's form and steps");
 
