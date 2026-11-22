@@ -1,5 +1,6 @@
 import { type ItemType, isItemType } from "../../item-types.js";
 import { commandSkill, type SkillPlace, skillFolder, writtenSkill } from "../agents-skills.js";
+import { alsoTarget, covered } from "../covered.js";
 import {
   disabledWarning,
   envRef,
@@ -16,6 +17,7 @@ import {
 import type {
   Change,
   PlatformRenderer,
+  RenderContext,
   RenderInput,
   RenderScope,
   RenderWarning,
@@ -345,6 +347,33 @@ const renderStatusline = (
   };
 };
 
+/**
+ * What Copilot leaves to another target of the same install (spec 028, "also a target"). The CLI
+ * and VS Code's Copilot harness read a project's `.mcp.json`, run its `.claude/settings.json` hooks
+ * and read its `AGENTS.md`; nothing is said of those tools' home-folder files, so only a project's
+ * copy covers Copilot's.
+ */
+const coveredBy = (
+  item: RenderInput,
+  type: ItemType,
+  block: Record<string, unknown>,
+  context: RenderContext,
+): ReturnType<typeof covered> | null => {
+  if (context.scope !== "project") return null;
+  if (type === "mcp-server" && alsoTarget(item, context, "claude-code"))
+    return covered(item, RENDERER_NAME, "Claude Code", ".mcp.json");
+  if (type === "hook" && alsoTarget(item, context, "claude-code"))
+    return covered(item, RENDERER_NAME, "Claude Code", "hooks in .claude/settings.json");
+  const activation = String(block.activation ?? "always");
+  if (
+    type === "rule" &&
+    (activation === "always" || activation === "glob") &&
+    alsoTarget(item, context, "codex")
+  )
+    return covered(item, RENDERER_NAME, "Codex", "AGENTS.md");
+  return null;
+};
+
 const NO_PLACE: Partial<Record<ItemType, string>> = {
   "permission-policy":
     "GitHub Copilot has no allow or deny list a project or the home folder can hold",
@@ -388,6 +417,8 @@ export const copilotRenderer: PlatformRenderer = {
     const block = record(type ? item.manifest[type] : undefined);
     const n = shortName(item.name);
     const scope: RenderScope = context.scope;
+    const left = type ? coveredBy(item, type, block, context) : null;
+    if (left) return left;
     switch (type) {
       case "skill":
         return skillFolder(item, n, String(block.entry ?? "SKILL.md"), skills(scope));

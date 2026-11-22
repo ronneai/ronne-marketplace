@@ -384,6 +384,45 @@ describe("rmk install for Cursor", () => {
   });
 });
 
+describe("rmk install for GitHub Copilot", () => {
+  it("writes Copilot's files, and leaves MCP servers to Claude Code's .mcp.json when both are targets", async () => {
+    await start();
+    const alone = await rmk("install", "@team/secure", "--target", "copilot");
+    expect(alone.exitCode, alone.stdout).toBe(0);
+    expect(alone.stdout).toContain("for copilot.");
+    expect(read(".github/skills/secure/SKILL.md")).toContain("Check inputs and secrets.");
+    expect(JSON.parse(read(".mcp.json")).mcpServers.gh).toEqual({
+      type: "stdio",
+      command: "npx",
+      args: [],
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: Copilot's own reference syntax
+      env: { GITHUB_TOKEN: "${GITHUB_TOKEN}" },
+      tools: ["*"],
+    });
+    expect(alone.stdout).toContain("Note: GitHub Copilot loads a project's MCP servers");
+    expect((await rmk("remove", "@team/secure", "--target", "copilot")).exitCode).toBe(0);
+    expect(existsSync(join(io.cwd, ".github/skills/secure"))).toBe(false);
+
+    const both = await rmk("install", "@team/secure", "--target", "claude-code,copilot");
+    expect(both.exitCode, both.stdout).toBe(0);
+    expect(both.stdout).toContain(
+      "GitHub Copilot reads Claude Code's copy of @team/gh (.mcp.json)",
+    );
+    expect(JSON.parse(read(".mcp.json")).mcpServers.gh.tools).toBeUndefined();
+    expect(read(".github/skills/secure/SKILL.md")).toContain("Check inputs and secrets.");
+    expect(
+      JSON.parse(read(".rmk/state.json")).entries.map((e: { kind: string; path: string }) => [
+        e.kind,
+        e.path,
+      ]),
+    ).toEqual([
+      ["dir", ".claude/skills/secure"],
+      ["dir", ".github/skills/secure"],
+      ["json-key", ".mcp.json"],
+    ]);
+  });
+});
+
 describe("tool notes", () => {
   it("says when Codex needs the project trusted, hooks reviewed, or AGENTS.md is too long", () => {
     const root = mkdtempSync(join(tmpdir(), "rmk-notes-"));
@@ -394,6 +433,13 @@ describe("tool notes", () => {
       ]);
       expect(toolNotes([".codex/hooks.json"], "project", root)).toHaveLength(2);
       expect(toolNotes([".codex/rules/safe-git.rules"], "user", root)).toEqual([]);
+      expect(toolNotes([".mcp.json"], "project", root, ["copilot"])).toEqual([
+        expect.stringContaining(
+          "GitHub Copilot loads a project's MCP servers only in a folder you trust",
+        ),
+      ]);
+      expect(toolNotes([".mcp.json"], "project", root, ["claude-code"])).toEqual([]);
+      expect(toolNotes([".copilot/mcp-config.json"], "user", root, ["copilot"])).toEqual([]);
       expect(toolNotes([".codex/hooks.json"], "user", root)).toEqual([
         expect.stringContaining("/hooks"),
       ]);

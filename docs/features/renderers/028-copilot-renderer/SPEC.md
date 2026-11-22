@@ -94,6 +94,14 @@ With the shared `covered_by_target` helper, that gives:
 | `claude-code` | MCP servers (the same `.mcp.json` key), hooks | both surfaces read that `.mcp.json` and run Claude Code's hooks, so hooks would run twice |
 | `codex` | `always` and `glob` rules | in `AGENTS.md`, which both surfaces read |
 
+Both rows hold in a project only: what Copilot reads of the others is the project's `.mcp.json`,
+`.claude/settings.json` and `AGENTS.md`, and nothing is documented of their home-folder files
+(`~/.claude.json`, `~/.claude/settings.json`, `~/.codex/AGENTS.md`), so in user scope Copilot writes
+its own copy. The helper is `render/covered.ts`, which Cursor uses too, and its message says whose
+copy Copilot reads (for example "GitHub Copilot reads Claude Code's copy of @team/gh (.mcp.json), so
+no second one was written."). `rmk` notes, after a project install with Copilot that wrote
+`.mcp.json`, that Copilot loads a project's MCP servers only once the folder is trusted.
+
 Copilot always writes skills, commands and agents, because VS Code's Copilot harness doesn't read
 Claude Code's copies. It also always writes rules when Gemini CLI is a target, since VS Code doesn't
 read `GEMINI.md`. In the CLI a skill can then be found twice, and the first one found wins; there is

@@ -441,6 +441,59 @@ describe("the GitHub Copilot renderer", () => {
     });
   });
 
+  it("leaves to another target exactly what the spec's table says, in a project", () => {
+    const withClaude = { scope: "project" as const, targets: ["claude-code", "copilot"] };
+    const withCodex = { scope: "project" as const, targets: ["codex", "copilot"] };
+    const message = (name: string, writer: string, where: string) => ({
+      changes: [],
+      warnings: [
+        {
+          code: "covered_by_target",
+          message: `GitHub Copilot reads ${writer}'s copy of @examples/${name} (${where}), so no second one was written.`,
+        },
+      ],
+    });
+    expect(render("github-mcp", withClaude)).toEqual(
+      message("github-mcp", "Claude Code", ".mcp.json"),
+    );
+    expect(render("format-on-edit", withClaude)).toEqual(
+      message("format-on-edit", "Claude Code", "hooks in .claude/settings.json"),
+    );
+    expect(render("house-style", withCodex)).toEqual(message("house-style", "Codex", "AGENTS.md"));
+    const always = withBlock("house-style", "rule", { body: "rule.md" });
+    expect(copilotRenderer.render(always, withCodex).warnings[0]?.code).toBe("covered_by_target");
+    // Everything else is still written: VS Code's Copilot harness reads none of the others' copies.
+    for (const name of [
+      "secure-coding",
+      "review-diff",
+      "code-reviewer",
+      "house-style",
+      "typescript-lsp",
+    ])
+      expect(render(name, withClaude).changes.length, name).toBeGreaterThan(0);
+    for (const name of ["github-mcp", "format-on-edit", "secure-coding"])
+      expect(render(name, withCodex).changes.length, name).toBeGreaterThan(0);
+    for (const activation of ["model", "manual"]) {
+      const rule = withBlock("house-style", "rule", { body: "rule.md", activation });
+      expect(copilotRenderer.render(rule, withCodex).changes).toHaveLength(1);
+    }
+  });
+
+  it("writes its own copy in the home folder, or when the item isn't offered to the other tool", () => {
+    const user = { scope: "user" as const, targets: ["claude-code", "codex", "copilot"] };
+    for (const name of ["github-mcp", "format-on-edit", "house-style"])
+      expect(render(name, user).changes.length, name).toBeGreaterThan(0);
+    const item = example("github-mcp");
+    const noClaude = {
+      ...item,
+      manifest: { ...item.manifest, targets: { "claude-code": { enabled: false } } },
+    };
+    expect(
+      copilotRenderer.render(noClaude, { scope: "project", targets: ["claude-code", "copilot"] })
+        .changes,
+    ).toHaveLength(1);
+  });
+
   it("says it can't take permission policies or output styles", () => {
     expect(copilotRenderer.supports("permission-policy")).toBe("none");
     expect(copilotRenderer.supports("output-style")).toBe("none");

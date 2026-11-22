@@ -36,7 +36,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* golden files are committed, unit tests cover every row of both mapping tables, and
     a test shows no secret value is written.
 
-- [ ] **4. Other targets and the registry.**
+- [x] **4. Other targets and the registry.**
   - Move Cursor's `claudeCodeCovers`/`covered` into a shared `render/covered.ts`, without changing
     Cursor's goldens, and use it for Copilot's "also a target" table.
   - `copilotRenderer` in `RENDERERS` and `index.ts`. `rmk install` picks it up through

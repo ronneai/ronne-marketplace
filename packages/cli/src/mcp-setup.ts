@@ -142,7 +142,13 @@ export const mcpSetupCommand = async (io: Io, args: Args, out: Output) => {
       out.say(
         "Note: Claude Code asks once before it uses a project's MCP servers: approve ronne-registry.",
       );
-    for (const note of toolNotes(written, scope, places(io, scope).root)) out.say(`Note: ${note}`);
+    for (const note of toolNotes(
+      written,
+      scope,
+      places(io, scope).root,
+      targets.map((t) => t.id),
+    ))
+      out.say(`Note: ${note}`);
     if (written.length)
       out.say(
         "Restart the AI tool, or reload its MCP servers, to start it. It uses the token from rmk login.",

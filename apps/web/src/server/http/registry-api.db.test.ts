@@ -180,7 +180,7 @@ describe("GET /items", () => {
   it("refuses what it doesn't understand, and requests without a valid token", async () => {
     for (const query of [
       "?type=widget",
-      "?tool=copilot",
+      "?tool=no-such-tool",
       "?sort=stars",
       "?limit=0",
       "?limit=101",
@@ -227,6 +227,7 @@ describe("GET /items/{scope}/{name}", () => {
       "claude-code": "native",
       codex: "native",
       cursor: "native",
+      copilot: "native",
     });
     // A leading @ in the path works too.
     expect(

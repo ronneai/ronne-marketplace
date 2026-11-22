@@ -260,3 +260,26 @@ Witnessed: 2026-11-22 16:14 EST, by a fresh agent (adversarial), re-check scoped
 | 5 | The Copilot tests kill mutations of shellWord and scriptCommand (renderer.ts:158–163) | yes | confirmed | scratch copy synced (`cmp`, `diff -r`); baseline 22 passed; `escape-replace-first` → 1 failed (renderer.test.ts:291–292, `a'b'c.sh`); `mut5.sh` and `mut5b.sh` rerun: every applied mutation fails 1–7 tests except `[\w./-]` (equivalent); new: no `-`, no `/`, `:` added, `"$HOME"` without `/` → all fail; `+` → `*` passes (equivalent: every path has a prefix); repository untouched (snapshots) |
 
 **Overall:** met.
+
+## Task 4 — Other targets and the registry
+
+Witnessed: 2026-11-22 16:21 EST, by a fresh agent (blind). Commit: d82b75b8 + the uncommitted working tree (15 modified files, 1 untracked: `packages/core/src/render/covered.ts`). Machine: macOS 27.2.1, Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `claudeCodeCovers`/`covered` moved into a shared `render/covered.ts`, and Cursor uses it | no | confirmed | `covered.ts` exports `alsoTarget` and `covered`; cursor/renderer.ts:44–47 uses them with `RENDERER_NAME = "Cursor"`, so the message is the same |
+| 2 | Cursor's goldens are unchanged | no | confirmed | `git diff --exit-code d82b75b8 -- packages/core/src/render/cursor/__golden__` → 0; its registry assertion is now `toContain("cursor")` |
+| 3 | Copilot leaves MCP servers and hooks to Claude Code when both are targets, in a project | no | confirmed | copilot/renderer.ts:356–366; mutations of each check → 1 test fails; exact message tested |
+| 4 | Copilot leaves `always` and `glob` rules to Codex, and still writes `model` and `manual` rules | no | confirmed | renderer.ts:367–373; mutations "glob only", "always only", "any activation" → each fails 1 test |
+| 5 | Both rows hold in a project only; in user scope Copilot writes its own copy | no | confirmed | renderer.ts:355; removing it → 1 test fails |
+| 6 | An item not offered to the other tool isn't left to it | no | confirmed | `alsoTarget` checks `enabled`; test with `claude-code.enabled: false` → 1 change |
+| 7 | Skills, commands, agents, rules and LSP servers are still written with Claude Code as a target | no | confirmed | test loop; probe wrote `.github/skills/secure` with both targets |
+| 8 | `copilotRenderer` is in `RENDERERS` and exported from `index.ts` | no | confirmed | registry.ts:16, index.ts:5; `vitest run src/render` → 87 passed; support.test.ts levels match the spec |
+| 9 | `rmk platforms` lists Copilot | no | confirmed | probe → `copilot  GitHub Copilot  (renderer 1.0.0)` with its native, degraded and none types |
+| 10 | `rmk install` without `--target` picks Copilot from `.github/copilot-instructions.md`, not from a bare `.github/` | no | confirmed | probe → "for copilot."; `.github/workflows/` only → exit 2, "No AI tool detected" |
+| 11 | `install.test.ts` covers `--target claude-code,copilot` | no | confirmed | install.test.ts:388–424; 19 passed |
+| 12 | The folder-trust note appears after a project install with Copilot that wrote `.mcp.json`, also through `rmk mcp-setup` | no | confirmed | install.ts:513–516; probe printed it; mutation → 1 test fails; mcp-setup.ts:145–150, 7 passed; the `scope === "project"` check has no test (no user-scope path is `.mcp.json`) |
+| 13 | The web test changes follow only from a fourth tool being registered | no | confirmed | `git diff apps/web`: support maps, tool lists, "of 4 tools", 3 "skipped", `copilot` → `no-such-tool` in the unknown-tool checks; 4 files, 75 passed |
+| 14 | Spec Decision 5 is what the code does | no | confirmed | SPEC.md:331, as row 3 |
+
+**Overall:** met.
