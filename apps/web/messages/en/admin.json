@@ -1549,7 +1549,7 @@
       "minutesHint": "5 to 60. The same lifetime applies to every code Ronne emails.",
       "challenge": "Ask browsers to solve a challenge",
       "challengeHint": "An invisible check, done by the browser in about a second, that stops most bots. It needs JavaScript.",
-      "termsUrl": "Terms and privacy link",
+      "termsUrl": "Terms and privacy notice link",
       "termsHint": "Optional, an https:// address. When it's set, the sign-up form asks people to accept it.",
       "termsVersion": "Version",
       "askAgain": "Ask everyone to accept again",

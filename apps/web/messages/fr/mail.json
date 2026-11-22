@@ -51,7 +51,7 @@
   "signUp": {
     "sign_up_code": {
       "subject": "Votre code pour {host} : {code}",
-      "body": "Votre code pour créer un compte sur {host} est {code}. Il vaut pendant {minutes} minutes. Tapez-le dans la fenêtre où vous vous êtes inscrit.",
+      "body": "Votre code pour créer un compte sur {host} est {code}. Il est valide pendant {minutes} minutes. Tapez-le dans la fenêtre où vous avez demandé ce code.",
       "notYou": "Si ce n’était pas vous, ignorez ce courriel : aucun compte n’est créé sans le code."
     },
     "sign_up_existing": {

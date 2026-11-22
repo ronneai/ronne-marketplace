@@ -246,7 +246,7 @@
       "body": "La personne perdra l’administration des utilisateurs, les portées, les réglages et le journal d’audit à sa prochaine requête."
     },
     "changeRole": "Faire passer son rôle de <from></from> à <to></to>.",
-    "approveBody": "{email} pourra se connecter une fois approuvé, et reçoit un courriel le lui disant.",
+    "approveBody": "{email} pourra se connecter une fois le compte approuvé, et reçoit un courriel le lui disant.",
     "declineBody": "Le compte de {email} est supprimé, avec ce que la personne a tapé, et elle reçoit un courriel disant qu’il n’a pas été approuvé. Impossible d’annuler."
   },
   "erase": {
@@ -1549,7 +1549,7 @@
       "minutesHint": "De 5 à 60. La même validité s’applique à chaque code que Ronne envoie par courriel.",
       "challenge": "Demander aux navigateurs de résoudre un défi",
       "challengeHint": "Une vérification invisible, faite par le navigateur en une seconde environ, qui arrête la plupart des robots. Elle demande JavaScript.",
-      "termsUrl": "Lien des conditions et de la confidentialité",
+      "termsUrl": "Lien des conditions et de l’avis de confidentialité",
       "termsHint": "Facultatif, une adresse https://. Quand il est défini, le formulaire d’inscription demande de l’accepter.",
       "termsVersion": "Version",
       "askAgain": "Demander à tout le monde d’accepter de nouveau",

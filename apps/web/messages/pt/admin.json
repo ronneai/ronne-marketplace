@@ -246,7 +246,7 @@
       "body": "A pessoa perde a administração de usuários, os escopos, as configurações e o registro de auditoria na próxima requisição."
     },
     "changeRole": "Alterar o papel de <from></from> para <to></to>.",
-    "approveBody": "{email} poderá entrar depois de aprovada, e recebe um e-mail avisando.",
+    "approveBody": "{email} poderá entrar quando a conta for aprovada, e recebe um e-mail avisando.",
     "declineBody": "A conta de {email} é excluída, com o que a pessoa digitou, e ela recebe um e-mail dizendo que não foi aprovada. Não é possível desfazer."
   },
   "erase": {
@@ -1549,7 +1549,7 @@
       "minutesHint": "De 5 a 60. A mesma validade vale para todo código que o Ronne envia por e-mail.",
       "challenge": "Pedir aos navegadores que resolvam um desafio",
       "challengeHint": "Uma verificação invisível, feita pelo navegador em cerca de um segundo, que impede a maioria dos robôs. Precisa de JavaScript.",
-      "termsUrl": "Link dos termos e da privacidade",
+      "termsUrl": "Link dos termos e do aviso de privacidade",
       "termsHint": "Opcional, um endereço https://. Quando definido, o formulário de cadastro pede que as pessoas o aceitem.",
       "termsVersion": "Versão",
       "askAgain": "Pedir que todos aceitem de novo",

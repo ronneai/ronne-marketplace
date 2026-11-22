@@ -401,7 +401,7 @@ exports[`renderMail (189) > writes sign_up_code in fr, as text and HTML > html 1
 <head><meta charset="utf-8"><meta name="color-scheme" content="light">
 <title>Votre code pour marketplace.acme.example : 482913</title></head>
 <body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
-<p style="margin:0 0 16px">Votre code pour créer un compte sur marketplace.acme.example est 482913. Il vaut pendant 15 minutes. Tapez-le dans la fenêtre où vous vous êtes inscrit.</p>
+<p style="margin:0 0 16px">Votre code pour créer un compte sur marketplace.acme.example est 482913. Il est valide pendant 15 minutes. Tapez-le dans la fenêtre où vous avez demandé ce code.</p>
 <p style="margin:0 0 16px">Quand : 2026-11-21 16:32 UTC</p>
 <p style="margin:0 0 16px;font-weight:600">Si ce n’était pas vous, ignorez ce courriel : aucun compte n’est créé sans le code.</p>
 <p style="margin:0 0 16px">Pour joindre votre administrateur, répondez à ce courriel.</p>
@@ -412,7 +412,7 @@ exports[`renderMail (189) > writes sign_up_code in fr, as text and HTML > html 1
 `;
 
 exports[`renderMail (189) > writes sign_up_code in fr, as text and HTML > text 1`] = `
-"Votre code pour créer un compte sur marketplace.acme.example est 482913. Il vaut pendant 15 minutes. Tapez-le dans la fenêtre où vous vous êtes inscrit.
+"Votre code pour créer un compte sur marketplace.acme.example est 482913. Il est valide pendant 15 minutes. Tapez-le dans la fenêtre où vous avez demandé ce code.
 
 Quand : 2026-11-21 16:32 UTC
 

@@ -803,3 +803,23 @@ Witnessed: 2026-11-22 01:01 EST, by a fresh agent (adversarial). Commit: 0d2be8e
 **Overall:** met. With re-check 1 (blind) met, both latest passes are met.
 
 Fix after re-check 1, test only, from the pre-commit run: `scripts/purge.db.test.ts` expected the purge's old line "Failed sign-ins' emails cleared"; it now expects "Emails typed at failed sign-ins and sign-ups cleared". `vitest run scripts/purge.db.test.ts` → 3 passed (rerun by the implementer). No code the witnesses checked changed.
+
+## Task 9 — Languages
+
+### Blind pass
+
+Witnessed: 2026-11-22 01:09 EST, by a fresh agent (blind). Commit: 913db81f + working-tree diff. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The raw-text lint passes | no | confirmed | `pnpm lint` → exit 0 |
+| 2 | The translation tests pass | no | confirmed | 29 files, 493 tests passed |
+| 3 | Every message 190 adds or changes exists in pt and fr | no | confirmed | probe against `main`: 160 changed keys, none missing |
+| 4 | No pt or fr message left in English | no | confirmed | only fr "Code" and "Version", both French; all 160 read |
+| 5 | The tests catch a missing key, a wrong placeholder or English left in | no | confirmed | three planted faults → three tests fail |
+| 6 | The raw-text lint covers 190's screens | no | confirmed | raw text in four of its files → four plugin errors |
+| 7 | The glossary has the new terms | no | confirmed | seven rows; `pnpm docs:check` clean |
+| 8 | One term per concept in pt and fr, matching the glossary | no | confirmed | cadastro / inscription, aprovar / recusar, approuver / refuser, código / code, termos / conditions… |
+| 9 | The label change leaves nothing pointing at the old text | no | confirmed | grep finds nothing; tests pass |
+
+**Overall:** met. Wording suggestions, applied afterwards: fr "Il est valide pendant {minutes} minutes" (the code page and its email), fr "Ce code n’est plus valide.", pt and fr `actions.approveBody` agreeing with "a conta" / "le compte", fr email "la fenêtre où vous avez demandé ce code" (not gendered), the glossary's pt "fazer o cadastro". `vitest run` on the i18n, sign-up, admin-users and mail templates tests → 579 passed, two snapshots updated (rerun by the implementer).

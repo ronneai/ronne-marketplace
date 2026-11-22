@@ -98,7 +98,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* `retention-purge.db.test.ts`, the erase and the user-data export db tests cover
     the new data.
 
-- [ ] **9. Languages.**
+- [x] **9. Languages.**
   - Every new message in `auth`, `admin` and 189's `mail` namespaces, in all three languages.
   - The glossary in `docs/knowledge/i18n.md` if a new term appears ("sign up", "awaiting
     approval").
