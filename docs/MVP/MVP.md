@@ -110,7 +110,7 @@ it to each tool, and platforms without an equivalent are skipped with a warning.
 | `command` | A reusable prompt / slash command / workflow template, with arguments | Markdown + frontmatter (`args`, `description`) | Slash commands, prompt files, Gemini TOML commands, Devin workflows |
 | `hook` | A command run on an AI-tool lifecycle event | `hook.yaml`: canonical event + matcher + command/script | Hooks (Claude, Codex, Cursor, Copilot, Gemini, Devin, Kiro) |
 | `mcp-server` | Connection config for an MCP server (stdio command or HTTP URL, args, env var **names** only) | `mcp.yaml` | MCP config files (all platforms) |
-| `permission-policy` | Allow / ask / deny rules for tools and shell commands | `policy.yaml`: `{ tool, pattern, decision }` list | Claude `permissions`, Codex `.rules` (Starlark) + approval profiles, Copilot permissions, Gemini policy |
+| `permission-policy` | Allow / ask / deny rules for tools and shell commands | `policy.yaml`: `{ tool, pattern, decision }` list | Claude `permissions`, Codex `.rules` (Starlark) + approval profiles, Gemini policy (Copilot has none a repository can commit) |
 | `output-style` | A system-prompt style that changes how the agent responds | Markdown | Claude Code only |
 | `statusline` | A status-line script / config | Script + `statusline.yaml` | Claude Code, Codex |
 | `lsp-server` | A language-server config that gives the agent code intelligence | `lsp.yaml` | Claude Code (via plugin), Copilot CLI |
@@ -141,8 +141,8 @@ servers) could have dependencies.
 | `compact.before` | Before context is compacted |
 | `agent.stop` | The agent finishes responding |
 
-It maps them to each platform's names, for example `tool.before` → `PreToolUse` (Claude, Codex, Copilot),
-`preToolUse` / `beforeShellExecution` (Cursor), `BeforeTool` (Gemini), `pre_run_command` (Devin).
+It maps them to each platform's names, for example `tool.before` → `PreToolUse` (Claude, Codex),
+`preToolUse` (Copilot), `preToolUse` / `beforeShellExecution` (Cursor), `BeforeTool` (Gemini), `pre_run_command` (Devin).
 An event with no equivalent on a target makes the renderer warn and skip that hook.
 **Hooks, permission policies and MCP servers are flagged as high-risk in review** (§12).
 
@@ -230,16 +230,16 @@ Mitigations: renderers are versioned, each has golden-file tests, and each platf
 
 #### Mapping (project scope; user scope uses the home-directory equivalents)
 
-Surveyed September 2026; the Claude Code, Codex and Cursor columns were re-checked on 2026-09-28 for 023, 024 and 025, and the Copilot, Gemini CLI, Antigravity CLI and Devin columns on 2026-09-28 for the 028–030 specs. Paths are re-verified when each renderer is built.
+Surveyed September 2026; the Claude Code, Codex and Cursor columns were re-checked on 2026-09-28 for 023, 024 and 025, the Gemini CLI, Antigravity CLI and Devin columns on 2026-09-28 for the 029–030 specs, and the Copilot column on 2026-11-22 for 028. Paths are re-verified when each renderer is built.
 
 | Type | Claude Code | Codex CLI | Cursor | Copilot | Gemini CLI | Antigravity CLI | Devin |
 |---|---|---|---|---|---|---|---|
-| skill | `.claude/skills/<n>/` | `.agents/skills/<n>/` (user: `~/.agents/skills/`) | `.agents/skills/<n>/` (also reads `.cursor/skills/`, `.claude/skills/`, `.codex/skills/`) | `.agents/skills/<n>/` (also reads `.github/`, `.claude/skills/`) | `.agents/skills/<n>/` (also `.gemini/skills/`) | `.agents/skills/<n>/` | `.agents/skills/<n>/` (also reads `.claude/`, `.github/`, `.windsurf/skills/`) |
+| skill | `.claude/skills/<n>/` | `.agents/skills/<n>/` (user: `~/.agents/skills/`) | `.agents/skills/<n>/` (also reads `.cursor/skills/`, `.claude/skills/`, `.codex/skills/`) | `.github/skills/<n>/` (the only folder VS Code's Copilot harness reads; the CLI also reads `.agents/skills/`, `.claude/skills/`) | `.agents/skills/<n>/` (also `.gemini/skills/`) | `.agents/skills/<n>/` | `.agents/skills/<n>/` (also reads `.claude/`, `.github/`, `.windsurf/skills/`) |
 | agent | `.claude/agents/<n>.md` | `.codex/agents/<n>.toml` (`name`, `description`, `developer_instructions`) | `.cursor/agents/<n>.md` (no tools field; `readonly`; also reads `.claude/agents/`) | `.github/agents/<n>.agent.md` (also reads `.claude/agents/`) | `.gemini/agents/<n>.md` | `.agents/agents/<n>.md` (own tool names) | `.devin/agents/<n>.md` (preview; also reads `.claude/`) |
 | rule | `.claude/rules/<n>.md` | section in `AGENTS.md` (one file per folder, 32 KiB cap) | `.cursor/rules/<n>.mdc` (user rules are a setting, not a file) | `.github/instructions/<n>.instructions.md` (`applyTo`) | section in `GEMINI.md` | `.agents/rules/<n>.md` (`trigger`, `globs`) | `.devin/rules/<n>.md` (`trigger`) |
-| command | rendered as a skill, `.claude/skills/<n>/` (`.claude/commands/` is legacy) | rendered as a skill (custom prompts are deprecated) | rendered as a skill with `disable-model-invocation: true` | rendered as a skill (prompt files are VS Code Local only) | `.gemini/commands/<n>.toml` | rendered as a skill (every skill is a command) | rendered as a skill (workflows dropped with Cascade) |
-| hook | `hooks` in `.claude/settings.json` | `.codex/hooks.json` (same events as Claude Code; trusted in `/hooks` first) | `.cursor/hooks.json` (`version: 1`, its own event names; also runs Claude Code's hooks) | `.github/hooks/<n>.json` (CLI format, one file per item) | `hooks` in `.gemini/settings.json` (`BeforeTool`…, ms) | `<n>` in `.agents/hooks.json` | `.devin/hooks.v1.json` (Claude Code format) |
-| mcp-server | `.mcp.json` | `[mcp_servers.<n>]` in `.codex/config.toml` (secrets by env var name: `env_vars`, `bearer_token_env_var`) | `.cursor/mcp.json` (`${env:NAME}`) | `.github/mcp.json` (CLI) and `.vscode/mcp.json` (VS Code) | `mcpServers` in `.gemini/settings.json` | `.agents/mcp_config.json` (no env reference syntax documented) | `.devin/mcp_config.json` |
+| command | rendered as a skill, `.claude/skills/<n>/` (`.claude/commands/` is legacy) | rendered as a skill (custom prompts are deprecated) | rendered as a skill with `disable-model-invocation: true` | rendered as a skill in `.github/skills/` (prompt files are VS Code's deprecated Local harness only) | `.gemini/commands/<n>.toml` | rendered as a skill (every skill is a command) | rendered as a skill (workflows dropped with Cascade) |
+| hook | `hooks` in `.claude/settings.json` | `.codex/hooks.json` (same events as Claude Code; trusted in `/hooks` first) | `.cursor/hooks.json` (`version: 1`, its own event names; also runs Claude Code's hooks) | `.github/hooks/<n>.json` (CLI format, one file per item; no tool matcher on `preToolUse`/`postToolUse`; the CLI and VS Code's Copilot harness also run Claude Code's hooks) | `hooks` in `.gemini/settings.json` (`BeforeTool`…, ms) | `<n>` in `.agents/hooks.json` | `.devin/hooks.v1.json` (Claude Code format) |
+| mcp-server | `.mcp.json` | `[mcp_servers.<n>]` in `.codex/config.toml` (secrets by env var name: `env_vars`, `bearer_token_env_var`) | `.cursor/mcp.json` (`${env:NAME}`) | `.mcp.json`, shared with Claude Code (the CLI and VS Code's Copilot harness; user: `~/.copilot/mcp-config.json`) | `mcpServers` in `.gemini/settings.json` | `.agents/mcp_config.json` (no env reference syntax documented) | `.devin/mcp_config.json` |
 | permission-policy | `permissions` in `.claude/settings.json` | `.codex/rules/<n>.rules` (Starlark, `allow`/`prompt`/`forbidden`; experimental) | `permissions` in `.cursor/cli.json` (the CLI only; `Shell(cmd:args)`, no ask) | none (nothing a repo can commit) | user only: `~/.gemini/policies/<n>.toml` (project policies non-functional) | user only: `~/.gemini/antigravity-cli/settings.json` | `permissions` in `.devin/config.json` |
 | output-style | `.claude/output-styles/<n>.md` | none | none | none | none | none | none |
 | statusline | `statusLine` in settings | none (`tui.status_line` takes built-in ids only) | none (the CLI has one, undocumented) | user only: `statusLine` in `~/.copilot/settings.json` | none | user only: `statusLine` | none |
@@ -258,6 +258,7 @@ Several platforms have their own plugin marketplaces:
 - Claude Code: `.claude-plugin/marketplace.json`
 - Codex: `.agents/plugins/marketplace.json`
 - Cursor: `.cursor-plugin/marketplace.json` (Cursor and Copilot also read [Agent Plugins 1.0](https://agent-plugins.org/) plugins)
+- Copilot: `.github/plugin/marketplace.json`, with Agent Plugins 1.0 plugins and Copilot's `com.github.copilot/` extensions ([028](../features/028-copilot-renderer/SPEC.md))
 - Gemini: extensions
 
 A Ronne instance **publishes its released items as a native marketplace feed** for each of these,
@@ -863,7 +864,7 @@ Design points:
 ### 14.4 Other future topics
 
 - **More platforms.** Tier-3 community renderers via the `PlatformRenderer` interface (§3.3).
-- **Native plugin feeds.** Planned as M11 for Claude Code, Codex and Cursor (§3.3). Copilot, Gemini and Devin feeds follow their renderers (028–030, on hold).
+- **Native plugin feeds.** Planned as M11 for Claude Code, Codex and Cursor (§3.3). Copilot, Gemini and Devin feeds are part of their renderers' features (028–030, owner, 2026-11-22).
 - **Install telemetry** (a policy root sets per instance, off by default), so moderators can see which items are used. The MVP only counts artifact downloads on the server, for the home page's "Most used" (018). Designed in §14.6; planned as M9.
 - **Running it safely** (M14): a threat model and an incident runbook, `rmk-server backup` and `restore`, structured logs, and OpenTelemetry when it's configured. Encryption at rest is the disk's or the database's (and the bucket's with S3), documented rather than built into the app.
 - **Privacy and data lifecycle** (M15): retention for IP addresses and sessions, erasing a user by anonymising them (the audit log keeps a pseudonym), and a download of a person's data, for Quebec's Law 25, PIPEDA and the GDPR.
@@ -953,7 +954,8 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | CLI binary | `rmk` | Short; `ronne` / `ronneai` reserved |
 | Delivery to AI tools | Canonical `ronne.yaml` → per-platform renderers via `rmk`, plus a registry MCP server | Single source of truth; works in the terminal and inside the agents |
 | Item types | All current customization types: skill, agent, rule, command, hook, mcp-server, permission-policy, output-style, statusline, lsp-server, bundle; canonical hook events | Cover everything the platforms support; degrade with warnings where a platform lacks a type |
-| Platforms | Goal: any. Tier 1 in MVP (Claude Code, Codex, Cursor); tier 2 (Copilot, Gemini/Antigravity, Devin Desktop) specified but on hold (owner, 2026-09-30: not implemented now; 028–030 keep their specs); tier 3 community | Pluggable `PlatformRenderer`; prefer cross-tool standards (Agent Skills, AGENTS.md, MCP) |
+| Platforms | Goal: any. Tier 1 in MVP (Claude Code, Codex, Cursor); tier 2 (Copilot, Gemini/Antigravity, Devin Desktop) on hold from 2026-09-30, taken off hold on 2026-11-22 (owner) at full parity with tier 1: renderer, reader, run counting, plugins and feeds per tool (028–030); tier 3 community | Pluggable `PlatformRenderer`; prefer cross-tool standards (Agent Skills, AGENTS.md, MCP) |
+| Copilot's files (028) | Skills and commands in `.github/skills/`, not the shared `.agents/skills/`; MCP servers in `.mcp.json` (left to Claude Code's key when both are targets); hooks one `.github/hooks/<n>.json` per item, a tool filter on `preToolUse`/`postToolUse` dropped with a warning; nothing for VS Code's Local harness (owner, 2026-11-22) | Of the skill folders, VS Code's Copilot harness reads only `.github/skills/`, and of the MCP files only `.mcp.json` (the CLI reads both too); within VS Code, only the deprecated Local harness (removal February 2027) reads `.agents/skills/`, prompt files and `.vscode/mcp.json`; the CLI and VS Code's Copilot harness both run Claude Code's hooks; Copilot filters hooks by tool only on a few events |
 | SSO | OIDC first via Better Auth, then SAML if requested; CLI uses the device flow. Planned as M16 after M13, with two-factor sign-in before it and SCIM after it (owner, 2026-10-06). Managed on an Authentication tab in Admin › Settings, with provider types, presets and setup instructions (owner, 2026-10-15). Built in 106 with the OIDC flow on `oauth4webapi` and Better Auth only opening the session, not its SSO plugin (2026-10-16). New accounts are always `user` in `global`; a provider links an existing account by email only within its own domains, root's included; group mappings may raise roles in `global`; a provider's session lasts 24 hours; CI uses a fake provider (owner, 2026-10-17) | One OIDC integration covers most IdPs; companies evaluating Ronne ask for SSO, MFA and deprovisioning together |
 | Out of scope for now | Notifications by email or webhooks. Import from external marketplaces and in-app notifications are no longer out since 2026-10-29: see "Import" and "Notifications" below. Exporting a person's own local items is no longer out: see "Export" below; S3 storage is no longer out since 2026-10-06: see "Artifacts" | Keep MVP focused |
 | Backend | Next.js monolith with a domain-first clean architecture; server actions + `/api/v1` | One deployable to self-host; the domain layer stays framework-independent |

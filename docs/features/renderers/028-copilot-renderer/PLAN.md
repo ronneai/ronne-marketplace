@@ -3,25 +3,83 @@
 > Spec: [SPEC.md](./SPEC.md)
 
 Tasks in build order. Each is small enough for one session and ends with a check. Tick a task in
-the same change that completes it.
+the same change that completes it, once the [state witness](../../knowledge/state-witness.md) met
+it ([WITNESS.md](./WITNESS.md)). Put `[risky]` on a task's first line when it touches sign-in,
+tokens, roles, migrations, deleting data or security checks: it then needs an adversarial pass too.
 
 ## Tasks
 
-- [ ] **1. Re-check and the file types.** The locations against docs.github.com and VS Code's docs;
-  then `skill`, `command`, `agent` and `rule`.
-  *Done when:* golden files for their example items in both scopes are committed.
+- [x] **1. Re-spec.**
+  - SPEC.md was re-checked against Copilot's documentation (2026-11-22) and against what was built
+    since September (043, 046, 076–079, 097), with the owner's decisions recorded.
+  - MVP §3.3: the Copilot column, the note that the Copilot column was re-checked, and the native
+    plugin feeds list. M5b is off hold in §13's milestone table, §14's plugin feeds line and §15's
+    "Platforms" row.
+  - `docs/features/README.md`: M5b off hold, 028 `in progress` with its new dependencies, and 029
+    and 030 `specified` (re-checked when each starts).
+  - *Done when:* the three agree with SPEC.md, and `pnpm witness:check` and `pnpm docs:check` pass.
 
-- [ ] **2. Settings.** `hook` (one file per item), `mcp-server` (the two files), `lsp-server`, and the
-  user-only `statusline`, with the mappings.
-  *Done when:* golden files are committed, and unit tests cover the mappings.
+- [ ] **2. The file types.**
+  - `packages/core/src/render/copilot/{renderer.ts,mappings.ts,renderer.test.ts}`, with `skill`,
+    `command`, `agent` and `rule`.
+  - The shared skill helpers (`agents-skills.ts`, `skill-frontmatter.ts`) take a root, so Copilot
+    writes `.github/skills/` (and `.copilot/skills/` in user scope) with the same bytes.
+  - `detect()` as the spec says.
+  - *Done when:* golden files for those example items in both scopes are committed, and the other
+    renderers' goldens are unchanged.
 
-- [ ] **3. Other targets.** What Copilot leaves out when Claude Code, Codex or Gemini CLI is a target
-  too (the shared helper from 030 or 029, whichever lands first); `none` types; the renderer in
-  `RENDERERS`.
-  *Done when:* unit tests cover every row of the "also a target" table.
+- [ ] **3. The settings types.** [risky]
+  - `hook` (one file per item, the event table, matchers only where Copilot filters them),
+    `mcp-server` (`.mcp.json` and `~/.copilot/mcp-config.json`, `${NAME}`, `tools`), `lsp-server`,
+    and the user-only `statusline`. First confirm its key against the config-dir reference.
+  - `permission-policy` and `output-style` as `none`.
+  - *Done when:* golden files are committed, unit tests cover every row of both mapping tables, and
+    a test shows no secret value is written.
 
-- [ ] **4. End to end and documentation.** `rmk install --target copilot` in the Playwright suite;
-  the GitHub Copilot page, its row, and MVP §3.3.
-  *Done when:* it passes in CI, and the docs render tests cover the new page.
+- [ ] **4. Other targets and the registry.**
+  - Move Cursor's `claudeCodeCovers`/`covered` into a shared `render/covered.ts`, without changing
+    Cursor's goldens, and use it for Copilot's "also a target" table.
+  - `copilotRenderer` in `RENDERERS` and `index.ts`. `rmk install` picks it up through
+    `rendererById`; add a post-install note on folder trust for MCP servers.
+  - *Done when:* unit tests cover every row of the "also a target" table, `install.test.ts` covers
+    `--target claude-code,copilot`, and Cursor's goldens are unchanged.
+
+- [ ] **5. Export.**
+  - `packages/core/src/read/copilot/` (agents, rules, MCP and language servers; skills and commands
+    through the shared reader), with tests from the renderer's goldens.
+  - `copilot` in `packages/cli/src/export.ts` (`SourceTool`, `EXPORT_TOOLS`, the folder tables) and
+    `export-proposal.ts`, and in the MCP server's export tools.
+  - `native-readers.md` gets a Copilot section.
+  - *Done when:* exporting each golden output gives back the example item, or the warnings the
+    contract names, and `rmk export --from copilot` has CLI tests.
+
+- [ ] **6. Run counting, plugins and every tool list.**
+  - `HOOK_TOOLS`, `HOOK_FILES` and `hookChanges` for `copilot`, and the handler's payload fields,
+    checked on a real Copilot CLI payload (or the documented example, if no CLI is at hand; say
+    which in Notes).
+  - `packages/core/src/plugins/copilot.ts`, with `PLUGIN_TOOLS`, `build.ts`, `MARKETPLACE_PATHS`,
+    `marketplaceFor` and `pluginNameProblem`, and goldens under `plugins/__golden__/copilot/`.
+  - The feeds: `SERVED_TOOLS`, `plugin-feed.ts`, `PluginFeedsPanel.tsx`, the git mirror, and
+    `rmk feed build --tools` (`feed-build.test.ts` stops refusing `copilot`). `plugin-feeds.md`
+    gets the Copilot column.
+  - The lists: the MCP server's enum, descriptions and `testing.ts`; `TOOL_PLACES` and
+    `TOOL_PAGES`; `TOOL_COLOR`, `NO_RUNS` and `--chart-copilot` in `tokens.css` and `globals.css`
+    (a token, never red or amber); and the messages that name the tools, in en, pt and fr.
+  - *Done when:* unit tests cover the hook changes and the handler, plugin goldens are committed,
+    the feed tests include Copilot, and a search for `"cursor"` finds no tool list without
+    `copilot`.
+
+- [ ] **7. End to end and the Documentation.**
+  - A Playwright test in `apps/web/e2e/rmk.e2e.ts`, like Cursor's. A project with
+    `.github/copilot-instructions.md` picks Copilot by itself. It installs a skill, an agent, a hook,
+    an MCP server, a rule and a language server; then installs with `--target claude-code,copilot`
+    (the covered rows); then removes everything cleanly.
+  - In ronne-web (`docs/marketplace-028-copilot-renderer`), in English, Portuguese and French:
+    - the GitHub Copilot page;
+    - the Your AI tools row;
+    - the export, usage and plugin feed sections.
+  - The app's helpers; `topics.ts` on both sides; MVP §3.3 and §15 as built.
+  - *Done when:* the e2e test passes (run alone with Playwright), the docs render tests cover the
+    new page, and `RONNE_WEB_DIR=../ronne-web-028 pnpm docs:check` passes.
 
 ## Notes
