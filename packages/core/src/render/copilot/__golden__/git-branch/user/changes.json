@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "kind": "file",
+    "path": ".copilot/statusline/git-branch/statusline.sh",
+    "executable": true
+  },
+  {
+    "kind": "json-key",
+    "path": ".copilot/settings.json",
+    "key": [
+      "statusLine"
+    ]
+  }
+]

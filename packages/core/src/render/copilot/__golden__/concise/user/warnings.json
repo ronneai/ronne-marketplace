@@ -1,6 +1,6 @@
 [
   {
     "code": "unsupported_type",
-    "message": "@examples/concise (output-style) isn't rendered for GitHub Copilot yet."
+    "message": "GitHub Copilot has no output styles, so @examples/concise was skipped there."
   }
 ]

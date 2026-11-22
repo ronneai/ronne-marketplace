@@ -1,1 +1,7 @@
-[]
+[
+  {
+    "kind": "file",
+    "path": ".copilot/hooks/format-on-edit.json",
+    "executable": false
+  }
+]

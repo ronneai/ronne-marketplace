@@ -153,6 +153,294 @@ describe("the GitHub Copilot renderer", () => {
     );
   });
 
+  const hookFile = (changes: Change[]) => {
+    const file = changes.find((c) => c.kind === "file" && c.path.endsWith(".json"));
+    return JSON.parse(text(file)) as { version: number; hooks: Record<string, unknown[]> };
+  };
+  const hook = (block: Record<string, unknown>, scope: RenderContext["scope"] = "project") =>
+    copilotRenderer.render(withBlock("format-on-edit", "hook", block), { scope });
+
+  it("maps every canonical event to Copilot's, in a hooks file of the item's own", () => {
+    const events: [string, string][] = [
+      ["session.start", "sessionStart"],
+      ["session.end", "sessionEnd"],
+      ["prompt.submit", "userPromptSubmitted"],
+      ["tool.before", "preToolUse"],
+      ["tool.after", "postToolUse"],
+      ["permission.request", "permissionRequest"],
+      ["subagent.start", "subagentStart"],
+      ["subagent.stop", "subagentStop"],
+      ["compact.before", "preCompact"],
+      ["agent.stop", "agentStop"],
+    ];
+    for (const [canonical, copilot] of events) {
+      const { changes, warnings } = hook({ event: canonical, run: { command: "true" } });
+      expect(changes.map((c) => c.path)).toEqual([".github/hooks/format-on-edit.json"]);
+      expect(hookFile(changes)).toEqual({
+        version: 1,
+        hooks: { [copilot]: [{ type: "command", bash: "true", cwd: "." }] },
+      });
+      expect(warnings).toEqual([]);
+    }
+    expect(hook({ event: "no.such", run: { command: "true" } }).changes).toEqual([]);
+  });
+
+  it("writes a tool filter as the CLI's tool name, and warns where Copilot has none", () => {
+    const matcher = (tool: string, event = "tool.before") => {
+      const { changes, warnings } = hook({ event, matcher: { tool }, run: { command: "true" } });
+      const entry = hookFile(changes).hooks[Object.keys(hookFile(changes).hooks)[0] ?? ""]?.[0];
+      return { matcher: (entry as Record<string, unknown>).matcher, warnings };
+    };
+    const names: [string, string][] = [
+      ["read", "view"],
+      ["edit", "edit"],
+      ["write", "create"],
+      ["grep", "grep"],
+      ["glob", "glob"],
+      ["shell", "bash"],
+      ["web-fetch", "web_fetch"],
+    ];
+    for (const [canonical, copilot] of names) {
+      expect(matcher(canonical)).toEqual({ matcher: copilot, warnings: [] });
+      expect(matcher(canonical, "tool.after").matcher).toBe(copilot);
+      expect(matcher(canonical, "permission.request").matcher).toBe(copilot);
+    }
+    for (const tool of ["web-search", "mcp:github", "mcp:github/create_issue"]) {
+      const { matcher: written, warnings } = matcher(tool);
+      expect(written).toBeUndefined();
+      expect(warnings.map((w) => w.code)).toEqual(["unmapped_tool"]);
+      expect(warnings[0]?.message).toContain("runs for every tool");
+    }
+    const other = matcher("shell", "session.start");
+    expect(other.matcher).toBeUndefined();
+    expect(other.warnings[0]?.message).toContain(
+      "doesn't filter `sessionStart` by tool, so @examples/format-on-edit's tool filter was left out and it runs on every `sessionStart`.",
+    );
+    // Only the tables' own entries: an inherited name is no event and no tool.
+    expect(hook({ event: "constructor", run: { command: "true" } }).changes).toEqual([]);
+    expect(matcher("__proto__").matcher).toBeUndefined();
+  });
+
+  it("writes a hook's script next to it, run from the repository root or by its full path", () => {
+    const item = withBlock("format-on-edit", "hook", {
+      event: "tool.after",
+      run: { script: "format.sh" },
+      timeout: 10,
+    });
+    const files = [
+      ...item.files,
+      {
+        path: "format.sh",
+        bytes: new TextEncoder().encode("#!/bin/sh\necho hi\n"),
+        executable: true,
+      },
+    ];
+    for (const scope of ["project", "user"] as const) {
+      const { changes } = copilotRenderer.render({ ...item, files }, { scope });
+      const root = scope === "project" ? ".github" : ".copilot";
+      expect(changes[0]).toMatchObject({
+        kind: "file",
+        path: `${root}/hooks/format-on-edit/format.sh`,
+        executable: true,
+      });
+      expect(text(changes[0])).toMatch(/^#!\/bin\/sh\n# managed by rmk/);
+      expect(hookFile(changes).hooks.postToolUse).toEqual([
+        scope === "project"
+          ? {
+              type: "command",
+              bash: ".github/hooks/format-on-edit/format.sh",
+              cwd: ".",
+              timeoutSec: 10,
+            }
+          : {
+              type: "command",
+              bash: '"$HOME"/.copilot/hooks/format-on-edit/format.sh',
+              timeoutSec: 10,
+            },
+      ]);
+    }
+  });
+
+  it("quotes a script's path when it holds more than letters, digits and ._/-", () => {
+    const bashFor = (script: string, scope: RenderContext["scope"]) => {
+      const item = withBlock("format-on-edit", "hook", { event: "tool.after", run: { script } });
+      const files = [
+        ...item.files,
+        { path: script, bytes: new TextEncoder().encode("echo hi\n"), executable: true },
+      ];
+      const entry = hookFile(copilotRenderer.render({ ...item, files }, { scope }).changes).hooks
+        .postToolUse?.[0] as Record<string, unknown> | undefined;
+      return entry?.bash;
+    };
+    expect(bashFor("my script.sh", "project")).toBe("'.github/hooks/format-on-edit/my script.sh'");
+    // Every printable ASCII character, a tab and a newline: only letters, digits and `._/-` stay
+    // unquoted, so no widening or narrowing of that set goes unnoticed.
+    const plain = /^[A-Za-z0-9._/-]$/;
+    const characters = [
+      ...Array.from({ length: 95 }, (_, i) => String.fromCharCode(32 + i)),
+      "\t",
+      "\n",
+    ];
+    for (const character of characters) {
+      const script = `run${character}x.sh`;
+      const path = `.github/hooks/format-on-edit/${script}`;
+      expect(bashFor(script, "project"), JSON.stringify(character)).toBe(
+        plain.test(character) ? path : `'${path.replaceAll("'", "'\\''")}'`,
+      );
+    }
+    expect(bashFor("run'x.sh", "project")).toBe("'.github/hooks/format-on-edit/run'\\''x.sh'");
+    expect(bashFor("a'b'c.sh", "project")).toBe("'.github/hooks/format-on-edit/a'\\''b'\\''c.sh'");
+    expect(bashFor("run-1.2_x.sh", "user")).toBe(
+      '"$HOME"/.copilot/hooks/format-on-edit/run-1.2_x.sh',
+    );
+    const item = withBlock("format-on-edit", "hook", {
+      event: "tool.after",
+      run: { script: "my script's.sh" },
+    });
+    const files = [
+      ...item.files,
+      { path: "my script's.sh", bytes: new TextEncoder().encode("echo hi\n"), executable: true },
+    ];
+    const bash = (scope: RenderContext["scope"]) =>
+      (
+        hookFile(copilotRenderer.render({ ...item, files }, { scope }).changes).hooks
+          .postToolUse?.[0] as Record<string, unknown> | undefined
+      )?.bash;
+    expect(bash("project")).toBe("'.github/hooks/format-on-edit/my script'\\''s.sh'");
+    expect(bash("user")).toBe(`"$HOME"/'.copilot/hooks/format-on-edit/my script'\\''s.sh'`);
+  });
+
+  it("writes MCP header values as the manifest has them, as the other tools do", () => {
+    const { changes } = copilotRenderer.render(
+      withBlock("github-mcp", "mcp-server", {
+        transport: "http",
+        url: "https://x.example/mcp",
+        headers: { "X-Team": "platform" },
+      }),
+      { scope: "project" },
+    );
+    expect(changes[0]).toMatchObject({ value: { headers: { "X-Team": "platform" } } });
+  });
+
+  it("writes args for a local server even when the manifest has none", () => {
+    const { changes } = copilotRenderer.render(
+      withBlock("github-mcp", "mcp-server", { transport: "stdio", command: "npx" }),
+      { scope: "project" },
+    );
+    expect(changes[0]).toMatchObject({
+      value: { type: "stdio", command: "npx", args: [], tools: ["*"] },
+    });
+  });
+
+  it("doesn't warn when one language lists an extension twice", () => {
+    const { warnings } = copilotRenderer.render(
+      withBlock("typescript-lsp", "lsp-server", {
+        command: "ls",
+        languages: [{ id: "c", extensions: [".h", ".h"] }],
+      }),
+      { scope: "project" },
+    );
+    expect(warnings).toEqual([]);
+  });
+
+  it("warns when two languages claim the same extension", () => {
+    const { changes, warnings } = copilotRenderer.render(
+      withBlock("typescript-lsp", "lsp-server", {
+        command: "ls",
+        languages: [
+          { id: "c", extensions: [".h"] },
+          { id: "cpp", extensions: [".h", ".cpp"] },
+        ],
+      }),
+      { scope: "project" },
+    );
+    expect(changes[0]).toMatchObject({ value: { fileExtensions: { ".h": "cpp", ".cpp": "cpp" } } });
+    expect(warnings.map((w) => w.message)).toEqual([
+      "@examples/typescript-lsp gives `.h` to both `c` and `cpp`; Copilot takes one language per extension, so it's `cpp`.",
+    ]);
+  });
+
+  it("writes MCP servers to .mcp.json or ~/.copilot/mcp-config.json, by variable and never by value", () => {
+    const http = render("github-mcp");
+    expect(http.changes).toEqual([
+      {
+        kind: "json-key",
+        path: ".mcp.json",
+        key: ["mcpServers", "github-mcp"],
+        value: {
+          type: "http",
+          url: "https://api.githubcopilot.com/mcp/",
+          // biome-ignore lint/suspicious/noTemplateCurlyInString: an environment variable reference, on purpose.
+          headers: { Authorization: "Bearer ${GITHUB_TOKEN}" },
+          tools: ["*"],
+        },
+      },
+    ]);
+    const stdio = copilotRenderer.render(
+      withBlock("github-mcp", "mcp-server", {
+        transport: "stdio",
+        command: "npx",
+        args: ["-y", "server"],
+        env: [{ name: "API_KEY", secret: true, value: "s3cret" }],
+      }),
+      { scope: "user" },
+    );
+    expect(stdio.changes).toEqual([
+      {
+        kind: "json-key",
+        path: ".copilot/mcp-config.json",
+        key: ["mcpServers", "github-mcp"],
+        value: {
+          type: "stdio",
+          command: "npx",
+          args: ["-y", "server"],
+          // biome-ignore lint/suspicious/noTemplateCurlyInString: an environment variable reference, on purpose.
+          env: { API_KEY: "${API_KEY}" },
+          tools: ["*"],
+        },
+      },
+    ]);
+    expect(JSON.stringify(stdio.changes)).not.toContain("s3cret");
+  });
+
+  it("writes a language server to .github/lsp.json or ~/.copilot/lsp-config.json", () => {
+    for (const scope of ["project", "user"] as const)
+      expect(render("typescript-lsp", { scope }).changes).toEqual([
+        {
+          kind: "json-key",
+          path: scope === "project" ? ".github/lsp.json" : ".copilot/lsp-config.json",
+          key: ["lspServers", "typescript-lsp"],
+          value: {
+            command: "typescript-language-server",
+            args: ["--stdio"],
+            fileExtensions: {
+              ".ts": "typescript",
+              ".tsx": "typescript",
+              ".js": "javascript",
+              ".jsx": "javascript",
+              ".mjs": "javascript",
+              ".cjs": "javascript",
+            },
+          },
+        },
+      ]);
+  });
+
+  it("writes a status line only in the home folder", () => {
+    const project = render("git-branch");
+    expect(project.changes).toEqual([]);
+    expect(project.warnings[0]?.message).toContain("--scope user");
+    const { changes } = render("git-branch", { scope: "user" });
+    expect(changes.map((c) => c.path)).toEqual([
+      ".copilot/statusline/git-branch/statusline.sh",
+      ".copilot/settings.json",
+    ]);
+    expect(changes[1]).toMatchObject({
+      key: ["statusLine"],
+      value: { type: "command", command: '"$HOME"/.copilot/statusline/git-branch/statusline.sh' },
+    });
+  });
+
   it("says it can't take permission policies or output styles", () => {
     expect(copilotRenderer.supports("permission-policy")).toBe("none");
     expect(copilotRenderer.supports("output-style")).toBe("none");

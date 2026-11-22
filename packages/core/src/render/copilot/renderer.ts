@@ -2,6 +2,7 @@ import { type ItemType, isItemType } from "../../item-types.js";
 import { commandSkill, type SkillPlace, skillFolder, writtenSkill } from "../agents-skills.js";
 import {
   disabledWarning,
+  envRef,
   type Frontmatter,
   fileText,
   frontmatterMarkdown,
@@ -10,6 +11,7 @@ import {
   strings,
   targetsFor,
   toolName,
+  withHashMarker,
 } from "../helpers.js";
 import type {
   Change,
@@ -18,7 +20,7 @@ import type {
   RenderScope,
   RenderWarning,
 } from "../types.js";
-import { AGENT_TOOLS } from "./mappings.js";
+import { AGENT_TOOLS, EVENTS, HOOK_TOOLS, TOOL_EVENTS } from "./mappings.js";
 
 /**
  * The GitHub Copilot renderer (feature 028). Where the Copilot CLI and VS Code's Copilot harness
@@ -146,6 +148,209 @@ const renderRule = (
   }
 };
 
+const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
+
+/** A table's own entry, never one it inherits (`constructor`, `__proto__`). */
+const own = (table: Partial<Record<string, string>>, key: string) =>
+  Object.hasOwn(table, key) ? table[key] : undefined;
+
+/** A path as one shell word: quoted when it holds anything but letters, digits and `._/-`. */
+const shellWord = (path: string) =>
+  /^[A-Za-z0-9._/-]+$/.test(path) ? path : `'${path.replaceAll("'", "'\\''")}'`;
+
+/** A script rmk wrote, as the command that runs it: by its path, or from the home folder. */
+const scriptCommand = (scope: RenderScope, path: string) =>
+  scope === "project" ? shellWord(path) : `"$HOME"/${shellWord(path)}`;
+
+/**
+ * A hook is a file of its own, `.github/hooks/<n>.json` (`~/.copilot/hooks/<n>.json`), in the
+ * CLI's format, which VS Code's Copilot harness reads too: no two items share a key.
+ */
+const renderHook = (
+  item: RenderInput,
+  n: string,
+  block: Record<string, unknown>,
+  scope: RenderScope,
+): Rendered => {
+  const event = own(EVENTS, String(block.event));
+  if (!event)
+    return {
+      changes: [],
+      warnings: [
+        unsupported(
+          `GitHub Copilot has no event for \`${String(block.event)}\`, so ${item.name} was left out.`,
+        ),
+      ],
+    };
+  const warnings: RenderWarning[] = [];
+  const changes: Change[] = [];
+  const run = record(block.run);
+  const entry: Record<string, unknown> = { type: "command" };
+  let command = typeof run.command === "string" ? run.command : "";
+  if (typeof run.script === "string") {
+    const path = `${home(scope)}/hooks/${n}/${run.script}`;
+    changes.push({
+      kind: "file",
+      path,
+      content: withHashMarker(item, fileText(item.files, run.script)),
+      executable: true,
+    });
+    // A project's hooks run from the repository root (`cwd` is relative to it); the home folder's
+    // by their full path.
+    command = scriptCommand(scope, path);
+  } else if (/\$RMK_[A-Z_]+/.test(command))
+    warnings.push(
+      unsupported(
+        `${item.name}'s command uses an $RMK_ variable; Copilot passes the event as JSON on stdin instead, so the hook has to read it from there.`,
+      ),
+    );
+  entry.bash = command;
+  if (scope === "project") entry.cwd = ".";
+  if (typeof block.timeout === "number") entry.timeoutSec = block.timeout;
+  const tool = record(block.matcher).tool;
+  if (typeof tool === "string") {
+    const matcher = TOOL_EVENTS.has(event) ? own(HOOK_TOOLS, tool) : undefined;
+    if (matcher) entry.matcher = matcher;
+    else
+      warnings.push({
+        code: "unmapped_tool",
+        message: TOOL_EVENTS.has(event)
+          ? `GitHub Copilot has no hook matcher for \`${tool}\`, so ${item.name} runs for every tool.`
+          : `GitHub Copilot doesn't filter \`${event}\` by tool, so ${item.name}'s tool filter was left out and it runs on every \`${event}\`.`,
+      });
+  }
+  changes.push({
+    kind: "file",
+    path: `${home(scope)}/hooks/${n}.json`,
+    content: json({ version: 1, hooks: { [event]: [entry] } }),
+  });
+  return { changes, warnings };
+};
+
+/**
+ * `mcpServers.<n>` in `.mcp.json`, which the CLI and VS Code's Copilot harness both read (shared
+ * with Claude Code), or `~/.copilot/mcp-config.json`. Variables stay `${NAME}`, never a value.
+ */
+const renderMcpServer = (
+  n: string,
+  block: Record<string, unknown>,
+  scope: RenderScope,
+): Rendered => {
+  const value: Record<string, unknown> = {};
+  if (block.transport === "http") {
+    value.type = "http";
+    value.url = block.url;
+    const headers = Object.entries(record(block.headers));
+    if (headers.length) value.headers = Object.fromEntries(headers.map(([k, v]) => [k, String(v)]));
+  } else {
+    value.type = "stdio";
+    value.command = block.command;
+    // The CLI's reference marks `args` required for a local server, so it's always written.
+    value.args = Array.isArray(block.args) ? block.args : [];
+    const env = (Array.isArray(block.env) ? block.env : [])
+      .map((v) => String(record(v).name ?? ""))
+      .filter((name) => name);
+    if (env.length)
+      value.env = Object.fromEntries(env.map((name) => [name, envRef(name, "json-template")]));
+  }
+  value.tools = ["*"];
+  return {
+    changes: [
+      {
+        kind: "json-key",
+        path: scope === "project" ? ".mcp.json" : ".copilot/mcp-config.json",
+        key: ["mcpServers", n],
+        value,
+      },
+    ],
+    warnings: [],
+  };
+};
+
+/** `lspServers.<n>` in `.github/lsp.json` (`~/.copilot/lsp-config.json`), read by the CLI. */
+const renderLspServer = (
+  item: RenderInput,
+  n: string,
+  block: Record<string, unknown>,
+  scope: RenderScope,
+): Rendered => {
+  const warnings: RenderWarning[] = [];
+  const fileExtensions: Record<string, string> = {};
+  for (const raw of Array.isArray(block.languages) ? block.languages : []) {
+    const language = record(raw);
+    const id = String(language.id ?? "");
+    for (const extension of strings(language.extensions)) {
+      const before = Object.hasOwn(fileExtensions, extension) ? fileExtensions[extension] : null;
+      if (before !== null && before !== id)
+        warnings.push(
+          unsupported(
+            `${item.name} gives \`${extension}\` to both \`${before}\` and \`${id}\`; Copilot takes one language per extension, so it's \`${id}\`.`,
+          ),
+        );
+      fileExtensions[extension] = id;
+    }
+  }
+  return {
+    changes: [
+      {
+        kind: "json-key",
+        path: scope === "project" ? ".github/lsp.json" : ".copilot/lsp-config.json",
+        key: ["lspServers", n],
+        value: {
+          command: block.command,
+          ...(Array.isArray(block.args) ? { args: block.args } : {}),
+          fileExtensions,
+        },
+      },
+    ],
+    warnings,
+  };
+};
+
+/** The CLI's status line, a user setting only (degraded). */
+const renderStatusline = (
+  item: RenderInput,
+  n: string,
+  block: Record<string, unknown>,
+  scope: RenderScope,
+): Rendered => {
+  if (scope === "project")
+    return {
+      changes: [],
+      warnings: [
+        {
+          code: "unsupported_type",
+          message: `GitHub Copilot's status line is a setting in the home folder only, so ${item.name} was skipped; install it with --scope user.`,
+        },
+      ],
+    };
+  const name = String(block.script);
+  const path = `.copilot/statusline/${n}/${name}`;
+  return {
+    changes: [
+      {
+        kind: "file",
+        path,
+        content: withHashMarker(item, fileText(item.files, name)),
+        executable: true,
+      },
+      {
+        kind: "json-key",
+        path: ".copilot/settings.json",
+        key: ["statusLine"],
+        value: { type: "command", command: scriptCommand("user", path) },
+      },
+    ],
+    warnings: [],
+  };
+};
+
+const NO_PLACE: Partial<Record<ItemType, string>> = {
+  "permission-policy":
+    "GitHub Copilot has no allow or deny list a project or the home folder can hold",
+  "output-style": "GitHub Copilot has no output styles",
+};
+
 export const copilotRenderer: PlatformRenderer = {
   id: RENDERER_ID,
   name: RENDERER_NAME,
@@ -194,6 +399,26 @@ export const copilotRenderer: PlatformRenderer = {
         const { change, warnings } = commandSkill(item, n, block, skills(scope).root);
         return { changes: [change], warnings };
       }
+      case "hook":
+        return renderHook(item, n, block, scope);
+      case "mcp-server":
+        return renderMcpServer(n, block, scope);
+      case "lsp-server":
+        return renderLspServer(item, n, block, scope);
+      case "statusline":
+        return renderStatusline(item, n, block, scope);
+      case "permission-policy":
+      case "output-style":
+        // `rmk` skips these before rendering (`supports` says none); said here for the goldens.
+        return {
+          changes: [],
+          warnings: [
+            {
+              code: "unsupported_type",
+              message: `${NO_PLACE[type]}, so ${item.name} was skipped there.`,
+            },
+          ],
+        };
       case "bundle":
         // Its members are installed as items of their own (the resolver, 020); nothing to write.
         return { changes: [], warnings: [] };

@@ -1,1 +1,7 @@
-[]
+[
+  {
+    "kind": "file",
+    "path": ".github/hooks/format-on-edit.json",
+    "executable": false
+  }
+]

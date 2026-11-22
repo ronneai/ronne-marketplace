@@ -1,0 +1,4 @@
+{
+  "type": "command",
+  "command": "\"$HOME\"/.copilot/statusline/git-branch/statusline.sh"
+}

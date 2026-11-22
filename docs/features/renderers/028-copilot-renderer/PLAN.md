@@ -28,7 +28,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* golden files for those example items in both scopes are committed, and the other
     renderers' goldens are unchanged.
 
-- [ ] **3. The settings types.** [risky]
+- [x] **3. The settings types.** [risky]
   - `hook` (one file per item, the event table, matchers only where Copilot filters them),
     `mcp-server` (`.mcp.json` and `~/.copilot/mcp-config.json`, `${NAME}`, `tools`), `lsp-server`,
     and the user-only `statusline`. First confirm its key against the config-dir reference.
@@ -79,7 +79,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     - the Your AI tools row;
     - the export, usage and plugin feed sections.
   - The app's helpers; `topics.ts` on both sides; MVP §3.3 and §15 as built.
+  - The status line on a real Copilot CLI (owner, 2026-11-22, moved from task 3): does the
+    `"$HOME"/…` command run? Record it in Notes, and settle SPEC "Open questions" 1.
   - *Done when:* the e2e test passes (run alone with Playwright), the docs render tests cover the
-    new page, and `RONNE_WEB_DIR=../ronne-web-028 pnpm docs:check` passes.
+    new page, `RONNE_WEB_DIR=../ronne-web-028 pnpm docs:check` passes, and the status line was run on
+    a real Copilot CLI (or the spec says what changed instead).
 
 ## Notes

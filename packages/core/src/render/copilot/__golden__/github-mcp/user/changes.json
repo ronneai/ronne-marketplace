@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "kind": "json-key",
+    "path": ".copilot/mcp-config.json",
+    "key": [
+      "mcpServers",
+      "github-mcp"
+    ]
+  }
+]

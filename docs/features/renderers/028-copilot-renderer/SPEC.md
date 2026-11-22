@@ -129,33 +129,48 @@ Skill dependencies aren't preloaded (Copilot's `skills` field is VS Code-only), 
 also reads:
 
 ```json
-{ "version": 1, "hooks": { "<event>": [{ "type": "command", "bash": "…", "timeoutSec": 30 }] } }
+{ "version": 1, "hooks": { "<event>": [{ "type": "command", "bash": "…", "timeoutSec": 30, "matcher": "bash" }] } }
 ```
 
 - One file per item, so no two items share a key.
 - Every canonical event has a Copilot one (below).
-- A `run.script` goes to `.github/hooks/<n>/` and runs by its path from the repository root, where
-  the CLI resolves hooks.
-- `matcher` is written only on the events Copilot filters (`permissionRequest`, `subagentStart`,
-  `preCompact`). A tool filter on `tool.before` or `tool.after` has nowhere to go, so the hook is
-  installed without it, with a warning that it runs for every tool (owner, 2026-11-22).
+- A `run.script` goes to `.github/hooks/<n>/` and runs by its path, with `cwd: "."`, which Copilot
+  resolves from the repository root. In user scope it goes to `~/.copilot/hooks/<n>/` and runs as
+  `"$HOME"/.copilot/hooks/<n>/<script>`. A path with anything but letters, digits and `._/-` is
+  single-quoted, so it stays one word in the shell.
+- A tool filter is a `matcher` on the events Copilot filters by `toolName` (`preToolUse`,
+  `postToolUse`, `permissionRequest`). Copilot compiles it as `^(?:…)$`, so it is the CLI's tool
+  name (below). MCP tools and web search have no documented name there, so such a filter is left
+  out with a warning that the hook runs for every tool. So is a filter on any other event.
 - `$RMK_` variables warn as in Cursor, because Copilot passes the event as JSON on stdin.
 
 **`mcp-server`.** Written as `mcpServers.<n>` in `.mcp.json`:
-- stdio: `type: "stdio"`, `command`, `args`, `env` with `${NAME}`, and `tools: ["*"]`;
-- http: `type: "http"`, `url`, `headers` with `${NAME}`, and `tools: ["*"]`.
+- stdio: `type: "stdio"`, `command`, `args` (`[]` when the manifest has none, since the CLI's
+  reference marks it required), `env` with `${NAME}`, and `tools: ["*"]`;
+- http: `type: "http"`, `url`, `headers` as the manifest has them (their values reference variables
+  as `${NAME}`, the manifest spec's syntax and Copilot's), and `tools: ["*"]`.
 
 In user scope it goes to `~/.copilot/mcp-config.json`, which the CLI and VS Code's Copilot harness
-share. With Claude Code as a target, Claude Code's key serves both tools (covered). No secret value
-is written. Project servers load only once the folder is trusted, and the Copilot page says so.
+share. With Claude Code as a target, Claude Code's key serves both tools (covered). An `env`
+variable is always written as its reference, never a value. A header is written as the manifest
+has it, as Claude Code and Cursor write it. A literal that looks like a secret is refused (a known
+token format) or warned about (a long random string) when the item is saved (manifest spec §2), not
+here; a short literal, such as a plain password, isn't caught, so it reaches the file. Copilot
+expands `$VAR`, `${VAR}` and `${VAR:-default}` in `env` and `headers` (CLI command reference,
+2026-11-22). Project servers load only once the folder is trusted, and the Copilot page says so.
 
 **`permission-policy`.** `none`: there's no allow or deny list a repository can commit, and the
 CLI's user file holds its own approvals. `rmk` warns and skips.
 
 **`statusline`** (degraded, home folder only). The script goes under
 `~/.copilot/statusline/<n>/`, and `statusLine: { "type": "command", "command": "<path>" }` goes in
-`~/.copilot/settings.json`. Task 3 confirms this key against the config-dir reference, because the
-2026-11-22 check read it from a summary; if it has moved, this row changes.
+`~/.copilot/settings.json`. Checked on 2026-11-22 against the CLI config-dir reference, whose
+`statusLine` row says: `type` must be `"command"`; `command` is a "path to an executable script that
+receives session JSON on stdin and prints status content to stdout"; `padding` and `refreshInterval`
+are optional. The command is written as `"$HOME"/.copilot/statusline/<n>/<script>`, as Claude
+Code's is, because a renderer doesn't know the home folder. The reference doesn't say whether a
+shell runs it, and `"$HOME"` expands only if one does; that is open (see Open questions), and task
+7 checks it against a real Copilot CLI (owner, 2026-11-22).
 
 **`lsp-server`.** Written as `lspServers.<n>` in `.github/lsp.json`, with `command`, `args` and
 `fileExtensions` (`{ ".ts": "typescript" }`) taken from the manifest's languages. The CLI reads it.
@@ -163,14 +178,16 @@ VS Code has its own language servers.
 
 **Mappings.**
 
-| Canonical | Agent `tools` |
-|---|---|
-| `read` | `read` |
-| `edit`, `write` | `edit` |
-| `grep`, `glob` | `search` |
-| `shell` | `execute` |
-| `web-fetch`, `web-search` | `web` |
-| `mcp:<s>/<t>` | `<s>/<t>` (`<s>/*` for a whole server) |
+| Canonical | Agent `tools` | Hook `matcher` (the CLI's tool names) |
+|---|---|---|
+| `read` | `read` | `view` |
+| `edit` | `edit` | `edit` |
+| `write` | `edit` | `create` |
+| `grep`, `glob` | `search` | `grep`, `glob` |
+| `shell` | `execute` | `bash` |
+| `web-fetch` | `web` | `web_fetch` |
+| `web-search` | `web` | none: a warning |
+| `mcp:<s>/<t>` | `<s>/<t>` (`<s>/*` for a whole server) | none: a warning |
 
 | Canonical event | Copilot |
 |---|---|
@@ -272,9 +289,9 @@ The support matrix (026) picks the renderer up from `RENDERERS`.
 ## Acceptance criteria
 
 - [ ] Every example item renders in both scopes to the paths and shapes above, and the golden files are committed.
-- [ ] Tools and events map as in the tables; anything unmappable, a tool filter on `tool.before` or `tool.after`, and every `none` type, is a warning.
+- [ ] Tools and events map as in the tables; anything unmappable, a tool filter Copilot can't express, and every `none` type, is a warning.
 - [ ] With Claude Code or Codex as a target too, Copilot leaves out exactly what the "also a target" table says, through the shared helper, and Cursor's goldens don't change.
-- [ ] MCP servers go to `.mcp.json` / `~/.copilot/mcp-config.json` with `${NAME}` and `tools`, and no secret value is written.
+- [ ] MCP servers go to `.mcp.json` / `~/.copilot/mcp-config.json` with `env` as `${NAME}` references and `tools`, and no `env` value is written.
 - [ ] `rmk export --from copilot` reads agents, rules, skills, commands, MCP and language servers, with goldens and warnings per `native-readers.md`.
 - [ ] `rmk telemetry` installs and removes Copilot's run hook, and a real `postToolUse` payload is counted.
 - [ ] Copilot plugins build for every example item with goldens; the git mirror has `.github/plugin/marketplace.json`; `rmk feed build --tools copilot` works.
@@ -283,6 +300,12 @@ The support matrix (026) picks the renderer up from `RENDERERS`.
 - [ ] The Documentation pages and sections above and their helpers are in place, with render tests.
 - [ ] MVP §3.3 and §15 match what was built.
 
+## Open questions
+
+1. **Does the Copilot CLI run `statusLine.command` through a shell?** If it does, the
+   `"$HOME"/…` form works. If it spawns the path directly, `rmk` needs another way to name the home
+   folder, or the status line becomes `none`. Task 7 settles it on a real CLI (owner, 2026-11-22).
+
 ## Decisions
 
 The owner's, on 2026-11-22:
@@ -290,7 +313,9 @@ The owner's, on 2026-11-22:
 1. **Skills and commands** go to `.github/skills/`, which every surface reads, not `.agents/skills/`.
 2. **MCP** goes to `.mcp.json`, shared with Claude Code, which covers it when both are targets. It
    doesn't go to `.github/mcp.json` (CLI only) or `.vscode/mcp.json` (the Local harness only).
-3. **A tool filter on `tool.before`/`tool.after`** is dropped with a warning, and the hook installs.
+3. **A tool filter Copilot can't express** is dropped with a warning, and the hook installs. (Asked
+   when the docs seemed to allow no matcher on `preToolUse`/`postToolUse`; a closer read the same
+   day found they do, so only MCP tools, web search and other events are left out.)
 4. **Full parity**: a reader, run counting, plugins and feeds, all in this feature.
 
 From the September spec's recommendations, kept because the 2026-11-22 check supports them:

@@ -1,6 +1,6 @@
 [
   {
     "code": "unsupported_type",
-    "message": "@examples/safe-git (permission-policy) isn't rendered for GitHub Copilot yet."
+    "message": "GitHub Copilot has no allow or deny list a project or the home folder can hold, so @examples/safe-git was skipped there."
   }
 ]

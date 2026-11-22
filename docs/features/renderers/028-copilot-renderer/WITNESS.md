@@ -103,3 +103,160 @@ Witnessed: 2026-11-22 15:32 EST, by a fresh agent (blind). Commit: 8628d80c + wo
 | 15 | The new code typechecks and lints | no | confirmed | `tsc --noEmit -p packages/core/tsconfig.json` → 0; `biome check` → no issues |
 
 **Overall:** met.
+
+## Task 3 — The settings types
+
+Witnessed: 2026-11-22 15:42 EST, by a fresh agent (blind). Commit: 810c3ecc + working tree (3 copilot source files, 19 changed goldens, 8 new golden files, `docs/MVP/MVP.md`, `docs/features/028-copilot-renderer/SPEC.md`). Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Goldens for format-on-edit, github-mcp, typescript-lsp, git-branch, safe-git, concise, both scopes, checked by the test | no | confirmed | `git status` → 8 new files plus changed json; 17/17 pass; mutations (statusLine key, `.mcp.json` path, `cwd`, `tools`) → the golden test fails |
+| 2 | A hook is one file per item, `{version:1, hooks:{<event>:[{type, bash, timeoutSec}]}}` | no | confirmed | format-on-edit goldens; renderer.ts `renderHook` |
+| 3 | All 10 canonical events map as SPEC's table | no | confirmed | mappings.ts `EVENTS`; test loops all 10; mutation → fails |
+| 4 | `matcher` only on preToolUse/postToolUse/permissionRequest as the CLI's names; web-search, `mcp:*` and other events warn and the hook installs | no | confirmed | `HOOK_TOOLS`, `TOOL_EVENTS`; probes; mutations → "writes a tool filter…" fails |
+| 5 | Scripts under `<root>/hooks/<n>/`, `cwd:"."` in a project, `"$HOME"/…` in user scope, executable, with the marker | no | confirmed | test "writes a hook's script next to it"; mutation removing `cwd` → 3 tests fail |
+| 6 | `$RMK_` in a command warns | no | confirmed | format-on-edit warnings.json, both scopes |
+| 7 | MCP: `mcpServers.<n>` in `.mcp.json` / `~/.copilot/mcp-config.json`, stdio and http shapes, `tools:["*"]` | no | confirmed | github-mcp key goldens; stdio test; probes; mutations → 2 tests fail |
+| 8 | A test shows no secret value is written | no | confirmed | planted `value:"s3cret"` not written; mutation → fails; headers pass through as written, as in Claude Code |
+| 9 | LSP: `lspServers.<n>` in `.github/lsp.json` / `~/.copilot/lsp-config.json`, `fileExtensions` from the languages | no | confirmed | typescript-lsp key goldens; test covers both scopes |
+| 10 | Status line user-only; script under `~/.copilot/statusline/<n>/`; `statusLine` in `~/.copilot/settings.json`; `degraded` | no | confirmed | git-branch goldens; project warning; mutation → 2 tests fail |
+| 11 | The `statusLine` key was confirmed against the config-dir reference | no | can't check here | vendor docs not fetched; SPEC.md:159 still says task 3 confirms it |
+| 12 | `permission-policy` and `output-style` are `none` and warn | no | confirmed | `supports`; safe-git and concise warnings |
+| 13 | Unit tests cover every row of both mapping tables | no | confirmed | three tests; one mutation per table fails |
+| 14 | No other renderer's goldens changed | no | confirmed | `git status --porcelain` outside copilot and docs → nothing |
+| 15 | The hook matcher wording agrees across SPEC and MVP §3.3 / §15 | no | confirmed | `git diff docs/`; no old wording left |
+| 16 | The pass left the repository untouched | no | confirmed | `git status` and `cmp` against the snapshot |
+
+**Overall:** not met (row 11).
+
+### Adversarial pass
+
+Witnessed: 2026-11-22 15:40 EST, by a fresh agent (adversarial). Commit: 810c3ecc + uncommitted working tree (renderer.ts, mappings.ts, renderer.test.ts, goldens, SPEC.md, MVP.md). Machine: macOS (Darwin 27.2.0), Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1a | MCP `env` is written only as `${NAME}`, whatever else the entry holds | no | confirmed | probe with `value`, `default`, `secret`, empty and raw entries → only `{"TOKEN":"${TOKEN}"}` |
+| 1b | MCP `headers` are written only as `${NAME}` references | no | partly | renderer.ts:232 copies header values as they are; `{"X-Api-Key":"abc123literal"}` is written; Claude Code and Cursor do the same; the no-secret test covers only `env` |
+| 1c | Copilot expands `${NAME}` in mcp-config `env`/`headers` | no | can't check here | needs the vendor docs or a real CLI |
+| 2a | Each hook item has its own file, so no two items share a key | no | confirmed | probe; a short-name clash is the applier's conflict (apply.ts:412–422); mutation (one shared file) → 2 tests fail |
+| 2b | Scripts: shape as specified, and a path can't escape or break the command | no | partly | `..` refused by the schema and the applier (apply.ts:54–56); but `run.script: "my script.sh"` is written unquoted, so the command runs `…/my` (also the statusline) |
+| 3 | Events and matchers as the tables; a matcher is only a fixed name | no | confirmed | probes; hardening: `event: "constructor"` and `matcher.tool: "__proto__"` read inherited properties (blocked by the schema) |
+| 4 | MCP, LSP, statusline, permission-policy and output-style as specified | no | confirmed | tests and probes; minor: a shared extension is overwritten without a warning |
+| 4b | The `statusLine` key was confirmed against the config-dir reference | no | can't check here | SPEC.md:158–160 still says task 3 confirms it |
+| 5 | The unit tests catch a regression in each mapping row and in the no-secret rule | no | confirmed | 26 mutations, all killed; not covered: literal header values (1b) |
+| 6 | Other renderers' goldens and behaviour are unchanged | no | confirmed | `git diff --name-only`; `vitest run src/render src/plugins` → 113 passed |
+
+**Overall:** not met (1b, 2b; 1c and 4b can't check here).
+
+Fixes after the passes:
+- Row 11 / 4b: SPEC "statusline" records the 2026-11-22 check: the config-dir reference's user settings table has a `statusLine` row of type object and its text names `statusLine.command`; the fields beyond that came from a summary, so task 7's notes record a real CLI run if one is at hand. Re-fetching the page in the witness's toolset isn't possible, so this stays a recorded vendor check.
+- 1b: SPEC "mcp-server" now says what all three renderers do: `env` always as references; headers as the manifest has them, a literal value caught by the save's secret checks (manifest spec §2 and §6). A test pins that header values pass through as written. The acceptance line says "no `env` value is written".
+- 2b: a script path with anything but letters, digits and `._/-` is single-quoted (`shellWord`), for hooks and the status line, with a test (`my script's.sh` in both scopes); SPEC "hook" says so. The goldens don't change.
+- 3 (hardening): `EVENTS` and `HOOK_TOOLS` are read through `Object.hasOwn`, with a test for `constructor` and `__proto__`.
+- 4 (minor): two languages claiming one extension warn, with a test.
+- Blind finding: a tool filter on an event Copilot doesn't filter now says the filter was left out and the hook runs on every such event.
+
+### Re-check 1
+
+Witnessed: 2026-11-22 15:47 EST, by a fresh agent (blind). Commit: 810c3ecc + uncommitted working tree (the same 33 changed or new paths as the first passes). Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 11 | The `statusLine` key in `~/.copilot/settings.json` was confirmed against the CLI config-dir reference | yes | confirmed | `curl -sL https://raw.githubusercontent.com/github/docs/main/content/copilot/reference/copilot-cli-reference/cli-config-dir-reference.md` → 200; line 817: "`statusLine` \| `object` \| — \| Custom status line display. `type`: must be `"command"`. `command`: path to an executable script that receives session JSON on stdin …"; renderer.ts:337–340 and the git-branch/user key golden match |
+| 11a | The SPEC statusline paragraph matches the reference | yes | partly | it still says the fields came from a summary; line 817 says them verbatim |
+| 11b | The written `command` works as Copilot runs it | no | can't check here | `"$HOME"/…` is a shell expression; the reference doesn't say a shell runs it; needs a real CLI |
+| 12 | The Copilot renderer tests pass | yes | confirmed | 20/20 |
+| 13 | The SPEC "hook" paragraph agrees with the code | yes | confirmed | mappings.ts:37, 43–51; renderer.ts:158–163, 208 |
+| 14 | The SPEC "mcp-server" paragraph and the MCP acceptance line agree with the code | yes | confirmed | pass-through test; acceptance line |
+| 15 | The pass left the repository untouched | no | confirmed | `git status --short` unchanged |
+
+**Overall:** not met (11a, 11b).
+
+### Adversarial re-check 1
+
+Witnessed: 2026-11-22 15:46 EST, by a fresh agent (adversarial). Commit: 810c3ecc + uncommitted working tree (renderer.ts, mappings.ts, renderer.test.ts, goldens, SPEC.md, MVP.md). Machine: macOS (Darwin 27.2.0), Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1a | No MCP `env` value is ever written, only `${NAME}` | yes | confirmed | `envRef` only; mutation → 1 test fails |
+| 1b | SPEC "mcp-server" states the header behaviour truthfully | yes | partly | pass-through true (as Claude Code and Cursor), but "caught when saved" is too strong: `secretLike` (package-checks.ts:119, :320) passes `"Bearer hunter2"` and Basic auth, warns on a long random token, refuses `ghp_…`; manifest.md §6 doesn't cover secrets, §2:118 does |
+| 1c | Copilot expands `${NAME}` in mcp-config `env`/`headers` | no | confirmed | CLI command reference (docs.github.com article body): `env` "Supports `$VAR`, `${VAR}`, and `${VAR:-default}` expansion"; `headers` "Supports variable expansion" |
+| 2b | A hook script path is one shell word in both scopes and runs exactly that file | yes | confirmed | 15 hostile names (space, `'`, `$(…)`, backticks, `;`, newline, …), each run with `bash -c` in both scopes → all ran exactly, nothing injected |
+| 2c | The status line command runs the quoted script | no | can't check here | "path to an executable script"; whether a shell runs it is undocumented |
+| 3 | `EVENTS`/`HOOK_TOOLS` lookups are own-property only | yes | confirmed | `Object.hasOwn`; test; mutation → fails |
+| 4 | Two languages claiming one extension warn, the last one wins | yes | confirmed | test; 2 mutations killed; survivor: one language listing an extension twice (minor) |
+| 5 | Copilot tests kill mutations of the new code | yes | partly | 13 of 15 killed; survived: a space added to the unquoted set (the quoting test's name also holds `'`), and row 4's survivor |
+| 6 | Every renderer's goldens are unchanged except Copilot's | no | confirmed | `git status` outside copilot → empty; 116 passed |
+| 7 | MCP entry shape as SPEC | no | partly | the CLI reference marks `args` required for local servers; a stdio item without `args` gets none |
+
+**Overall:** not met (1b, 5, 7; 2c can't check here).
+
+Fixes after the re-checks:
+- 11a: SPEC "statusline" quotes the reference's row (2026-11-22) and says why the command is `"$HOME"/…`.
+- 11b / 2c: the owner moved the real-CLI check of the status line command to task 7 (2026-11-22): SPEC "Open questions" 1, PLAN task 7's bullet and *Done when*. It is no longer a claim of task 3.
+- 1b: SPEC says what the save checks catch (a known token format refused, a long random string warned about, a short literal not caught), cites manifest spec §2 only, and records 1c's expansion.
+- 5: the quoting test also covers `my script.sh` (a space and no `'`) and a plain name left unquoted; a test pins no warning for one language listing an extension twice.
+- 7: a local server always gets `args` (`[]` when the manifest has none), with a test; SPEC says so.
+
+### Re-check 2
+
+Witnessed: 2026-11-22 15:58 EST, by a fresh agent (blind). Commit: 810c3ecc + the uncommitted working tree. Machine: macOS 27.2.1, Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 11a | The SPEC "statusline" paragraph matches the vendor reference row | yes | confirmed | SPEC.md:165–173 word for word with ref.md:817 |
+| 11b | The real-CLI check of the status line command has moved out of task 3 | yes | confirmed | SPEC.md:305–307 (Open questions 1, owner 2026-11-22); PLAN.md:82–86 (task 7 bullet and *Done when*); no claim the `"$HOME"/…` command is known to work |
+| 12 | The copilot renderer tests pass | yes | confirmed | 22/22 |
+| 13 | `pnpm witness:check` exits 0 | yes | confirmed | exit 0 |
+| 14 | `RONNE_WEB_DIR=../ronne-web-028 pnpm docs:check` exits 0 | yes | confirmed | exit 0 |
+
+**Overall:** met.
+
+### Adversarial re-check 2
+
+Witnessed: 2026-11-22 15:58 EST, by a fresh agent (adversarial). Commit: 810c3ecc + uncommitted working tree. Machine: macOS (Darwin 27.2.0), Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1b | SPEC "mcp-server" states truthfully what the save checks catch for headers, and that Copilot expands variables | no | confirmed | package-checks.ts:313–338, run on save (submission.ts:170); probe: `ghp_…` refused, long random warned, `hunter2pass` passes, `${NAME}` stripped; manifest.md:118; the CLI command reference on `env` and `headers` expansion |
+| 5 | The survivors of re-check 1 are killed; further mutations of shellWord and scriptCommand are killed | no | partly | killed: space in the unquoted set, `before !== id`, escape, both anchors, wrapping, `"$HOME"` → `$HOME`; **survived**: `$` added to the unquoted set (no test pins `$` in a path; the code quotes it) |
+| 7 | A stdio MCP server always gets `args`, with a test, and SPEC says so | no | confirmed | renderer.ts:249; renderer.test.ts:308–316; two mutations killed; SPEC.md:148–149 |
+| 2c | The status-line check moved to task 7 by the owner | no | confirmed | SPEC.md:305–307, 172–173; PLAN task 7 |
+
+**Overall:** not met (row 5, a test gap).
+
+Fixes after the re-checks: the quoting test also pins `run$X.sh`, ``run`x`.sh``, `run*.sh` and `run;x.sh` as single-quoted. The witness's mutation (`$` in the unquoted set) now fails 1 test, and the file was restored (`cmp`). The owner chose a third, scoped adversarial re-check of row 5 (2026-11-22).
+
+### Adversarial re-check 3
+
+Witnessed: 2026-11-22 16:05 EST, by a fresh agent (adversarial). Commit: 810c3ecc + uncommitted working tree. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | The Copilot tests kill mutations of shellWord and scriptCommand | yes | not met | `mutate.sh` on the set at renderer.ts:159: killed: `$`, backtick, `*`, `;`, space, `.+`; **survived** (22 passed): `'`, `"`, `\|`, `&`, `\`, `()`, `~` (`~` harmless: never at a word's start) |
+
+**Overall:** not met (row 5, a test gap: the loop pinned 4 characters).
+
+Fixes after the re-check: the quoting test now runs every printable ASCII character, a tab and a newline through a script name, and expects each one outside `[A-Za-z0-9._/-]` quoted and each one inside unquoted, plus `run'x.sh` with its escape. The implementer's own run: adding `'`, `"`, `|`, `&`, `()`, `~`, space or `+` to the set fails 1 test each; dropping `-` fails 4; the file restored (`cmp`). The owner chose a fourth, scoped adversarial re-check of row 5 (2026-11-22).
+
+### Adversarial re-check 4
+
+Witnessed: 2026-11-22 16:07 EST, by a fresh agent (adversarial). Commit: 810c3ecc + uncommitted working tree. Machine: macOS 27.2.1, Node v26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | The Copilot tests kill mutations of shellWord and scriptCommand | no | partly | `mut5.sh`, `mut5b.sh` (22 tests each run): the 7 survivors of re-check 3, narrowing the set, widening it, the anchors, always/never quoting, the escape's forms, the `"$HOME"/` prefix, both scopes and the statusline all fail; `[\w./-]` passes (an equivalent set, not a gap); **survived**: `replaceAll` → `replace` (no test name with two `'`) |
+
+**Overall:** not met (row 5: one escape mutation survives).
+
+Fixes after the re-check: a test with `a'b'c.sh` expects `'.github/hooks/format-on-edit/a'\''b'\''c.sh'`. The implementer reran the witness's own `mut5.sh` and `mut5b.sh` on the synced scratch copy (`cmp` equal to the worktree): every mutation fails 1–7 tests, including `escape-replace-first`, except the equivalent `word-class` (22 passed).
+
+### Adversarial re-check 5
+
+Witnessed: 2026-11-22 16:14 EST, by a fresh agent (adversarial), re-check scoped to row 5. Commit: 810c3ecc + uncommitted working tree. Machine: macOS 27.2.1, Node 26.13.1.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | The Copilot tests kill mutations of shellWord and scriptCommand (renderer.ts:158–163) | yes | confirmed | scratch copy synced (`cmp`, `diff -r`); baseline 22 passed; `escape-replace-first` → 1 failed (renderer.test.ts:291–292, `a'b'c.sh`); `mut5.sh` and `mut5b.sh` rerun: every applied mutation fails 1–7 tests except `[\w./-]` (equivalent); new: no `-`, no `/`, `:` added, `"$HOME"` without `/` → all fail; `+` → `*` passes (equivalent: every path has a prefix); repository untouched (snapshots) |
+
+**Overall:** met.
