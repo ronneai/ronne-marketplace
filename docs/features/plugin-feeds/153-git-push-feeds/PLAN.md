@@ -27,23 +27,31 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 - [ ] **3. Tables and settings.** [risky]
   - The `git_feeds` and `git_feed_workspaces` migration.
-  - The service: a feed's settings (root), including and excluding a private workspace (its admins
-    and root only), audit; personal workspaces refused.
-  - *Done when:* db tests on the four databases cover each setting, who may include a workspace (a
-    member who isn't admin, a moderator, an outsider refused), personal workspaces refused, and the
-    audit events.
+  - The service: a feed's settings (root), the picked workspaces (public ones too), including and
+    excluding a private workspace (its admins, or root with a reason), at most one private per
+    repository, refused for a `public` repository and asked twice for `internal` or `unknown`
+    (152's visibility), audit; personal workspaces refused.
+  - *Done when:* db tests on the four databases cover each setting, unticking a public workspace,
+    who may include a workspace (a member who isn't admin, a moderator, an outsider refused; root
+    without a reason refused), a second private workspace refused, each visibility, personal
+    workspaces refused, and the audit events.
 
 - [ ] **4. The push job.** [risky]
   - The scheduler's job, under its lease: feeds behind the catalogue revision or changed, the
     visibility from the included workspaces, 079's cached marketplaces, a shallow clone, the builder,
-    one commit, a fast-forward push, one retry from a moved head; the status and reasons; Push now.
+    one commit, a fast-forward push, one retry from a moved head; plugins whose `latest` isn't
+    reviewed left out; the visibility read again before a push holding a private workspace; the
+    status and reasons; Push now.
   - *Done when:* tests against the local git server cover the first push, no change, a release, a
-    yank, a private workspace before and after inclusion, a personal one never, a conflict, a moved
-    remote, a protected branch, a refused token, and two processes ticking at once (one push).
+    yank, a private workspace before and after inclusion, a personal one never, a not-reviewed
+    `latest` left out and pushed once approved, a repository turned public (`repository public`,
+    nothing pushed), a conflict, a moved remote, a protected branch, a refused token, and two
+    processes ticking at once (one push).
 
 - [ ] **5. The screens.**
   - The feed in the repository's dialog (tools, folder, workspaces with their state, On, Push now,
-    status); Git repositories on a private workspace's page for its admins; messages in the three
+    status, visibility); What leaves this server on a private workspace's page for its admins and
+    root (built here or by 164, whichever lands first), with root's reason; messages in the three
     languages.
   - *Done when:* component tests cover each state; an end-to-end test sets up a feed, releases an
     item and sees the commit on the local git server; the phone sweep passes.

@@ -22,9 +22,20 @@ tools and the workspaces, and the instance commits and pushes on every change.
 - **A feed on a `push` repository** (Admin › Settings › Git repositories, the repository's dialog):
   - the **tools**: any of `claude-code`, `codex`, `cursor` (the three marketplaces of 078's tree) and
     `skills`, a plain Agent Skills tree for every other harness (below); all four by default;
-  - the **workspaces**: the public workspaces' items always; a **private** workspace's only once one
-    of its admins has turned it on for that repository (below); **personal** workspaces (114) never; an item imported with a permission note (154) only once root
-    allowed it for that item;
+  - the **workspaces**, picked by root for each feed (owner, 2026-11-23), so a team can have a
+    repository with only its own workspace (a Cursor Teams plan takes one team marketplace):
+    - **public** workspaces (`global` included) are listed and ticked by default; root can untick
+      any of them;
+    - **at most one private workspace per repository** (owner, 2026-11-23), beside any public ones:
+      anyone who can read the repository reads all of it, so two private workspaces in one would
+      show each one's items to the other's members. It goes in only with its admins' consent or
+      root's (below), and only to a repository the host reports private (below);
+    - **personal** workspaces (114) never;
+    - an item imported with a permission note (154) only once root allowed it for that item;
+  - **only reviewed versions** (owner, 2026-11-23): a version released without a review
+    (`item_versions.reviewed` false: a personal workspace's, 114, brought along by a scope move,
+    115) is never pushed. The plugin is left out while its `latest` version isn't reviewed, and
+    comes back with the next reviewed release or when someone else approves it (115);
   - the **folder** in the repository: the root by default, or a subfolder (`ronne/`), so a company can
     keep the marketplace beside other files;
   - **On** / **Off**, and **Push now**.
@@ -59,16 +70,36 @@ tools and the workspaces, and the instance commits and pushes on every change.
   0 removed`), a fast-forward push. Never a force push. When the remote moved during the run, it
   starts again once from the new head; a second miss waits for the next tick.
 - **Nothing to push:** when the tree is unchanged, no commit is made.
+- **The repository's visibility** (152 reads it from the host; owner, 2026-11-23):
+  - `private`: a private workspace may go in;
+  - `public`: including a private workspace is refused ("The host says <repository> is public");
+  - `internal` or `unknown`: including one asks a second time, naming why ("Everyone signed in to
+    <host> can read it", or "Ronne couldn't check whether <repository> is private"), and the
+    answer is recorded with the consent;
+  - read again before every push that holds a private workspace: when it has become `public`, or
+    has changed from `private` to anything else since the consent, nothing is pushed and the feed
+    fails with `repository public` (or `visibility changed`) until the consent is given again or the
+    workspace is taken out.
 - **Its status**, in the list and the dialog: last push (time, commit, the counts), or the last
   failure with a short reason: `conflict` (with the paths), `token refused`, `not found`,
-  `unreachable`, `url refused`, `token unreadable`, `too large`, `push rejected` (a protected branch).
-- **A private workspace's consent:** on the workspace's page, its admins (and root) see **Git
-  repositories**: each push repository root linked, with a switch "Include this workspace's items".
-  Turning it on asks first ("Everyone who can read <repository> will see this workspace's items, and
-  what was pushed stays in its history"). Turning it off removes the workspace's plugins at the next
-  push (the history keeps them; the dialog says so). Each change is audited.
+  `unreachable`, `url refused`, `token unreadable`, `too large`, `push rejected` (a protected branch),
+  `repository public`, `visibility changed`.
+- **A private workspace's consent**, in **What leaves this server** on the workspace's page (owner,
+  2026-11-23): one section holding 164's Allow AI providers and this feature's git repositories,
+  built by whichever of the two lands first. Its admins (and root) see each push repository root
+  linked, with its visibility and a switch "Include this workspace's items":
+  - turning it on asks first ("Everyone who can read <repository> will see this workspace's items,
+    and what was pushed stays in its history");
+  - refused while the repository already holds another private workspace ("<repository> already
+    holds another private workspace's items"), without naming it to someone who can't see it;
+  - turning it off removes the workspace's plugins at the next push (the history keeps them; the
+    dialog says so).
+- **Root can include a private workspace** (owner, 2026-11-23), as root overrides elsewhere: with a
+  reason, audited, and shown on the workspace's page as "Included by root" with the reason. Its
+  admins can turn it off.
 - **Audit:** `git_feed.updated` (tools, workspaces, folder, on or off), `git_feed.workspace_included`
-  / `.workspace_excluded`, and `git_feed.pushed` (commit, counts) or `git_feed.failed` (reason).
+  (with `byRoot`, the reason and the visibility consented to) / `.workspace_excluded`, and
+  `git_feed.pushed` (commit, counts) or `git_feed.failed` (reason).
 - **What each tool reads**, in the Documentation (vendor docs checked 2026-10-29):
   - **Cursor:** a team admin (Teams plan: one team marketplace; Enterprise: any number) imports the
     repository in Dashboard › Plugins › Team Marketplaces (GitHub; GitLab, Bitbucket and Azure DevOps
@@ -88,19 +119,26 @@ tools and the workspaces, and the instance commits and pushes on every change.
   instance; the Documentation presents them as the second way.
 - **Pull requests instead of pushes.** The instance pushes to its branch; a company that wants review
   on the host protects the branch and points the feed at another one.
-- **Who can read the repository.** The git host's access rules; the Documentation says a repository
-  that holds a private workspace's items must be private too.
-- **One repository per workspace chosen by its admins.** Root links repositories (152).
+- **Who can read the repository.** The git host's access rules. Ronne checks only that the host calls
+  the repository private (above), not who its members are.
+- **Repositories chosen by a workspace's admins.** Root links repositories (152), root only (owner,
+  2026-11-23); revisited after 116, 170 and 178.
+- **Picking scopes inside a workspace.** Whole workspaces only (owner, 2026-11-23); a later feature
+  if asked.
+- **Review provenance in the repository** (`.rmk-feed.json`). Not needed, as only reviewed versions
+  go; 171 shows how each was approved.
 
 ## Behaviour
 
 **Root sets up a feed.** In a push repository's dialog: the tools, the folder, the workspaces (public
-ones listed as included; private ones listed with "Waiting for the workspace's admins" or "Included by
-<name>"), On. Saving pushes within a minute.
+ones ticked by default; at most one private one, listed with "Waiting for the workspace's admins",
+"Included by <name>" or "Included by root"), the repository's visibility, On. Saving pushes within a
+minute.
 
-**Which items.** Exactly the marketplace a caller who sees the public workspaces and the included
-private ones would get from 077's routes (`?workspaces=`), built through 079's cache, so the git
-repository and the live feed never disagree about an item's contents or sha256.
+**Which items.** The marketplace a caller who sees the picked public workspaces and the included
+private one would get from 077's routes (`?workspaces=`), built through 079's cache, less every
+plugin whose `latest` version isn't reviewed. For every plugin both hold, the git repository and the
+live feed never disagree about its contents or sha256.
 
 **Size.** A repository has no 5 MiB limit (that's Claude Code's URL marketplace), but a push larger
 than 500 MiB of changes fails `too large` with the counts, so a misconfigured feed can't fill a host.
@@ -113,8 +151,11 @@ than 500 MiB of changes fails `too large` with the counts, so a misconfigured fe
 - **A protected branch refuses the push:** `push rejected`, with the host's message.
 - **The token was revoked:** `token refused`; nothing is retried until the settings change or Push now.
 - **A private workspace turned public later:** its items are in as public ones; its consent row stays
-  but no longer matters. **Public turned private:** its items leave at the next push unless its admins
-  include it.
+  but no longer matters, and another private workspace may now be included. **Public turned
+  private:** its items leave at the next push unless its admins (or root) include it, which is
+  refused while another private workspace is in that repository.
+- **A version approved after the fact** (115's "someone else approves"): it's reviewed now, and the
+  plugin is pushed at the next run (the catalogue revision moves).
 - **A workspace renamed** (113) or **a scope moved** (115): the plugin names change; the old folders
   are removed and new ones written, with "Moved from" in the descriptions (`plugin-feeds.md`).
 - **The repository removed in 152:** its feed goes with it; nothing is deleted on the host.
@@ -126,8 +167,10 @@ than 500 MiB of changes fails `too large` with the counts, so a misconfigured fe
   - `git_feeds` (`repository_id` primary key, `enabled`, `tools` as JSON text, `folder`,
     `pushed_revision`, `pushed_commit`, `pushed_at`, `last_result`, `last_reason`, `last_paths`
     as JSON text, `updated_at`);
-  - `git_feed_workspaces` (`repository_id`, `workspace_id`, `included_by`, `included_at`), only for
-    private workspaces.
+  - `git_feed_workspaces` (`repository_id`, `workspace_id`, `included_by`, `included_at`,
+    `by_root`, `reason` nullable, `visibility_consented` (152's value when it was given)), one row per
+    picked workspace, public or private; at most one private per repository, checked by the service
+    (visibility lives on `workspaces`).
 - `docs/spec/plugin-feeds.md`: "The git mirror" says the instance writes it (153) or `rmk feed
   build` does (078), and adds `skills/`, the folder option and `README.md`.
 
@@ -139,8 +182,9 @@ than 500 MiB of changes fails `too large` with the counts, so a misconfigured fe
   (a mirror built outside the instance); *Keeping the mirror current* (`plugins#mirror-updates`): pushes on
   every change, the status reasons and what to do about each, conflicts; a new *Any other tool*
   (`plugins#skills`): `skills/` and `npx skills add`.
-- **Workspaces** (`workspaces#git`): including a private workspace in a repository, and that the
-  history keeps what was pushed.
+- **Workspaces** (`workspaces#git`): the What leaves this server section, including a private
+  workspace in a repository (one per repository, only one the host calls private, root's override),
+  and that the history keeps what was pushed; only reviewed versions go.
 - **Git repositories** (152): a *Feeds* section linking to the above.
 - `codex` and `cursor` topics: their *Plugins* section links to `plugins#mirror`.
 - **Helpers:** the feed's "Which tools read this?" → `plugins#mirror`; the workspace page's "What
@@ -156,10 +200,17 @@ than 500 MiB of changes fails `too large` with the counts, so a misconfigured fe
   folders and the marketplace entries, within a minute.
 - [ ] A foreign path under `plugins/` or `skills/`, or a plugin folder changed on the host, stops the
   push with `conflict` and the paths, and nothing is pushed.
-- [ ] Only the public workspaces' items are pushed until a private workspace's admin includes it;
-  a personal workspace's items never are; a non-admin can't include one (server check); including
-  and excluding are audited.
-- [ ] The pushed marketplaces' entries and sha256 match what 077's routes answer for the same view.
+- [ ] Only the picked public workspaces' items are pushed until a private workspace's admin (or
+  root, with a reason) includes it; a personal workspace's items never are; a non-admin can't include
+  one (server check); including and excluding are audited, root's with `byRoot` and the reason.
+- [ ] A second private workspace can't be included in a repository that holds one (server check).
+- [ ] Including a private workspace is refused for a repository the host reports `public`, and asks
+  twice for `internal` or `unknown`; a push holding a private workspace stops with `repository
+  public` or `visibility changed` when the host's answer moved, and nothing is pushed.
+- [ ] A plugin whose `latest` version isn't reviewed is not in the repository; it's pushed once that
+  version is approved or a reviewed one is released.
+- [ ] For every plugin both hold, the pushed marketplaces' entries and sha256 match what 077's routes
+  answer for the same view.
 - [ ] Never a force push: a moved remote is retried once from the new head, then waits.
 - [ ] Each failure reason shows in the list and the dialog.
 - [ ] Manual: Codex adds the test repository and installs a skill; Claude Code adds it and installs a
@@ -176,8 +227,18 @@ than 500 MiB of changes fails `too large` with the counts, so a misconfigured fe
    repository isn't enough, as the content is theirs and git history can't be taken back.
 3. **A `skills/` tree for any harness** (Claude): the Agent Skills format is the one most tools read,
    and Vercel's `skills` CLI installs from it.
+4. **Root picks the workspaces, public ones too** (owner, 2026-11-23): a repository per team, whole
+   workspaces only, no scopes.
+5. **One private workspace per repository, only to a repository the host calls private** (owner,
+   2026-11-23): Ronne's membership doesn't exist on the host, so a repository can't keep two private
+   workspaces apart, and a push can't be taken back.
+6. **Root can include a private workspace** (owner, 2026-11-23), with a reason, audited and shown to
+   its admins, who can turn it off.
+7. **Only reviewed versions** (owner, 2026-11-23): a repository read by a company's tools gets only
+   what someone other than the author approved; the live feed (077) is unchanged.
+8. **One "What leaves this server" section** (owner, 2026-11-23): 164's AI consent and the git
+   repositories together on the workspace's page.
 
 ## Open questions
 
-- Should root alone be able to include a private workspace (root is a member of none by default)?
-- Should a feed be able to target a single scope rather than whole workspaces?
+None.

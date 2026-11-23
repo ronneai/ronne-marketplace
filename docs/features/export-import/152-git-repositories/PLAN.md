@@ -44,9 +44,19 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     origin change, a token that no longer opens, rotate-secret, root-only access, and the token absent
     from every returned value and audit row.
 
+- [ ] **4b. The repository's visibility.** [risky]
+  - Check each host's current API docs for the call and the least token permission (GitHub,
+    GitLab, Bitbucket, Azure DevOps), and put them in the token help.
+  - A `readVisibility` on the `git` service, per host kind, through the URL checks, to the same
+    origin or the host's known API origin; `private`, `internal`, `public` or `unknown`, stored with
+    its time on save and on Test connection.
+  - *Done when:* tests against recorded answers cover each host's private, public and internal
+    answers, a refused token, an unreadable answer and an unreachable API (`unknown`), `other`
+    (`unknown`), and the token sent to no other origin.
+
 - [ ] **5. The tab.**
   - Admin › Settings › Git repositories: the list, the add and edit dialog with the per-host token help,
-    Remove, Test connection with its five answers; messages in the three languages.
+    Remove, Test connection with its five answers and the visibility; messages in the three languages.
   - *Done when:* component tests cover each state and answer; an end-to-end test adds a repository
     against the local git server and tests it; the phone sweep passes.
 
