@@ -47,11 +47,27 @@ the bridge. This feature is the connection only: what is pushed, and when, is 15
 - **Test connection:** lists the remote's references (git's smart HTTP `info/refs`), and says one of:
   "Reached <host>, branch main found", "Reached <host>; there's no branch main yet" (fine for
   `push`: 153 creates it), "The token was refused", "The repository wasn't found, or the token can't
-  see it", "Couldn't reach <host>". Nothing is cloned and nothing is written.
+  see it", "Couldn't reach <host>". Nothing is cloned and nothing is written. When the remote was
+  reached, it adds the visibility: "The host says this repository is private" (or public, or
+  internal), or "Ronne couldn't read whether this repository is private".
 - **The git client:** `isomorphic-git` (MIT), in the web server's process, over HTTPS, wrapped in a
   `GitRemote` interface in `server/git/` so the domains never import it. Not the `git` program: it
   is GPL-2.0, which the dependency policy forbids in the image, and it isn't in the npm package or
   the bundles. Checked against the policy in task 2.
+- **The repository's visibility, as the host reports it** (owner, 2026-11-23): a repository that
+  holds a private workspace's items must be private, and git history can't take a push back, so
+  Ronne asks the host instead of trusting a note in the Documentation.
+  - Read through the host's API with the repository's own token, on save, on Test connection and
+    before every push (153): GitHub's repository `visibility`, GitLab's project `visibility`,
+    Bitbucket's `is_private`, Azure DevOps' project `visibility`. The exact call and the least token
+    permission it needs are checked against each host's current docs in the task, and listed in the
+    token help.
+  - Recorded as `private`, `internal` (GitLab and GitHub Enterprise: everyone signed in to the host),
+    `public` or `unknown` (an `other` host, an API that refuses the token, or an answer Ronne can't
+    read), with when it was read. Shown in the list and the dialog.
+  - 153 decides what each value allows; 152 only reads and shows it. The API call goes through the
+    same URL checks as git (below) and to the same origin, or to the host's known API origin
+    (`api.github.com`, `api.bitbucket.org`) for those that use one.
 - **Audit:** `git_repository.created`, `.updated`, `.removed`, with the name, the host, the branch,
   the use and `tokenChange` (`set`, `replaced`, `removed`); never the token, never the URL's path
   beyond the host (it can name private projects only as much as the host does).
@@ -64,7 +80,9 @@ the bridge. This feature is the connection only: what is pushed, and when, is 15
   tokens). No SSH for now (owner, 2026-10-29); a later feature if asked.
 - **OAuth apps and GitHub Apps** ("Connect with GitHub"). A token typed by root first; an app per host
   later, if asked.
-- **Repositories set up by workspace admins.** Root only for now (open question).
+- **Repositories set up by workspace admins.** Root only (owner, 2026-11-23), revisited after 116
+  and 170 (tokens limited to workspaces and scopes) and 178 (workspace policies), where root could
+  allow it per workspace by a policy.
 - **Creating the repository on the host.** Root creates it there; Ronne pushes to it.
 
 ## Behaviour
@@ -96,12 +114,16 @@ the run with `url refused`.
 - **A token that expires on the host:** Test connection and the next push say it was refused; the
   list shows the last result.
 - **The data download** (104): never; it's an instance setting.
+- **The repository is made public on the host later:** the next read (Test connection, or 153's
+  check before a push) records `public`; 153 stops the push when a private workspace is in it.
+- **The host's API is down but git works:** the visibility reads `unknown` for that run; the last
+  value read stays shown with its time.
 
 ## Data
 
 - A migration: `git_repositories` (`id`, `name` unique, `url`, `host_kind`, `branch`, `use`,
-  `username`, `token_enc` nullable, `created_by`, `created_at`, `updated_at`), on all three
-  databases.
+  `username`, `token_enc` nullable, `visibility` (`private`, `internal`, `public` or `unknown`),
+  `visibility_read_at` nullable, `created_by`, `created_at`, `updated_at`), on all three databases.
 - Nothing new in the audit log's shape.
 
 ## Documentation
@@ -109,7 +131,8 @@ the run with `url refused`.
 - **Git repositories**, a new topic in the Administration group (`git-repositories`): what they're
   for (pushing plugin marketplaces, 153; importing, 154), adding one (`add`), which token per host
   (`tokens`), the URL checks and `RONNE_GIT_HOSTS` (`network`), Test connection's answers
-  (`troubleshooting`), and that a full backup can open the tokens.
+  (`troubleshooting`), the visibility Ronne reads from the host and what it allows (`visibility`),
+  and that a full backup can open the tokens.
 - **Install guide:** `RONNE_GIT_HOSTS`, beside the scanner's variables.
 - **Backups** (`backups`): the tokens, as 136's key.
 - **Helpers:** the tab's "What are these for?" → `git-repositories`; the token field's "Which token
@@ -129,6 +152,10 @@ the run with `url refused`.
 - [ ] Changing the URL's origin removes the kept token unless a new one is typed.
 - [ ] `rotate-secret` re-encrypts the tokens; one that no longer opens reads as "No token".
 - [ ] Test connection answers each of its five lines, tested against a local git server.
+- [ ] The visibility is read on save, on Test connection and through the service 153 calls, from
+  each host kind's API (tests against recorded answers for the four hosts), and reads `unknown` for
+  `other`, a refused token, an unreadable answer or an unreachable API; the API call passes the
+  same URL checks.
 - [ ] `isomorphic-git` passes the dependency policy checklist, and `pnpm licenses:check` passes.
 - [ ] The tab is in English, Portuguese and French, and passes the phone sweep.
 - [ ] The Documentation and inline helpers listed above say what the feature does now.
@@ -140,9 +167,13 @@ the run with `url refused`.
    `isomorphic-git` is MIT, pure JavaScript, and runs wherever the server does.
 2. **136's sealing and endpoint checks, reused** (Claude): one reviewed implementation, already
    re-keyed by `rotate-secret`.
-3. **Root only** (Claude): a repository credential can publish under the company's name; workspace
-   admins choose what of theirs goes out (153), not where.
+3. **Root only** (Claude; confirmed by the owner, 2026-11-23): a repository credential can publish
+   under the company's name; workspace admins choose what of theirs goes out (153), not where.
+   Revisited after 116, 170 and 178.
+4. **The host's word on visibility, not the Documentation's** (owner, 2026-11-23): a private
+   workspace's items pushed to a public repository can't be taken back, so the visibility is read
+   from the host and 153 refuses on it.
 
 ## Open questions
 
-- Should a workspace's admins be able to add repositories for their own workspace?
+None.

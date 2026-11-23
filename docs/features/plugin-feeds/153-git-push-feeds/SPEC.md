@@ -1,6 +1,6 @@
 # 153 — Push the plugin marketplaces to git on every release
 
-> Milestone: M25 · Depends on: 152, 076, 077, 079, 093, 114 · Design: [MVP §3.3](../../../MVP/MVP.md#33-platform-renderers), [§15](../../../MVP/MVP.md#15-decision-log) ("Git export") · Contracts: [`docs/spec/plugin-feeds.md`](../../../spec/plugin-feeds.md) ("The git mirror")
+> Milestone: M25 · Depends on: 152, 076, 077, 079, 093, 114, 028, 029 · Design: [MVP §3.3](../../../MVP/MVP.md#33-platform-renderers), [§15](../../../MVP/MVP.md#15-decision-log) ("Git export") · Contracts: [`docs/spec/plugin-feeds.md`](../../../spec/plugin-feeds.md) ("The git mirror")
 
 > **Takes over from [078](../078-plugin-feed-mirror/SPEC.md) as the recommended way** (owner,
 > 2026-10-29). 078 built `rmk feed build`, which writes the tree, and `--print-workflow`, a CI job
@@ -20,20 +20,45 @@ tools and the workspaces, and the instance commits and pushes on every change.
 
 **In:**
 - **A feed on a `push` repository** (Admin › Settings › Git repositories, the repository's dialog):
-  - the **tools**: any of `claude-code`, `codex`, `cursor` (the three marketplaces of 078's tree) and
-    `skills`, a plain Agent Skills tree for every other harness (below); all four by default;
-  - the **workspaces**: the public workspaces' items always; a **private** workspace's only once one
-    of its admins has turned it on for that repository (below); **personal** workspaces (114) never; an item imported with a permission note (154) only once root
-    allowed it for that item;
+  - the **tools**, every tree `rmk feed build` writes (owner, 2026-11-23): `claude-code`, `codex`,
+    `cursor` and `copilot` (028), each with its marketplace file; `antigravity` and `gemini` (029),
+    plugin folders without one; and `skills`, a plain Agent Skills tree for every other harness
+    (below). All of them by default. Each tool reads only its own paths, so one repository serves
+    them all; a repository per tool (a Cursor-only one for a team, say) is two linked repositories
+    with different tools;
+  - the **workspaces**, picked by root for each feed (owner, 2026-11-23), so a team can have a
+    repository with only its own workspace (a Cursor Teams plan takes one team marketplace):
+    - **All public workspaces**, a switch, on by default (owner, 2026-11-23): every public
+      workspace, `global` included, also those created or turned public later. Turned off, root
+      ticks public workspaces one by one, and a new public workspace stays out until ticked;
+    - **at most one private workspace per repository** (owner, 2026-11-23), beside any public ones:
+      anyone who can read the repository reads all of it, so two private workspaces in one would
+      show each one's items to the other's members. It goes in only with its admins' consent or
+      root's (below), and only to a repository the host reports private (below);
+    - **personal** workspaces (114) never;
+    - an item imported with a permission note (154) only once root allowed it for that item;
+  - **only reviewed versions** (owner, 2026-11-23): a version released without a review
+    (`item_versions.reviewed` false: a personal workspace's, 114, brought along by a scope move,
+    115) is never pushed. The plugin is left out while its `latest` version isn't reviewed, and
+    comes back with the next reviewed release or when someone else approves it (115);
   - the **folder** in the repository: the root by default, or a subfolder (`ronne/`), so a company can
     keep the marketplace beside other files;
   - **On** / **Off**, and **Push now**.
-- **The tree**, 078's contract (`docs/spec/plugin-feeds.md`, "The git mirror"), plus `skills/`:
+- **A reviewed-only view in the feed routes** (owner, 2026-11-23), so both ways of building the
+  mirror hold the same plugins: `?reviewed=only` on 077's `marketplace.json` routes leaves out every
+  plugin whose `latest` version isn't reviewed. The instance's push builds with it; `rmk feed build`
+  always sends it; and, as 093 did for `?workspaces=`, a request from any rmk (`user-agent: rmk/…`)
+  without it is answered reviewed-only, so an older rmk's mirror follows the rule too. Claude Code's
+  own reads of the live feed are unchanged.
+- **The tree**, 078's contract (`docs/spec/plugin-feeds.md`, "The git mirror", with 028's and 029's
+  additions), plus `skills/`; only the picked tools' paths are written:
   ```
   .claude-plugin/marketplace.json     sources "./plugins/claude-code/<plugin>"
   .agents/plugins/marketplace.json    sources "./plugins/codex/<plugin>"
   .cursor-plugin/marketplace.json     sources "./plugins/cursor/<plugin>"
-  plugins/<tool>/<plugin>/…
+  .github/plugin/marketplace.json     sources "./plugins/copilot/<plugin>" (028)
+  plugins/<tool>/<plugin>/…           claude-code, codex, cursor, copilot, antigravity, gemini
+                                      (Antigravity and Gemini CLI: folders only, no marketplace, 029)
   skills/<plugin>/SKILL.md, …         every skill, and every rule or command whose Codex plugin form
                                       is a skill, rendered as an Agent Skills folder
   .rmk-feed.json                      what Ronne wrote: registry, tools, plugins, their sha256 and tree
@@ -59,16 +84,36 @@ tools and the workspaces, and the instance commits and pushes on every change.
   0 removed`), a fast-forward push. Never a force push. When the remote moved during the run, it
   starts again once from the new head; a second miss waits for the next tick.
 - **Nothing to push:** when the tree is unchanged, no commit is made.
+- **The repository's visibility** (152 reads it from the host; owner, 2026-11-23):
+  - `private`: a private workspace may go in;
+  - `public`: including a private workspace is refused ("The host says <repository> is public");
+  - `internal` or `unknown`: including one asks a second time, naming why ("Everyone signed in to
+    <host> can read it", or "Ronne couldn't check whether <repository> is private"), and the
+    answer is recorded with the consent;
+  - read again before every push that holds a private workspace: when it has become `public`, or
+    has changed from `private` to anything else since the consent, nothing is pushed and the feed
+    fails with `repository public` (or `visibility changed`) until the consent is given again or the
+    workspace is taken out.
 - **Its status**, in the list and the dialog: last push (time, commit, the counts), or the last
   failure with a short reason: `conflict` (with the paths), `token refused`, `not found`,
-  `unreachable`, `url refused`, `token unreadable`, `too large`, `push rejected` (a protected branch).
-- **A private workspace's consent:** on the workspace's page, its admins (and root) see **Git
-  repositories**: each push repository root linked, with a switch "Include this workspace's items".
-  Turning it on asks first ("Everyone who can read <repository> will see this workspace's items, and
-  what was pushed stays in its history"). Turning it off removes the workspace's plugins at the next
-  push (the history keeps them; the dialog says so). Each change is audited.
+  `unreachable`, `url refused`, `token unreadable`, `too large`, `push rejected` (a protected branch),
+  `repository public`, `visibility changed`.
+- **A private workspace's consent**, in **What leaves this server** on the workspace's page (owner,
+  2026-11-23): one section holding 164's Allow AI providers and this feature's git repositories,
+  built by whichever of the two lands first. Its admins (and root) see each push repository root
+  linked, with its visibility and a switch "Include this workspace's items":
+  - turning it on asks first ("Everyone who can read <repository> will see this workspace's items,
+    and what was pushed stays in its history");
+  - refused while the repository already holds another private workspace ("<repository> already
+    holds another private workspace's items"), without naming it to someone who can't see it;
+  - turning it off removes the workspace's plugins at the next push (the history keeps them; the
+    dialog says so).
+- **Root can include a private workspace** (owner, 2026-11-23), as root overrides elsewhere: with a
+  reason, audited, and shown on the workspace's page as "Included by root" with the reason. Its
+  admins can turn it off.
 - **Audit:** `git_feed.updated` (tools, workspaces, folder, on or off), `git_feed.workspace_included`
-  / `.workspace_excluded`, and `git_feed.pushed` (commit, counts) or `git_feed.failed` (reason).
+  (with `byRoot`, the reason and the visibility consented to) / `.workspace_excluded`, and
+  `git_feed.pushed` (commit, counts) or `git_feed.failed` (reason).
 - **What each tool reads**, in the Documentation (vendor docs checked 2026-10-29):
   - **Cursor:** a team admin (Teams plan: one team marketplace; Enterprise: any number) imports the
     repository in Dashboard › Plugins › Team Marketplaces (GitHub; GitLab, Bitbucket and Azure DevOps
@@ -79,28 +124,46 @@ tools and the workspaces, and the instance commits and pushes on every change.
     a private repository is cloned with the machine's own git credentials; `codex plugin marketplace
     upgrade` fetches it again.
   - **Claude Code:** `/plugin marketplace add <owner>/<repo>`, with the machine's git credentials for
-    a private one, or the live feed (077), which needs no repository.
+    a private one, or the live feed (077), which needs no repository; auto-update or
+    `/plugin marketplace update` fetches it again.
+  - **GitHub Copilot** (028): `copilot plugin marketplace add <owner>/<repo>`; `copilot plugin
+    marketplace update` fetches it again.
+  - **Antigravity and Gemini CLI** (029): no marketplace; a person clones the repository and
+    installs a plugin folder (`agy plugin install <folder>`, `gemini extensions install <folder>`);
+    `gemini extensions update`, or Antigravity's install again, picks up a new push.
+  - The Documentation says, per tool, that the instance pushes within a minute of a change and the
+    tool picks it up only on its own refresh, as listed.
   - **Any other harness:** `npx skills add <repo>` installs from `skills/`, or the tool reads the
     folders directly.
 
 **Out** (and where it goes instead):
 - **Removing `rmk feed build` and its CI workflows** (078). They stay, for a mirror built outside the
-  instance; the Documentation presents them as the second way.
+  instance; the Documentation presents them as the second way. They take the reviewed-only rule
+  (below) but not the visibility check or the one-private-workspace rule, which need the instance's
+  repository settings: the Documentation says the instance's push is the governed way, and `rmk
+  feed build --workspace` keeps its "keep the repository private" warning.
 - **Pull requests instead of pushes.** The instance pushes to its branch; a company that wants review
   on the host protects the branch and points the feed at another one.
-- **Who can read the repository.** The git host's access rules; the Documentation says a repository
-  that holds a private workspace's items must be private too.
-- **One repository per workspace chosen by its admins.** Root links repositories (152).
+- **Who can read the repository.** The git host's access rules. Ronne checks only that the host calls
+  the repository private (above), not who its members are.
+- **Repositories chosen by a workspace's admins.** Root links repositories (152), root only (owner,
+  2026-11-23); revisited after 116, 170 and 178.
+- **Picking scopes inside a workspace.** Whole workspaces only (owner, 2026-11-23); a later feature
+  if asked.
+- **Review provenance in the repository** (`.rmk-feed.json`). Not needed, as only reviewed versions
+  go; 171 shows how each was approved.
 
 ## Behaviour
 
-**Root sets up a feed.** In a push repository's dialog: the tools, the folder, the workspaces (public
-ones listed as included; private ones listed with "Waiting for the workspace's admins" or "Included by
-<name>"), On. Saving pushes within a minute.
+**Root sets up a feed.** In a push repository's dialog: the tools (all ticked), the folder, the
+workspaces (All public workspaces on, or the public ones ticked one by one; at most one private one, listed with "Waiting for the workspace's admins",
+"Included by <name>" or "Included by root"), the repository's visibility, On. Saving pushes within a
+minute.
 
-**Which items.** Exactly the marketplace a caller who sees the public workspaces and the included
-private ones would get from 077's routes (`?workspaces=`), built through 079's cache, so the git
-repository and the live feed never disagree about an item's contents or sha256.
+**Which items.** The marketplace a caller who sees the picked public workspaces and the included
+private one would get from 077's routes (`?workspaces=`), built through 079's cache, less every
+plugin whose `latest` version isn't reviewed. For every plugin both hold, the git repository and the
+live feed never disagree about its contents or sha256.
 
 **Size.** A repository has no 5 MiB limit (that's Claude Code's URL marketplace), but a push larger
 than 500 MiB of changes fails `too large` with the counts, so a misconfigured feed can't fill a host.
@@ -113,8 +176,11 @@ than 500 MiB of changes fails `too large` with the counts, so a misconfigured fe
 - **A protected branch refuses the push:** `push rejected`, with the host's message.
 - **The token was revoked:** `token refused`; nothing is retried until the settings change or Push now.
 - **A private workspace turned public later:** its items are in as public ones; its consent row stays
-  but no longer matters. **Public turned private:** its items leave at the next push unless its admins
-  include it.
+  but no longer matters, and another private workspace may now be included. **Public turned
+  private:** its items leave at the next push unless its admins (or root) include it, which is
+  refused while another private workspace is in that repository.
+- **A version approved after the fact** (115's "someone else approves"): it's reviewed now, and the
+  plugin is pushed at the next run (the catalogue revision moves).
 - **A workspace renamed** (113) or **a scope moved** (115): the plugin names change; the old folders
   are removed and new ones written, with "Moved from" in the descriptions (`plugin-feeds.md`).
 - **The repository removed in 152:** its feed goes with it; nothing is deleted on the host.
@@ -124,12 +190,15 @@ than 500 MiB of changes fails `too large` with the counts, so a misconfigured fe
 
 - A migration:
   - `git_feeds` (`repository_id` primary key, `enabled`, `tools` as JSON text, `folder`,
-    `pushed_revision`, `pushed_commit`, `pushed_at`, `last_result`, `last_reason`, `last_paths`
+    `all_public` (true by default), `pushed_revision`, `pushed_commit`, `pushed_at`, `last_result`, `last_reason`, `last_paths`
     as JSON text, `updated_at`);
-  - `git_feed_workspaces` (`repository_id`, `workspace_id`, `included_by`, `included_at`), only for
-    private workspaces.
+  - `git_feed_workspaces` (`repository_id`, `workspace_id`, `included_by`, `included_at`,
+    `by_root`, `reason` nullable, `visibility_consented` (152's value when it was given)), one row per
+    picked workspace, public or private; at most one private per repository, checked by the service
+    (visibility lives on `workspaces`).
 - `docs/spec/plugin-feeds.md`: "The git mirror" says the instance writes it (153) or `rmk feed
-  build` does (078), and adds `skills/`, the folder option and `README.md`.
+  build` does (078), and adds `skills/`, the folder option and `README.md`; the routes table adds
+  `?reviewed=only` and rmk's reviewed-only default.
 
 ## Documentation
 
@@ -139,8 +208,9 @@ than 500 MiB of changes fails `too large` with the counts, so a misconfigured fe
   (a mirror built outside the instance); *Keeping the mirror current* (`plugins#mirror-updates`): pushes on
   every change, the status reasons and what to do about each, conflicts; a new *Any other tool*
   (`plugins#skills`): `skills/` and `npx skills add`.
-- **Workspaces** (`workspaces#git`): including a private workspace in a repository, and that the
-  history keeps what was pushed.
+- **Workspaces** (`workspaces#git`): the What leaves this server section, including a private
+  workspace in a repository (one per repository, only one the host calls private, root's override),
+  and that the history keeps what was pushed; only reviewed versions go.
 - **Git repositories** (152): a *Feeds* section linking to the above.
 - `codex` and `cursor` topics: their *Plugins* section links to `plugins#mirror`.
 - **Helpers:** the feed's "Which tools read this?" → `plugins#mirror`; the workspace page's "What
@@ -150,20 +220,35 @@ than 500 MiB of changes fails `too large` with the counts, so a misconfigured fe
 
 - [ ] `rmk feed build`'s tests pass unchanged after its planner moves to core, and it writes the
   same bytes as the instance's push for the same feed.
-- [ ] A feed pushes the three marketplaces, the plugin folders and `skills/` to an empty repository
-  on the local git server; a second run with nothing new makes no commit.
+- [ ] A feed pushes the four marketplaces (Claude Code, Codex, Cursor, Copilot), the plugin folders
+  of all six tools and `skills/` to an empty repository on the local git server; a feed with some
+  tools unticked writes only theirs; a second run with nothing new makes no commit.
+- [ ] With All public workspaces on, a public workspace created (or turned public) after the feed
+  was set up is pushed at the next run; with it off, it isn't until ticked.
+- [ ] `?reviewed=only` leaves out plugins whose `latest` isn't reviewed; `rmk feed build`, and a
+  request from an older rmk without the parameter, get the reviewed-only view; Claude Code's reads
+  don't change.
 - [ ] A release, a yank and a deprecation each produce one commit that changes only that plugin's
   folders and the marketplace entries, within a minute.
 - [ ] A foreign path under `plugins/` or `skills/`, or a plugin folder changed on the host, stops the
   push with `conflict` and the paths, and nothing is pushed.
-- [ ] Only the public workspaces' items are pushed until a private workspace's admin includes it;
-  a personal workspace's items never are; a non-admin can't include one (server check); including
-  and excluding are audited.
-- [ ] The pushed marketplaces' entries and sha256 match what 077's routes answer for the same view.
+- [ ] Only the picked public workspaces' items are pushed until a private workspace's admin (or
+  root, with a reason) includes it; a personal workspace's items never are; a non-admin can't include
+  one (server check); including and excluding are audited, root's with `byRoot` and the reason.
+- [ ] A second private workspace can't be included in a repository that holds one (server check).
+- [ ] Including a private workspace is refused for a repository the host reports `public`, and asks
+  twice for `internal` or `unknown`; a push holding a private workspace stops with `repository
+  public` or `visibility changed` when the host's answer moved, and nothing is pushed.
+- [ ] A plugin whose `latest` version isn't reviewed is not in the repository; it's pushed once that
+  version is approved or a reviewed one is released.
+- [ ] For every plugin both hold, the pushed marketplaces' entries and sha256 match what 077's routes
+  answer for the same view.
 - [ ] Never a force push: a moved remote is retried once from the new head, then waits.
 - [ ] Each failure reason shows in the list and the dialog.
 - [ ] Manual: Codex adds the test repository and installs a skill; Claude Code adds it and installs a
-  plugin; `npx skills add` installs from `skills/`; the owner checks the Cursor import (Teams plan).
+  plugin; Copilot adds it and installs a plugin; Antigravity and Gemini CLI install a folder from a
+  clone; `npx skills add` installs from `skills/`; each picks up a second push through its own
+  refresh; the owner checks the Cursor import (Teams plan).
   Results go in PLAN.md's notes.
 - [ ] The screens are in English, Portuguese and French, and pass the phone sweep.
 - [ ] The Documentation and inline helpers listed above say what the feature does now.
@@ -176,8 +261,25 @@ than 500 MiB of changes fails `too large` with the counts, so a misconfigured fe
    repository isn't enough, as the content is theirs and git history can't be taken back.
 3. **A `skills/` tree for any harness** (Claude): the Agent Skills format is the one most tools read,
    and Vercel's `skills` CLI installs from it.
+4. **Root picks the workspaces, public ones too** (owner, 2026-11-23): a repository per team, whole
+   workspaces only, no scopes.
+5. **One private workspace per repository, only to a repository the host calls private** (owner,
+   2026-11-23): Ronne's membership doesn't exist on the host, so a repository can't keep two private
+   workspaces apart, and a push can't be taken back.
+6. **Root can include a private workspace** (owner, 2026-11-23), with a reason, audited and shown to
+   its admins, who can turn it off.
+7. **Only reviewed versions** (owner, 2026-11-23): a repository read by a company's tools gets only
+   what someone other than the author approved; the live feed (077) is unchanged.
+8. **One "What leaves this server" section** (owner, 2026-11-23): 164's AI consent and the git
+   repositories together on the workspace's page.
+9. **All public workspaces, on by default** (owner, 2026-11-23): a feed follows new public
+   workspaces unless root picks them one by one.
+10. **Every tool's tree in one repository** (owner, 2026-11-23): Claude Code, Codex, Cursor, Copilot,
+    Antigravity, Gemini CLI and `skills/`, each at its own paths, picked per feed; a repository per
+    tool is two feeds, not a separate design.
+11. **`rmk feed build` reviewed-only too** (owner, 2026-11-23): both ways of building the mirror
+    hold the same plugins; only the instance's push checks visibility and the one-private rule.
 
 ## Open questions
 
-- Should root alone be able to include a private workspace (root is a member of none by default)?
-- Should a feed be able to target a single scope rather than whole workspaces?
+None.

@@ -19,7 +19,9 @@ reuses it for triage and every later AI feature.
 - **One switch per workspace, Allow AI providers.**
   - `global` and every public workspace count as allowing, with no switch.
   - A **private workspace** (093) allows only when its admins, or root, turn it on. The switch is
-    on the workspace's page, beside its visibility (`workspaces#managing`).
+    on the workspace's page, in **What leaves this server** (owner, 2026-11-23), the section that
+    also holds 153's git repositories; whichever of 164 and 153 lands first builds it
+    (`workspaces#managing`).
   - A **personal workspace** (114) allows only when its owner turns it on, on Account.
   - Off for every private and personal workspace when this lands, including those whose revisions
     went to semantic scans before.
