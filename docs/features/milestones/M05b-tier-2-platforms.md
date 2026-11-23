@@ -9,5 +9,5 @@ against its vendor's documentation and what was built since when its feature sta
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
 | [028](../renderers/028-copilot-renderer/SPEC.md) | GitHub Copilot (the CLI and VS Code): renderer, reader for `rmk export`, run counting, plugins and plugin feeds | 021, 022, 025, 043, 046, 076, 078 | done (the Documentation in ronne-web `docs/marketplace-028-copilot-renderer`) |
-| [029](../renderers/029-gemini-antigravity-renderers/SPEC.md) | Antigravity CLI and Gemini CLI renderers | 021, 022, 025, 028 | specified |
+| [029](../renderers/029-gemini-antigravity-renderers/SPEC.md) | Antigravity CLI and Gemini CLI: renderers, readers for `rmk export`, run counting, plugins in the git mirror | 021, 022, 025, 028, 043, 046, 076, 078 | in progress |
 | [030](../renderers/030-devin-renderer/SPEC.md) | Devin renderer (Devin Desktop and the Devin CLI) | 021, 022, 025, 028 | specified |
