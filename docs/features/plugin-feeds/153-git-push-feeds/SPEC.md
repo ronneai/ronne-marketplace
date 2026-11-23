@@ -1,6 +1,6 @@
 # 153 — Push the plugin marketplaces to git on every release
 
-> Milestone: M25 · Depends on: 152, 076, 077, 079, 093, 114 · Design: [MVP §3.3](../../../MVP/MVP.md#33-platform-renderers), [§15](../../../MVP/MVP.md#15-decision-log) ("Git export") · Contracts: [`docs/spec/plugin-feeds.md`](../../../spec/plugin-feeds.md) ("The git mirror")
+> Milestone: M25 · Depends on: 152, 076, 077, 079, 093, 114, 028, 029 · Design: [MVP §3.3](../../../MVP/MVP.md#33-platform-renderers), [§15](../../../MVP/MVP.md#15-decision-log) ("Git export") · Contracts: [`docs/spec/plugin-feeds.md`](../../../spec/plugin-feeds.md) ("The git mirror")
 
 > **Takes over from [078](../078-plugin-feed-mirror/SPEC.md) as the recommended way** (owner,
 > 2026-10-29). 078 built `rmk feed build`, which writes the tree, and `--print-workflow`, a CI job
@@ -20,12 +20,17 @@ tools and the workspaces, and the instance commits and pushes on every change.
 
 **In:**
 - **A feed on a `push` repository** (Admin › Settings › Git repositories, the repository's dialog):
-  - the **tools**: any of `claude-code`, `codex`, `cursor` (the three marketplaces of 078's tree) and
-    `skills`, a plain Agent Skills tree for every other harness (below); all four by default;
+  - the **tools**, every tree `rmk feed build` writes (owner, 2026-11-23): `claude-code`, `codex`,
+    `cursor` and `copilot` (028), each with its marketplace file; `antigravity` and `gemini` (029),
+    plugin folders without one; and `skills`, a plain Agent Skills tree for every other harness
+    (below). All of them by default. Each tool reads only its own paths, so one repository serves
+    them all; a repository per tool (a Cursor-only one for a team, say) is two linked repositories
+    with different tools;
   - the **workspaces**, picked by root for each feed (owner, 2026-11-23), so a team can have a
     repository with only its own workspace (a Cursor Teams plan takes one team marketplace):
-    - **public** workspaces (`global` included) are listed and ticked by default; root can untick
-      any of them;
+    - **All public workspaces**, a switch, on by default (owner, 2026-11-23): every public
+      workspace, `global` included, also those created or turned public later. Turned off, root
+      ticks public workspaces one by one, and a new public workspace stays out until ticked;
     - **at most one private workspace per repository** (owner, 2026-11-23), beside any public ones:
       anyone who can read the repository reads all of it, so two private workspaces in one would
       show each one's items to the other's members. It goes in only with its admins' consent or
@@ -39,12 +44,21 @@ tools and the workspaces, and the instance commits and pushes on every change.
   - the **folder** in the repository: the root by default, or a subfolder (`ronne/`), so a company can
     keep the marketplace beside other files;
   - **On** / **Off**, and **Push now**.
-- **The tree**, 078's contract (`docs/spec/plugin-feeds.md`, "The git mirror"), plus `skills/`:
+- **A reviewed-only view in the feed routes** (owner, 2026-11-23), so both ways of building the
+  mirror hold the same plugins: `?reviewed=only` on 077's `marketplace.json` routes leaves out every
+  plugin whose `latest` version isn't reviewed. The instance's push builds with it; `rmk feed build`
+  always sends it; and, as 093 did for `?workspaces=`, a request from any rmk (`user-agent: rmk/…`)
+  without it is answered reviewed-only, so an older rmk's mirror follows the rule too. Claude Code's
+  own reads of the live feed are unchanged.
+- **The tree**, 078's contract (`docs/spec/plugin-feeds.md`, "The git mirror", with 028's and 029's
+  additions), plus `skills/`; only the picked tools' paths are written:
   ```
   .claude-plugin/marketplace.json     sources "./plugins/claude-code/<plugin>"
   .agents/plugins/marketplace.json    sources "./plugins/codex/<plugin>"
   .cursor-plugin/marketplace.json     sources "./plugins/cursor/<plugin>"
-  plugins/<tool>/<plugin>/…
+  .github/plugin/marketplace.json     sources "./plugins/copilot/<plugin>" (028)
+  plugins/<tool>/<plugin>/…           claude-code, codex, cursor, copilot, antigravity, gemini
+                                      (Antigravity and Gemini CLI: folders only, no marketplace, 029)
   skills/<plugin>/SKILL.md, …         every skill, and every rule or command whose Codex plugin form
                                       is a skill, rendered as an Agent Skills folder
   .rmk-feed.json                      what Ronne wrote: registry, tools, plugins, their sha256 and tree
@@ -110,13 +124,24 @@ tools and the workspaces, and the instance commits and pushes on every change.
     a private repository is cloned with the machine's own git credentials; `codex plugin marketplace
     upgrade` fetches it again.
   - **Claude Code:** `/plugin marketplace add <owner>/<repo>`, with the machine's git credentials for
-    a private one, or the live feed (077), which needs no repository.
+    a private one, or the live feed (077), which needs no repository; auto-update or
+    `/plugin marketplace update` fetches it again.
+  - **GitHub Copilot** (028): `copilot plugin marketplace add <owner>/<repo>`; `copilot plugin
+    marketplace update` fetches it again.
+  - **Antigravity and Gemini CLI** (029): no marketplace; a person clones the repository and
+    installs a plugin folder (`agy plugin install <folder>`, `gemini extensions install <folder>`);
+    `gemini extensions update`, or Antigravity's install again, picks up a new push.
+  - The Documentation says, per tool, that the instance pushes within a minute of a change and the
+    tool picks it up only on its own refresh, as listed.
   - **Any other harness:** `npx skills add <repo>` installs from `skills/`, or the tool reads the
     folders directly.
 
 **Out** (and where it goes instead):
 - **Removing `rmk feed build` and its CI workflows** (078). They stay, for a mirror built outside the
-  instance; the Documentation presents them as the second way.
+  instance; the Documentation presents them as the second way. They take the reviewed-only rule
+  (below) but not the visibility check or the one-private-workspace rule, which need the instance's
+  repository settings: the Documentation says the instance's push is the governed way, and `rmk
+  feed build --workspace` keeps its "keep the repository private" warning.
 - **Pull requests instead of pushes.** The instance pushes to its branch; a company that wants review
   on the host protects the branch and points the feed at another one.
 - **Who can read the repository.** The git host's access rules. Ronne checks only that the host calls
@@ -130,8 +155,8 @@ tools and the workspaces, and the instance commits and pushes on every change.
 
 ## Behaviour
 
-**Root sets up a feed.** In a push repository's dialog: the tools, the folder, the workspaces (public
-ones ticked by default; at most one private one, listed with "Waiting for the workspace's admins",
+**Root sets up a feed.** In a push repository's dialog: the tools (all ticked), the folder, the
+workspaces (All public workspaces on, or the public ones ticked one by one; at most one private one, listed with "Waiting for the workspace's admins",
 "Included by <name>" or "Included by root"), the repository's visibility, On. Saving pushes within a
 minute.
 
@@ -165,14 +190,15 @@ than 500 MiB of changes fails `too large` with the counts, so a misconfigured fe
 
 - A migration:
   - `git_feeds` (`repository_id` primary key, `enabled`, `tools` as JSON text, `folder`,
-    `pushed_revision`, `pushed_commit`, `pushed_at`, `last_result`, `last_reason`, `last_paths`
+    `all_public` (true by default), `pushed_revision`, `pushed_commit`, `pushed_at`, `last_result`, `last_reason`, `last_paths`
     as JSON text, `updated_at`);
   - `git_feed_workspaces` (`repository_id`, `workspace_id`, `included_by`, `included_at`,
     `by_root`, `reason` nullable, `visibility_consented` (152's value when it was given)), one row per
     picked workspace, public or private; at most one private per repository, checked by the service
     (visibility lives on `workspaces`).
 - `docs/spec/plugin-feeds.md`: "The git mirror" says the instance writes it (153) or `rmk feed
-  build` does (078), and adds `skills/`, the folder option and `README.md`.
+  build` does (078), and adds `skills/`, the folder option and `README.md`; the routes table adds
+  `?reviewed=only` and rmk's reviewed-only default.
 
 ## Documentation
 
@@ -194,8 +220,14 @@ than 500 MiB of changes fails `too large` with the counts, so a misconfigured fe
 
 - [ ] `rmk feed build`'s tests pass unchanged after its planner moves to core, and it writes the
   same bytes as the instance's push for the same feed.
-- [ ] A feed pushes the three marketplaces, the plugin folders and `skills/` to an empty repository
-  on the local git server; a second run with nothing new makes no commit.
+- [ ] A feed pushes the four marketplaces (Claude Code, Codex, Cursor, Copilot), the plugin folders
+  of all six tools and `skills/` to an empty repository on the local git server; a feed with some
+  tools unticked writes only theirs; a second run with nothing new makes no commit.
+- [ ] With All public workspaces on, a public workspace created (or turned public) after the feed
+  was set up is pushed at the next run; with it off, it isn't until ticked.
+- [ ] `?reviewed=only` leaves out plugins whose `latest` isn't reviewed; `rmk feed build`, and a
+  request from an older rmk without the parameter, get the reviewed-only view; Claude Code's reads
+  don't change.
 - [ ] A release, a yank and a deprecation each produce one commit that changes only that plugin's
   folders and the marketplace entries, within a minute.
 - [ ] A foreign path under `plugins/` or `skills/`, or a plugin folder changed on the host, stops the
@@ -214,7 +246,9 @@ than 500 MiB of changes fails `too large` with the counts, so a misconfigured fe
 - [ ] Never a force push: a moved remote is retried once from the new head, then waits.
 - [ ] Each failure reason shows in the list and the dialog.
 - [ ] Manual: Codex adds the test repository and installs a skill; Claude Code adds it and installs a
-  plugin; `npx skills add` installs from `skills/`; the owner checks the Cursor import (Teams plan).
+  plugin; Copilot adds it and installs a plugin; Antigravity and Gemini CLI install a folder from a
+  clone; `npx skills add` installs from `skills/`; each picks up a second push through its own
+  refresh; the owner checks the Cursor import (Teams plan).
   Results go in PLAN.md's notes.
 - [ ] The screens are in English, Portuguese and French, and pass the phone sweep.
 - [ ] The Documentation and inline helpers listed above say what the feature does now.
@@ -238,6 +272,13 @@ than 500 MiB of changes fails `too large` with the counts, so a misconfigured fe
    what someone other than the author approved; the live feed (077) is unchanged.
 8. **One "What leaves this server" section** (owner, 2026-11-23): 164's AI consent and the git
    repositories together on the workspace's page.
+9. **All public workspaces, on by default** (owner, 2026-11-23): a feed follows new public
+   workspaces unless root picks them one by one.
+10. **Every tool's tree in one repository** (owner, 2026-11-23): Claude Code, Codex, Cursor, Copilot,
+    Antigravity, Gemini CLI and `skills/`, each at its own paths, picked per feed; a repository per
+    tool is two feeds, not a separate design.
+11. **`rmk feed build` reviewed-only too** (owner, 2026-11-23): both ways of building the mirror
+    hold the same plugins; only the instance's push checks visibility and the one-private rule.
 
 ## Open questions
 

@@ -20,18 +20,24 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - Move the planning out of `packages/cli/src/feed-build.ts` into `@ronneai/core/plugins`: from the
     marketplaces and zips, the current files and `.rmk-feed.json`, the files to write and delete or
     the conflicts (078's rules), with the `skills/` tree and a folder prefix. `rmk feed build` keeps
-    the folder and the API and calls it.
-  - *Done when:* `feed-build.test.ts` passes unchanged; new core unit tests cover an empty tree, no
-    change (no writes), a new version, a yanked one, each conflict kind, unsafe names, a symbolic
-    link in the tree, the folder prefix, the `skills/` tree, and deterministic output (golden files).
+    the folder and the API and calls it. Plan from the tree as 028 and 029 left it (Copilot's
+    marketplace, Antigravity's and Gemini CLI's folders), with only the picked tools written.
+  - `?reviewed=only` on 077's `marketplace.json` routes, rmk's requests answered reviewed-only by
+    default (as 093's `?workspaces=`), and `rmk feed build` sending it.
+  - *Done when:* `feed-build.test.ts` passes (changed only for the reviewed-only view); new core unit
+    tests cover an empty tree, no change (no writes), a new version, a yanked one, each conflict
+    kind, unsafe names, a symbolic link in the tree, the folder prefix, a subset of tools, all six
+    tools' paths, the `skills/` tree, and deterministic output (golden files); route tests cover
+    `?reviewed=only`, an rmk request without it, and Claude Code's unchanged.
 
 - [ ] **3. Tables and settings.** [risky]
   - The `git_feeds` and `git_feed_workspaces` migration.
-  - The service: a feed's settings (root), the picked workspaces (public ones too), including and
+  - The service: a feed's settings (root), All public workspaces or the picked public ones, including and
     excluding a private workspace (its admins, or root with a reason), at most one private per
     repository, refused for a `public` repository and asked twice for `internal` or `unknown`
     (152's visibility), audit; personal workspaces refused.
-  - *Done when:* db tests on the four databases cover each setting, unticking a public workspace,
+  - *Done when:* db tests on the four databases cover each setting, All public workspaces taking in
+    a workspace created later (and not when off), unticking a public workspace,
     who may include a workspace (a member who isn't admin, a moderator, an outsider refused; root
     without a reason refused), a second private workspace refused, each visibility, personal
     workspaces refused, and the audit events.
@@ -57,7 +63,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     item and sees the commit on the local git server; the phone sweep passes.
 
 - [ ] **6. Manual checks in the tools.**
-  - Codex, Claude Code and `npx skills add` against a test repository on GitHub, filled once by the
+  - Codex, Claude Code, Copilot, Antigravity, Gemini CLI and `npx skills add` against a test
+    repository on GitHub, each also picking up a second push through its own refresh, filled once by the
     instance's push and once by `rmk feed build` (this is also 078's open task 6); the owner checks
     the Cursor import.
   - *Done when:* the results, with each tool's version and the date, are in this plan's notes, and
