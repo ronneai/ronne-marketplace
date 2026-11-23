@@ -50,10 +50,12 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* golden files are committed, unit tests cover every row of the mapping table for
     Gemini CLI, and a test shows no secret value is written.
 
-- [ ] **6. Other targets and the registry.**
+- [x] **6. Other targets and the registry.**
   - Antigravity's "also a target" rows through `render/covered.ts`.
   - Both in `RENDERERS` and `index.ts`; the post-install notes (Gemini CLI's trusted folders and
     hook fingerprints, Antigravity's MCP variables).
+  - The web app's tests that list every tool (the item page, the catalogue, the registry API and
+    the composer) name the two new ones.
   - *Done when:* unit tests cover every row of the "also a target" table, `install.test.ts` covers
     `--target codex,antigravity` and `--target gemini,antigravity`, and the other goldens are
     unchanged.

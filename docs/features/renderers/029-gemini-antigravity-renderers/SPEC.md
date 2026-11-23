@@ -358,8 +358,10 @@ marketplace. `plugin-feeds.md` gets their columns.
 ## Everywhere a tool is listed
 
 - The MCP server's tool enum and its descriptions (`packages/mcp/src/server.ts`).
-- `rmk`'s post-install notes: Gemini CLI's trusted folders and hook fingerprints; Antigravity's
-  MCP variables to set up.
+- `rmk`'s post-install notes: after a project install that wrote `.gemini/settings.json` or a
+  custom command, that Gemini CLI reads them only in a folder you trust and asks before it runs new
+  or changed project hooks. Antigravity's MCP variables to set up are each item's render warning,
+  which `rmk` prints, so they need no note of their own.
 - The web app's `TOOL_PLACES` and `TOOL_PAGES`.
 - The messages that name the tools, in all three languages.
 

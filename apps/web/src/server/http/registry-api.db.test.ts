@@ -228,6 +228,8 @@ describe("GET /items/{scope}/{name}", () => {
       codex: "native",
       cursor: "native",
       copilot: "native",
+      antigravity: "native",
+      gemini: "native",
     });
     // A leading @ in the path works too.
     expect(

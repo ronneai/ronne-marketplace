@@ -447,4 +447,54 @@ describe("the Antigravity renderer", () => {
     expect(warnings).toHaveLength(1);
     expect(warnings[0]?.message).toContain("`git status`");
   });
+
+  it("leaves rules to another target's copy, as the also-a-target table says", () => {
+    const covered = (
+      activation: string,
+      targets: string[],
+      scope: "project" | "user" = "project",
+    ) =>
+      antigravityRenderer.render(
+        withBlock("house-style", "rule", { body: "rule.md", activation, globs: ["**/*.ts"] }),
+        { scope, targets: ["antigravity", ...targets] },
+      );
+    for (const [target, name, where] of [
+      ["codex", "Codex", "AGENTS.md"],
+      ["gemini", "Gemini CLI", "GEMINI.md"],
+    ] as const) {
+      for (const activation of ["always", "glob"]) {
+        const { changes, warnings } = covered(activation, [target]);
+        expect(changes).toEqual([]);
+        expect(warnings).toEqual([
+          {
+            code: "covered_by_target",
+            message: `Antigravity reads ${name}'s copy of @examples/house-style (${where}), so no second one was written.`,
+          },
+        ]);
+      }
+      const model = covered("model", [target]);
+      expect(model.changes).toEqual([]);
+      expect(model.warnings[0]?.message).toContain("(the skill in .agents/skills/)");
+      expect(covered("manual", [target]).changes).toHaveLength(1);
+    }
+    expect(covered("always", ["claude-code", "cursor", "copilot"]).changes).toHaveLength(1);
+    expect(covered("always", ["codex"], "user").changes).toHaveLength(1);
+    expect(covered("model", ["gemini"], "user").changes).toHaveLength(1);
+    const home = covered("glob", ["gemini"], "user");
+    expect(home.changes).toEqual([]);
+    expect(home.warnings[0]?.message).toContain(
+      "Gemini CLI's copy of @examples/house-style (~/.gemini/GEMINI.md)",
+    );
+    const off = antigravityRenderer.render(
+      {
+        ...withBlock("house-style", "rule", { body: "rule.md", activation: "always" }),
+        manifest: {
+          ...withBlock("house-style", "rule", { body: "rule.md", activation: "always" }).manifest,
+          targets: { codex: { enabled: false } },
+        },
+      },
+      { scope: "project", targets: ["antigravity", "codex"] },
+    );
+    expect(off.changes).toHaveLength(1);
+  });
 });

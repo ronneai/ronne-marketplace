@@ -371,7 +371,7 @@ describe("the item page", () => {
     );
     const style = await render({ tab: "tools" });
     expect(style).toContain("Codex has no place for output-style items");
-    expect(style.match(/>skipped</g)).toHaveLength(3);
+    expect(style.match(/>skipped</g)).toHaveLength(5);
   });
 
   it("notes a deprecated latest, and has nothing to install when every version is yanked", async () => {
@@ -470,8 +470,10 @@ describe("the item page", () => {
     expect(html).toContain(">1,428<");
     expect(html).toContain("all versions, through rmk and the API");
     expect(html).toMatch(/>2<\/div><p[^>]*>newest <time[^>]*>2026-09-28<\/time>/);
-    expect(html).toContain(" of 4 tools");
-    expect(html).toContain(">Claude Code · Codex · Cursor · GitHub Copilot<");
+    expect(html).toContain(" of 6 tools");
+    expect(html).toContain(
+      ">Claude Code · Codex · Cursor · GitHub Copilot · Antigravity · Gemini CLI<",
+    );
     expect(html).toContain(">approved<");
     expect(html).toContain("3 flags");
     expect(html).toContain(">Starts an MCP server · Mentions web addresses<");
@@ -481,7 +483,7 @@ describe("the item page", () => {
     expect(html).toContain("rmk install @team/github<");
     expect(html).toContain("rmk install @team/github@1.1.0");
     expect(html).toContain("How do I install it?");
-    for (const id of ["claude-code", "codex", "cursor", "copilot"])
+    for (const id of ["claude-code", "codex", "cursor", "copilot", "antigravity", "gemini"])
       expect(html).toContain(`aria-label="Copy rmk install @team/github --target ${id}"`);
     // Capabilities and guardrails.
     expect(html).toContain("It starts <code");

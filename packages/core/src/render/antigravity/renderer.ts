@@ -6,6 +6,7 @@ import {
   skillFolder,
   writtenSkill,
 } from "../agents-skills.js";
+import { alsoTarget, covered } from "../covered.js";
 import {
   disabledWarning,
   type Frontmatter,
@@ -20,6 +21,7 @@ import {
 import type {
   Change,
   PlatformRenderer,
+  RenderContext,
   RenderInput,
   RenderScope,
   RenderWarning,
@@ -442,6 +444,37 @@ const renderStatusline = (
   };
 };
 
+/**
+ * What Antigravity leaves to another target of the same install (spec 029, "also a target"). It
+ * reads `AGENTS.md` and `GEMINI.md` as always-on rules, and `.agents/skills/`, in a project; in the
+ * home folder it reads Gemini CLI's `~/.gemini/GEMINI.md`, not `~/.codex/AGENTS.md` or
+ * `~/.agents/skills/`. `manual` rules need nothing: they're the same skill for all three.
+ */
+const coveredBy = (
+  item: RenderInput,
+  type: ItemType,
+  block: Record<string, unknown>,
+  context: RenderContext,
+): ReturnType<typeof covered> | null => {
+  if (type !== "rule") return null;
+  const activation = String(block.activation ?? "always");
+  const inFile = activation === "always" || activation === "glob";
+  if (context.scope === "user")
+    return inFile && alsoTarget(item, context, "gemini")
+      ? covered(item, RENDERER_NAME, "Gemini CLI", "~/.gemini/GEMINI.md")
+      : null;
+  for (const [id, name, where] of [
+    ["codex", "Codex", "AGENTS.md"],
+    ["gemini", "Gemini CLI", "GEMINI.md"],
+  ] as const) {
+    if (!alsoTarget(item, context, id)) continue;
+    if (inFile) return covered(item, RENDERER_NAME, name, where);
+    if (activation === "model")
+      return covered(item, RENDERER_NAME, name, `the skill in .agents/skills/`);
+  }
+  return null;
+};
+
 const NO_PLACE: Partial<Record<ItemType, string>> = {
   "output-style": "Antigravity has no output styles",
   "lsp-server": "Antigravity takes no language servers",
@@ -483,6 +516,8 @@ export const antigravityRenderer: PlatformRenderer = {
     const block = record(type ? item.manifest[type] : undefined);
     const n = shortName(item.name);
     const scope: RenderScope = context.scope;
+    const left = type ? coveredBy(item, type, block, context) : null;
+    if (left) return left;
     switch (type) {
       case "skill":
         return skillFolder(item, n, String(block.entry ?? "SKILL.md"), skills(scope));

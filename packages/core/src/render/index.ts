@@ -1,9 +1,11 @@
 // `@ronneai/core/render`: the renderer interface and what renderers share (feature 021).
 
+export { antigravityRenderer } from "./antigravity/renderer.js";
 export { claudeCodeRenderer } from "./claude-code/renderer.js";
 export { codexRenderer } from "./codex/renderer.js";
 export { copilotRenderer } from "./copilot/renderer.js";
 export { cursorRenderer } from "./cursor/renderer.js";
+export { geminiRenderer } from "./gemini/renderer.js";
 export {
   type CommentSyntax,
   canonicalJson,

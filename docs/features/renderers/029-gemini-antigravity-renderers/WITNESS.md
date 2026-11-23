@@ -361,3 +361,42 @@ Witnessed: 2026-11-22 22:42 EST, by a fresh agent (adversarial). Commit: 581e327
 | — | Core tests, typecheck and lint pass on the repo as it is | no | confirmed | 47 files / 529 passed; typecheck exit 0; `pnpm lint` exit 0 |
 
 **Overall:** met. With the blind and adversarial rows met through re-checks 1–3, every claim of task 5 is confirmed.
+
+## Task 6 — Other targets and the registry
+
+Witnessed: 2026-11-22 22:58 EST, by a fresh agent (blind). Commit: 50bbf833 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | In a project, Antigravity leaves out `always` and `glob` rules when Codex or Gemini CLI is a target, with `covered_by_target` | no | confirmed | `antigravity/renderer.ts:453-476` through `covered.ts`; probe: Codex writes `section:AGENTS.md`, Gemini CLI `section:GEMINI.md`, Antigravity `[]` plus the warning; alone with cursor and claude-code it writes `.agents/rules/house-style.md` |
+| 2 | In a project, Antigravity leaves out `model` rules when Codex or Gemini CLI is a target | no | confirmed | both write `dir:.agents/skills/house-style`; warning "(the skill in .agents/skills/)" |
+| 3 | `manual` rules: the same skill for all three in a project; two copies in the home folder | no | confirmed | project changes identical; user: `.gemini/config/skills/` vs `.agents/skills/` |
+| 4 | In the home folder, only Gemini CLI covers `always`/`glob`; Antigravity keeps its `model` rule | no | confirmed | probe; test `covered("always", ["codex"], "user")` → 1 change |
+| 5 | A target with the item turned off doesn't cover it | no | confirmed | `covered.ts:11-12`; test's `off` case |
+| 6 | Unit tests cover every row, and fail without the code | no | confirmed | `renderer.test.ts:451-499`; four mutations each fail 1 of 22 |
+| 7 | The shared `.agents/skills/<n>/` is one state entry, and remove deletes it | no | confirmed | `--target codex,gemini,antigravity` → one entry; remove → exit 0 |
+| 8 | `install.test.ts` covers `--target codex,antigravity` and `--target gemini,antigravity` | no | confirmed | `install.test.ts:426-465`; 21 passed |
+| 9 | Both renderers in `RENDERERS` (after copilot) and exported from `render/index.ts` | no | confirmed | `registry.ts:14-21`, `index.ts:3,8` |
+| 10 | Post-install note for a project install that wrote `.gemini/settings.json` or `.gemini/commands/`; none in user scope | no | confirmed | `install.ts:518-524`; mutations fail the tool-notes test |
+| 11 | Antigravity's MCP variables reach the person as the render warning | no | confirmed | stdout "Warning: Antigravity: … `GITHUB_TOKEN` wasn't written…" |
+| 12 | The web tests that list every tool name both new ones, and pass | no | confirmed | web 6966 passed |
+| 13 | Nothing else lists tools by a fixed count that now breaks | no | confirmed | whole monorepo `pnpm test` passed; the 4-tool lists left (feeds tests, MCP enum) are tasks 9 and 10 |
+| 14 | The other goldens are unchanged | no | confirmed | `git status … __golden__` → empty |
+| 15 | `pnpm lint` passes | no | not met | formatter error at `item-page.test.tsx:474` (a line this diff added, too long) |
+| 16 | `pnpm typecheck` passes | no | confirmed | exit 0 |
+
+**Overall:** not met (row 15).
+
+Fix after the pass: `biome format --write` on `item-page.test.tsx` puts the assertion's argument on its own line; `pnpm lint` exits 0.
+
+### Re-check 1
+
+Witnessed: 2026-11-22 22:53 EST, by a fresh agent (blind). Commit: 50bbf833 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 15 | `pnpm lint` passes | no | confirmed | exit 0, 0 errors, none in `item-page.test.tsx`; `biome format` on it → no fixes |
+| 15a | The fix only changes formatting; the assertion's text is unchanged | no | confirmed | `git diff`: the `toContain` wraps over :474–476 with the same literal |
+| 15b | The item-page test passes | no | confirmed | 1 file, 30 tests passed |
+
+**Overall:** met.
