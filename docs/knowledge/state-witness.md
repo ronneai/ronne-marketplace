@@ -9,6 +9,13 @@ hook runs it on every commit, documentation only included, and so does CI.
 The agent is [`.claude/agents/state-witness.md`](../../.claude/agents/state-witness.md), so every
 pass gets the same instructions, whoever starts it.
 
+Where things are (199): a feature's folder is `docs/features/<domain>/NNN-slug/`, its domain given
+by [`docs/features/domains.json`](../features/domains.json), and it has a row in the
+[index](../features/README.md) and one in its milestone's file in
+[`docs/features/milestones/`](../features/milestones/README.md). The witness reads the task's
+feature `SPEC.md` and `PLAN.md`, and its `WITNESS.md` only for the task's earlier passes; it
+doesn't need the whole index. Ticking the last task of a feature also sets its status in both rows.
+
 ## Why it works this way
 
 Changed on 2026-10-06 after a review of the STATEWITNESS paper (Chen et al., *Decoding Hidden
@@ -123,7 +130,9 @@ Witnessed: 2026-10-07 14:02 EDT, by a fresh agent (blind). Commit: 3f9c2e1. Mach
 - `**Overall:**` starts with `met` or `not met`.
 
 The checker covers features from 087 on, except 088, 089, 096 and 097, which were witnessed in the
-first format and keep it, and every issue folder in `docs/issues`. Its rules are in
+first format and keep it, and every issue folder in `docs/issues`. It finds a feature's folder
+under its domain (`docs/features/<domain>/NNN-slug/`, 199), and fails on a feature folder left at
+the top of `docs/features` or one ID in two folders. Its rules are in
 `packages/repo-tools/src/witness.js`.
 
 ## Testing the witness

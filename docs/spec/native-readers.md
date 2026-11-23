@@ -1,16 +1,16 @@
 # Native readers spec
 
 How a file a person wrote in their AI tool's own format becomes a Ronne item, for `rmk export` and
-the MCP export tools (M7: features [038](../features/038-rmk-export/SPEC.md)–[041](../features/041-export-dependencies/SPEC.md)).
+the MCP export tools (M7: features [038](../features/export-import/038-rmk-export/SPEC.md)–[041](../features/export-import/041-export-dependencies/SPEC.md)).
 A reader is the reverse of a renderer ([MVP §3.3](../MVP/MVP.md#33-platform-renderers)): a
 renderer turns `ronne.yaml` into a tool's files, and a reader turns a tool's files into a
 `ronne.yaml` and the files that go with it ([manifest spec](./manifest.md)).
 
 Status: the skill reader is built (038, `readSkill` in `@ronneai/core/read`); the other four types
 are built (040); Codex's and Cursor's own files (§9–10) are
-[043](../features/043-codex-cursor-readers/SPEC.md)'s, checked on 2026-09-30;
+[043](../features/export-import/043-codex-cursor-readers/SPEC.md)'s, checked on 2026-09-30;
 exporting an edited install as a change proposal is
-[042](../features/042-export-change-proposal/SPEC.md). §5–8 were checked against Claude Code's documentation (sub-agents, commands
+[042](../features/export-import/042-export-change-proposal/SPEC.md). §5–8 were checked against Claude Code's documentation (sub-agents, commands
 and skills, memory and rules, MCP) and its renderer on **2026-09-30**. The readers' tool, model
 and placeholder tables are the renderer's (`packages/core/src/render/claude-code/mappings.ts`),
 reversed in code.
@@ -27,7 +27,7 @@ reversed in code.
   that names it. The draft is reviewed by its author in the web app before anyone else sees it.
 - **The output passes the checks a save runs** (manifest spec §6, layers 1 and 2) whenever the
   input allows it.
-- **Where the description came from** ([053](../features/053-export-descriptions/SPEC.md)). Each
+- **Where the description came from** ([053](../features/export-import/053-export-descriptions/SPEC.md)). Each
   reader reports `descriptionSource`: `item` (the item's own field, such as frontmatter
   `description`), `body` (its body's first line, for want of one: always for a Claude Code rule,
   and for a Cursor rule without `description`), `given` (an MCP server's, given to the reader), or
@@ -50,7 +50,7 @@ Export is for what the person wrote. In order:
 
 | Sign | Means | Export |
 |---|---|---|
-| `.rmk/state.json` (or the user-scope state) has an entry for exactly this folder, file or key ([cli-files](./cli-files.md)) | `rmk` installed it; the hash says whether it was edited since | edited: a **change proposal** to the installed version, merged onto it ([042](../features/042-export-change-proposal/SPEC.md)); unchanged: refused, as there's nothing to export |
+| `.rmk/state.json` (or the user-scope state) has an entry for exactly this folder, file or key ([cli-files](./cli-files.md)) | `rmk` installed it; the hash says whether it was edited since | edited: a **change proposal** to the installed version, merged onto it ([042](../features/export-import/042-export-change-proposal/SPEC.md)); unchanged: refused, as there's nothing to export |
 | The folder's `ronne.yaml` has a `version` | a copy from a registry: the packer sets `version`, authors leave it out | a change proposal to that version when the item is published (042); `--force` exports it as a new item without the version |
 | The file carries the managed marker (`managed by rmk: @scope/name@x.y.z`) | refused: without the state, the edit can't be told from the render; pointing to **Propose a change** |
 | none of these | written here | exported |

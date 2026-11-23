@@ -23,3 +23,11 @@ helper itself (#231, alert 36). It doesn't credit a later pass; leave `replace` 
 
 A replace with a space (`.replace(/<[^>]+>/g, " ")`, as the app shell's test does to keep words
 apart) is not flagged; new code still uses `textOf` and collapses spaces itself when it needs to.
+
+## Comments, and code that isn't a test (199)
+
+The same query flagged `line.replace(/<!--[\s\S]*?-->/g, "")` in repo tooling (#326, alert 38:
+the link check in `packages/repo-tools/src/features-index.js`, which only reads our own Markdown).
+The purpose doesn't matter to CodeQL. Walk the string with `indexOf` and `slice` instead: find
+`<!--`, find the next `-->`, keep what's between comments (`withoutComments` there does this, and
+says whether a comment is left open at the end of the line).

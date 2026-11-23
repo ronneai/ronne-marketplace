@@ -1,9 +1,9 @@
 # #315 — The minimum Node.js is 22.14, where rmk-server's database driver loads
 
 > GitHub: [#315](https://github.com/ronneai/ronne-marketplace/issues/315) · Feature:
-> [082](../../features/082-server-npm-package/SPEC.md)'s `MIN_NODE`, with
-> [001](../../features/001-monorepo-scaffold/SPEC.md)'s `engines` · Reported on: every release
-> of the server, 0.3.0–0.7.0, found while building [188](../../features/188-node-26-target/SPEC.md)
+> [082](../../features/install/082-server-npm-package/SPEC.md)'s `MIN_NODE`, with
+> [001](../../features/platform/001-monorepo-scaffold/SPEC.md)'s `engines` · Reported on: every release
+> of the server, 0.3.0–0.7.0, found while building [188](../../features/platform/188-node-26-target/SPEC.md)
 
 ## Report
 

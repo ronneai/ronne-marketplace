@@ -53,7 +53,7 @@ this clone's settings, SQLite database and storage.
 | `examples/items/` | One sample item of each type; every one must pass the manifest schema |
 | `docs/MVP/MVP.md` | The design: scope, architecture, data model, API, and the decision log (§15) |
 | `docs/spec/` | Contracts: the `ronne.yaml` manifest and the files `rmk` writes |
-| `docs/features/` | The work, one folder per feature, and the index with the roadmap |
+| `docs/features/` | The work, one folder per feature under its domain, the index, and one file per milestone (`milestones/`) |
 | `docs/issues/` | Bugs from GitHub that need more than a one-line fix, worked like features |
 | `docs/knowledge/` | Lessons learned while building, one topic per note ([index](docs/knowledge/README.md)) |
 | `docs/policies/` | The [dependency policy](docs/policies/dependencies.md) |
@@ -62,7 +62,9 @@ this clone's settings, SQLite database and storage.
 ## How the work is organised
 
 Every change of behaviour belongs to a **feature** in [`docs/features/`](docs/features/README.md)
-or an **issue** in [`docs/issues/`](docs/issues/README.md). Each has a folder with:
+(filed under its domain, `docs/features/<domain>/NNN-slug/`, and listed in the index and in its
+milestone's file in [`docs/features/milestones/`](docs/features/milestones/README.md)) or an
+**issue** in [`docs/issues/`](docs/issues/README.md). Each has a folder with:
 
 - **`SPEC.md`**: what it does and why, its edge cases, its acceptance criteria, and what the
   Documentation should say. If your work changes the behaviour, update the spec in the same change.
@@ -117,7 +119,7 @@ Lint and the tests enforce most of these; the rest is checked in review.
 - **One database code for SQLite, PostgreSQL, MySQL and MariaDB.** Kysely, one migration set, only
   features all of them support, dialect differences in small helpers in `apps/web/src/server/db/`
   ([MVP §9.4](docs/MVP/MVP.md#94-database)).
-- **The design system** ([032](docs/features/032-design-system/SPEC.md)): flat, no shadows, teal as
+- **The design system** ([032](docs/features/web-ui/032-design-system/SPEC.md)): flat, no shadows, teal as
   the one accent, red and amber only for errors and warnings, colours only through the tokens in
   `apps/web/src/app/globals.css`. Inter for text, IBM Plex Mono only for machine values.
 - **Dependencies** follow the [dependency policy](docs/policies/dependencies.md): only licenses

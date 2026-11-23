@@ -1,6 +1,6 @@
 # Backups
 
-> Feature [099](../features/099-backup-restore/SPEC.md) · The archive's format:
+> Feature [099](../features/operations/099-backup-restore/SPEC.md) · The archive's format:
 > [`docs/spec/backup-format.md`](../spec/backup-format.md) · Installing: [`install.md`](install.md) ·
 > When something leaked: [`incident-response.md`](incident-response.md)
 

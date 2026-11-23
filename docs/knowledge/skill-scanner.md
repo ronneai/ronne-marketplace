@@ -1,6 +1,6 @@
 # The skill scanner (SkillSpector)
 
-Feature [135](../features/135-skill-scanner/SPEC.md) runs NVIDIA's SkillSpector
+Feature [135](../features/security-ai/135-skill-scanner/SPEC.md) runs NVIDIA's SkillSpector
 ([github.com/NVIDIA/SkillSpector](https://github.com/NVIDIA/SkillSpector); NVIDIA's guide:
 [Scanning agent skills](https://docs.nvidia.com/skills/scanning-agent-skills)) on each submission
 revision and shows what it finds on the review page. Ronne doesn't ship it. The operator installs

@@ -1,6 +1,6 @@
 # #142 — Saving shows the problems Submit would refuse
 
-> GitHub: [#142](https://github.com/ronneai/ronne-marketplace/issues/142) · Feature: [013](../../features/013-submit-withdraw/SPEC.md) (with [011](../../features/011-manifest-core/SPEC.md), [056](../../features/056-pending-dependencies/SPEC.md)) · Reported on: 0.3.2
+> GitHub: [#142](https://github.com/ronneai/ronne-marketplace/issues/142) · Feature: [013](../../features/items/013-submit-withdraw/SPEC.md) (with [011](../../features/items/011-manifest-core/SPEC.md), [056](../../features/items/056-pending-dependencies/SPEC.md)) · Reported on: 0.3.2
 
 ## Report
 

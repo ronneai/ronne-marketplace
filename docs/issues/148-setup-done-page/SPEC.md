@@ -1,6 +1,6 @@
 # #148 — The finished setup page stops saying the instance isn't set up
 
-> GitHub: [#148](https://github.com/ronneai/ronne-marketplace/issues/148) · Feature: [036](../../features/036-web-setup/SPEC.md) · Reported on: 0.3.2
+> GitHub: [#148](https://github.com/ronneai/ronne-marketplace/issues/148) · Feature: [036](../../features/install/036-web-setup/SPEC.md) · Reported on: 0.3.2
 
 ## Report
 

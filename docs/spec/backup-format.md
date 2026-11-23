@@ -1,6 +1,6 @@
 # Backup format spec
 
-> Status: draft · Feature [099](../features/099-backup-restore/SPEC.md) · Decision: MVP §15,
+> Status: draft · Feature [099](../features/operations/099-backup-restore/SPEC.md) · Decision: MVP §15,
 > Operations
 
 What `rmk-server backup` writes and `rmk-server restore` and `backup --verify` read: one archive with

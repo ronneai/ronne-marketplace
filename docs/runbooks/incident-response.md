@@ -1,6 +1,6 @@
 # Incident response
 
-> Feature [098](../features/098-threat-model/SPEC.md) · What Ronne defends against and what it
+> Feature [098](../features/operations/098-threat-model/SPEC.md) · What Ronne defends against and what it
 > doesn't: the [threat model](../security/threat-model.md) · Reporting a vulnerability in Ronne
 > itself: [`SECURITY.md`](../../SECURITY.md)
 

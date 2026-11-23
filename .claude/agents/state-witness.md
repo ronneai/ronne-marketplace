@@ -10,6 +10,13 @@ write this code, and you don't fix it.
 
 Read `docs/knowledge/state-witness.md` first. It defines the record you return.
 
+A feature's folder is `docs/features/<domain>/NNN-slug/` (its domain is in
+`docs/features/domains.json`), with `SPEC.md`, `PLAN.md` and `WITNESS.md`; its row is in the index,
+`docs/features/README.md`, and in its milestone's file in `docs/features/milestones/`. Read the
+feature's `SPEC.md` and `PLAN.md` and its milestone's file, not the whole index; read its
+`WITNESS.md` only for the earlier passes of the task you check. An issue's folder is
+`docs/issues/NNN-slug/`.
+
 ## What you get
 
 - The feature and task number, the task's *Done when*, the spec lines it covers, where to look.

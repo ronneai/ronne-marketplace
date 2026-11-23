@@ -1,0 +1,208 @@
+# 103 — Erase a user
+
+> Milestone: M15 · Depends on: 008, 059, 102 · Design: [MVP §15](../../../MVP/MVP.md#15-decision-log) (Personal data) · Contracts: none changed
+
+## Goal
+
+A person can have their personal data erased, as Law 25, PIPEDA and the GDPR expect, without a
+hole in the instance's record (owner, 2026-10-06). Root erases an account: its email, name and
+every credential go, and what the person did (the items they published, the reviews they wrote,
+the audit events) stays under a pseudonym, `deleted-user-<id>`, so an item's history and the
+audit log keep making sense. Disabling (008) keeps everything and stops access; erasing is the
+end of the account and can't be undone.
+
+## Scope
+
+**In:**
+- **Erase**, for root, from Admin › Users: a row action with a confirmation that spells out what
+  goes and what stays, and the Erase link 108 left beside *Deprovisioned by*.
+- **The anonymisation** (Behaviour): what is replaced, deleted, kept and renamed, in one
+  transaction, audited as `user.erased`.
+- **The audit log's rewriting:** the erased person's email in any event's metadata becomes the
+  pseudonym.
+- **The rules:** root can't erase themself, the last enabled root, or an account already erased;
+  an erased account can't be enabled, signed in to, or provisioned again.
+- **The Erase section** of the Privacy topic, and the helper `erase-user`.
+
+**Out** (and where it goes instead):
+- **A person erasing themself:** they ask root (the Documentation says how); the request is a
+  decision someone accountable makes, and a stolen session mustn't be able to erase an account.
+- **Erasing by SCIM:** 108 deprovisions, root erases.
+- **Deleting published versions, items or reviews:** never; they are the registry's record and
+  other people depend on them (MVP §15). Yanking (030) exists for a version that must go.
+- **A download of the person's data before erasing:** 104; the confirmation reminds root to give the person what they asked for first.
+- **A `rmk-server erase-user` command:** not needed; erasing is a root's considered act in the
+  web app, and root always has a password (106).
+
+## Behaviour
+
+### What erasing does
+
+In one transaction (`readCommittedTransaction`, the user's row locked, deadlocks retried as 113),
+for the account `<id>`:
+
+| Data | What happens |
+|---|---|
+| `user.email`, `user.name` | `deleted-user-<id>@ronne.invalid` and `deleted-user-<id>`; `image` cleared; `email_verified` false; `two_factor_enabled` false; `disabled_at` set if it wasn't; a new `erased_at` set |
+| `account` (passwords, identity-provider links), `two_factor`, `verification` rows | deleted |
+| `session` | deleted; `access_tokens` deleted (not only revoked: a revoked token's row names the token, which the person chose); `device_grants` of the person deleted |
+| SCIM (108): `scim_users` links, tombstones included, `scim_group_members` | deleted, so no `externalId` or `userName` ever links this account again; the provider's next create makes a new account |
+| Workspace memberships, open access requests (094), open scope moves (024) | memberships deleted (a workspace whose only admin they were is left to root, as 092 already handles); requests and moves cancelled, with no reason text |
+| The personal workspace (114) | renamed from the pseudonym by 114's rule (`deleted-user-<id>`, lowercased, the first free name) when it holds a published item or any submission left once the person's own drafts are gone (something submitted, or another person's draft, which root may make in any scope), as any rename (113): its items take the new name and keep the old ones as aliases (118), since lockfiles and dependencies name them, and `workspace.renamed` is recorded; otherwise deleted with its scopes and drafts; the person's membership in it goes either way |
+| Drafts (`submissions` in `draft`) and their files | deleted: only their author could ever see them |
+| Getting started state (126), `user_onboarding` | deleted: only their owner ever saw it |
+| Feedback they sent (127), `feedback` | deleted: the message is not kept under a pseudonym |
+| Notifications addressed to them (139), `notifications` | deleted: only they ever saw them. Those they caused for others stay; the name is read when shown, so it is the pseudonym by then |
+| Favorites (125) | deleted: only their owner ever saw them. Pins they made stay, their `created_by` the pseudonym's row |
+| Submitted, approved and rejected submissions, revisions, review events (comments) | kept; the author or actor is the pseudonym |
+| Items owned, versions published, scopes and workspaces created | kept; `owner_id`, `published_by`, `created_by` keep the id, which now resolves to the pseudonym |
+| Audit events where the person is actor or target | kept; `ip_address` cleared on all of them now, not at retention's age (`user.erased` itself, root's act, keeps root's address until the retention) |
+| Audit metadata holding the email | rewritten: every event whose `metadata` holds the erased email as a value (`user.created`, `user.updated`'s `relinked`, `auth.sign_in_failed`, SCIM's) gets the pseudonym in its place; found by the target's id and by a `LIKE` over `metadata` for the address, in batches, inside the transaction on PostgreSQL and SQLite and right after it on MySQL (Edge cases) |
+| Usage reports (046) | nothing: they hold no person |
+
+The old email is free for a new account at once. The audit event `user.erased` (target the
+user) records `{ sessionsEnded, tokensDeleted, scimLinksDeleted, draftsDeleted, eventsRewritten,
+personalWorkspace: "renamed" | "deleted" | "none" }`, plus `requestsCancelled`,
+`movesCancelled`, `favoritesDeleted` (125) and `notificationsDeleted` (139) when there were any, and `via: "retry" | "job"` when a retry or the job finished
+it (Edge cases), never the email or the name; its sentence (060) is *Erased deleted-user-<id>*.
+
+### Where it's shown afterwards
+
+Everywhere a name or email appears, the pseudonym does: Admin › Users (with an *Erased on <date>*
+badge in place of the SCIM badges, the status *erased*, a Status filter for erased accounts, and
+the row's only action *Download their data* (104) greyed out with "erased"), the audit log (actor
+and target), item pages (versions "by deleted-user-…"), review threads, and workspace member
+lists (they're no longer members). The API's item and version bodies name no publisher, so
+nothing changes there. Every page reads the name from the user's row when it renders; nothing
+caches it. Search in Admin › Users finds the pseudonym by id. No page ever says what the name was.
+
+### The confirmation
+
+A dialog, from the row's actions and from the Erase link beside *Deprovisioned by* (108): the
+account's name and email, a warning that it can't be undone (disable is the way to stop someone
+without erasing), what will be deleted and what stays under the pseudonym (the lists above in
+plain words), a reminder to give the person what they asked for first, since nothing of theirs can be read
+back afterwards (104's download link joins it once it exists), and a field where root must type the account's email (any case, spaces around it
+ignored) to enable **Erase**; the server action checks the typed email against the locked row
+too, so a stale or forged request erases nothing. The helper `erase-user` sits in the dialog.
+Root's own row has no actions at all (059), so no Erase; a root erased by another root is warned
+that the role goes with the account. The dialog says "Erased." when it's done, and the list
+refreshes when it closes (a search by the old email then finds nothing: the row is the pseudonym).
+
+### Rules
+
+- Root only (`users.manage`); moderators and admins never see it.
+- Refused with a message, nothing changed: the actor's own account; the last enabled root (059's
+  rule, counted inside the transaction); an account already erased (its row says so).
+- A root account can be erased by another root once it's not the last; its role is set to `user`
+  in the same transaction so an erased row never counts as a root.
+- An erased account refuses sign-in by password (no `account` row), by identity provider (106's
+  link is gone, and a sign-in whose email matches no account makes a new one, which is right), by
+  token (none), and SCIM (108) can't adopt it (`erased_at` set is one more condition against
+  adoption) or re-create it (no tombstone, no email match).
+- Every change root's user admin makes refuses an erased account with one message ("That account
+  was erased. It can't be changed, signed in to or provisioned again."): enable, disable, the
+  role, reset password, reset two-factor, and the disable dialog's impact.
+- SCIM (108) never reaches it: a link or tombstone that survived by hand (erasing deletes them)
+  answers 404 on `GET`, `PUT`, `PATCH` and `DELETE /Users/{id}`, is left out of `GET /Users`, and a
+  create by the tombstone's `externalId` makes a new account.
+- `rmk-server reset-root-password` and `reset-two-factor` given the pseudonym's email: refused,
+  "that account was erased", before the address is validated (it never is a valid one, below).
+
+### Phones (065)
+
+The dialog is the full-screen sheet 008's are; the typed-email field is the last thing before the
+button.
+
+## Edge cases
+
+- **The person is mid-review of a submission** (a changes-requested thread): the thread keeps its
+  comments under the pseudonym; the submission stays where it is, for its author or the reviewers.
+- **The person is the only admin of a shared workspace:** 092's rule for a removed last admin
+  applies (root manages it); the confirmation lists such workspaces.
+- **The person owns items in a private workspace** (093): unchanged; the pseudonym is visible to
+  the same members as the item.
+- **A SCIM provider still lists the person:** its next sync gets 404 for the old id (the link is
+  gone) and creates a new account with the same `userName`; the Documentation's SCIM steps say to
+  unassign the person at the provider first.
+- **Erasing while the person is signed in:** the sessions go in the transaction; their next
+  request is signed out.
+- **Two roots erase the same account at once:** the second finds `erased_at` set after the lock
+  and is refused.
+- **The email appears in another person's metadata** (a `user.created` by this root for someone
+  else names *that* person's email, not this one): the `LIKE` matches the whole address as a JSON
+  string value (`"email":"<address>"`), so only values equal to the erased address are rewritten,
+  never a longer address containing it.
+- **MySQL and MariaDB:** rewriting many rows' JSON inside the main transaction can hold gap locks
+  on `audit_log` for a long time on a big instance; there, the metadata rewrite runs in batches
+  (500 rows, each its own short transaction) right after the main transaction commits, and
+  `user.erased` is written only when the rewrite is done. The state in between is a row of
+  `user_erasures` (the old address the rewrite looks for, the counts the event will record, how
+  many rows were rewritten so far), made in the main transaction and deleted when the event is
+  recorded: a crash leaves the pseudonym in the row and that row behind, which the Privacy tab
+  shows as "an erasure wasn't completed" with a Retry (root only), and the retention job finishes
+  on its next run (`erasuresFinished` in its counts). Whoever deletes the row records the event,
+  so a retry and the job can't both. On PostgreSQL and SQLite the same steps run in the one
+  transaction, so the row is never seen.
+- **The pseudonym's email, typed anywhere:** `ronne.invalid` is a reserved domain (RFC 2606), so
+  nothing resolves it, and `normalizeEmail` refuses every `.invalid` address (106's rule), so no
+  form, SCIM body or provider can create, find or sign in to such an account: the erase service
+  writes it straight to the row, and the two commands recognise it before validating (above).
+  Nothing re-reads a stored email through `normalizeEmail`.
+- **Backups made before the erasure** hold the person's data; the backup runbook (099) says so,
+  and that a restore brings it back, which is the operator's to manage within the retention.
+- **The threat model** (098): an erased account is one fewer credential; nothing weakens.
+
+## Documentation
+
+- **Privacy → Erase an account** (`privacy#erase`): what erasing does and keeps, in the person's
+  words and the root's; that a person asks root; that it can't be undone; the SCIM and backup
+  notes above. Both `topics.ts` get the section.
+- **Administration → Users** (`admin#users`): the Erase action and the Erased badge.
+- **Authentication → Provisioning with SCIM** (`authentication#scim`): unassign at the provider
+  before erasing; 108's second-account recovery now says "erase the second" as a link.
+- **Backups** (`backups#restore`): a restore brings back what an erasure removed.
+- **Incidents** (`incidents`): nothing new; erasing isn't an incident step.
+- **Helpers:** `erase-user` in the dialog → `privacy#erase`.
+
+## Acceptance criteria
+
+- [ ] Root erases an account from Admin › Users and from the deprovisioned badge's link; the
+      dialog needs the email typed; anyone else never sees it (404 on the action).
+- [ ] After erasing, a db test finds the pseudonym in `user`, no `account`, `session`,
+      `two_factor`, `access_tokens`, `device_grants`, `scim_users` (live or tombstone),
+      `scim_group_members`, `workspace_members` or draft rows for the id; cancelled requests and
+      moves; the personal workspace renamed or deleted by the rule; items, versions, submitted
+      submissions and review events kept with the id; every audit event of the person with
+      `ip_address` null and no event's metadata holding the email, on SQLite and the three servers.
+- [ ] The old email can be used for a new account right after.
+- [ ] Refused, with nothing changed: self, the last enabled root, an erased account, and every
+      later enable, disable, reset or SCIM create, adopt or patch against it.
+- [ ] Sign-in by password, identity provider and token all fail for an erased account; a 106
+      sign-in with its old email makes a new account.
+- [ ] `user.erased` is recorded with the counts and no personal data; the audit page shows the
+      pseudonym as actor and target; item and review pages show it.
+- [ ] A rewrite interrupted on MySQL is finished by Retry and by the retention job.
+- [ ] The Documentation and inline helpers listed above say what the feature does now.
+
+## Decisions
+
+1. **Anonymise, never delete the row** (owner, 2026-10-06, MVP §15): audit events and items point
+   at the id; a deleted row would break them or force cascading deletes of the record.
+2. **The pseudonym's email is `deleted-user-<id>@ronne.invalid`** (Claude): the column is unique
+   and every reader expects an address; a reserved domain can't be anyone's.
+3. **Drafts are deleted; everything submitted is kept** (Claude, to confirm): a draft is the
+   person's private work; a submission entered the record other people acted on.
+4. **The personal workspace is kept only when it holds the record** (Claude, to confirm): with
+   nothing published or submitted it's an empty private workspace with a name made from the email.
+5. **The metadata rewrite is part of erasing, not a later purge** (Claude): the law's "erased"
+   should be true when root is told it is; the MySQL exception keeps the transaction short and
+   still finishes before the event is written.
+6. **No self-service erasure** (Claude, to confirm): a session shouldn't be able to destroy the
+   account; the request goes to someone accountable, as it does for the data download's root path.
+
+## Open questions
+
+- Decisions 3, 4 and 6 are for you to confirm.
+- Should erasing also delete the person's *rejected* submissions (never published, visible only to
+  them and the reviewers)? Kept, in this spec.

@@ -192,31 +192,69 @@ export const checkFeature = ({ dir, plan, witness }) => {
   return errors;
 };
 
-/** The folders under `dir` named `<ID>-slug` (`pattern` matches the ID), with `inScope(ID)`. */
-const checkFolders = (root, dir, pattern, inScope) => {
+/** The folders right under `dir` named `<ID>-slug` (`pattern` matches the ID), as `{ id, folder }`. */
+const idFolders = (root, dir, pattern) => {
   const parent = join(root, ...dir.split("/"));
   if (!existsSync(parent)) return [];
   return readdirSync(parent, { withFileTypes: true }).flatMap((entry) => {
     const match = pattern.exec(entry.name);
-    if (!entry.isDirectory() || !match || !inScope(Number(match[1]))) return [];
-    const folder = `${dir}/${entry.name}`;
+    return entry.isDirectory() && match
+      ? [{ id: Number(match[1]), folder: `${dir}/${entry.name}` }]
+      : [];
+  });
+};
+
+const FEATURE = /^(\d{3})-/;
+
+/**
+ * The feature folders, one level down under their domain: `docs/features/<domain>/<NNN-slug>`
+ * (199). A feature folder at the top of `docs/features`, or one ID in two folders, is an error.
+ * @returns {{ folders: { id: number, folder: string }[], errors: string[] }}
+ */
+export const featureFolders = (root) => {
+  const top = idFolders(root, "docs/features", FEATURE);
+  const errors = top.map(
+    ({ folder }) =>
+      `${folder}: a feature folder goes under its domain (docs/features/domains.json)`,
+  );
+  // The domains, and `milestones/`, which holds files only; `_template/` isn't a domain.
+  const folders = idFolders(root, "docs/features", /^([a-z][a-z0-9-]*)$/).flatMap(({ folder }) =>
+    idFolders(root, folder, FEATURE),
+  );
+  const byId = new Map();
+  for (const { id, folder } of folders) byId.set(id, [...(byId.get(id) ?? []), folder]);
+  for (const [id, where] of byId)
+    if (where.length > 1)
+      errors.push(
+        `feature ${String(id).padStart(3, "0")} has more than one folder: ${where.join(", ")}`,
+      );
+  return { folders, errors };
+};
+
+/** Checks each folder's PLAN.md against its WITNESS.md, when `inScope(ID)`. */
+const checkFolders = (root, folders, inScope) =>
+  folders.flatMap(({ id, folder }) => {
+    if (!inScope(id)) return [];
     const planPath = join(root, folder, "PLAN.md");
     const witnessPath = join(root, folder, "WITNESS.md");
     if (!existsSync(planPath)) return [];
     return checkFeature({
-      id: Number(match[1]),
+      id,
       dir: folder,
       plan: readFileSync(planPath, "utf8"),
       witness: existsSync(witnessPath) ? readFileSync(witnessPath, "utf8") : null,
     });
   });
-};
 
 /**
- * Checks every feature folder under `docs/features` in scope (see `isChecked`), and every issue
- * folder under `docs/issues` (named by GitHub issue number, all checked).
+ * Checks every feature folder under `docs/features/<domain>` in scope (see `isChecked`), and every
+ * issue folder under `docs/issues` (named by GitHub issue number, all checked).
  */
-export const checkAll = (root) => [
-  ...checkFolders(root, "docs/features", /^(\d{3})-/, isChecked),
-  ...checkFolders(root, "docs/issues", /^(\d+)-/, () => true),
-];
+export const checkAll = (root) => {
+  const { folders, errors } = featureFolders(root);
+  return [
+    ...errors,
+    ...checkFolders(root, folders, isChecked),
+    ...checkFolders(root, idFolders(root, "docs/issues", /^(\d+)-/), () => true),
+  ];
+};
