@@ -1,0 +1,6 @@
+[
+  {
+    "code": "unsupported_type",
+    "message": "Gemini CLI has no status line command, only footer settings, so @examples/git-branch was skipped there."
+  }
+]

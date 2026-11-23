@@ -31,6 +31,8 @@ These change often (MVP §3.3), so check them again before building each rendere
 | Claude Code | `model` (an alias such as `haiku`, a full ID, or `inherit`) and `effort` (`low`, `medium`, `high`, `xhigh`, `max`, depending on the model). They hold for the rest of the turn, or for the forked agent with `context: fork`. | `model` and `effort` in `.claude/agents/<n>.md` | The same frontmatter as skills |
 | Codex | None: `SKILL.md` has only `name` and `description`, and `agents/openai.yaml` has no model | `model` and `model_reasoning_effort` (`low`, `medium`, `high`, `xhigh`, `max`, `ultra`, depending on the model) in `.codex/agents/<n>.toml` | None |
 | Cursor | None: the frontmatter is `name`, `description`, `paths`, `disable-model-invocation` and a few display keys | `model: inherit` or a model ID. Effort is written only inside the ID, as `claude-opus-5[effort=high]` | None documented |
+| Antigravity (029) | None: `SKILL.md` has only `name` and `description` | `model: inherit`, `flash` or `pro` in `.agents/agents/<n>.md`; no effort | None: commands are skills |
+| Gemini CLI (029) | None documented | `model` (default `inherit`) and `temperature` in `.gemini/agents/<n>.md`; no effort | None documented (`.gemini/commands/<n>.toml` has `description` and `prompt`) |
 
 What the tools do on their side:
 - A Claude Code organisation's `availableModels` list, or `CLAUDE_CODE_SUBAGENT_MODEL_FORCE`, can

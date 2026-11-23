@@ -7,6 +7,9 @@ import {
   mergeChange,
   type ReadResult,
   readAgent,
+  readAntigravityAgent,
+  readAntigravityMcpServer,
+  readAntigravityRule,
   readCodexAgent,
   readCodexMcpServer,
   readCommand,
@@ -17,6 +20,9 @@ import {
   readCursorCommand,
   readCursorMcpServer,
   readCursorRule,
+  readGeminiAgent,
+  readGeminiCommand,
+  readGeminiMcpServer,
   readMcpServer,
   readRule,
   readSkill,
@@ -104,7 +110,11 @@ const readContent = (
           ? readCursorMcpServer
           : place.tool === "copilot"
             ? readCopilotMcpServer
-            : readMcpServer;
+            : place.tool === "antigravity"
+              ? readAntigravityMcpServer
+              : place.tool === "gemini"
+                ? readGeminiMcpServer
+                : readMcpServer;
     return reader(content.key, content.value, {
       ...options,
       ...(description ? { description } : {}),
@@ -115,6 +125,10 @@ const readContent = (
     return readCodexAgent(parseToml(decoder.decode(file.bytes)), { itemName, fileName: file.path });
   if (place.tool === "copilot")
     return (place.type === "agent" ? readCopilotAgent : readCopilotRule)(file, options);
+  if (place.tool === "antigravity")
+    return (place.type === "agent" ? readAntigravityAgent : readAntigravityRule)(file, options);
+  if (place.tool === "gemini")
+    return (place.type === "agent" ? readGeminiAgent : readGeminiCommand)(file, options);
   if (place.tool === "cursor")
     return (
       place.type === "agent"

@@ -4,10 +4,12 @@ import { renderDependencyOf, withDependencies } from "../render/skill-frontmatte
 import { installsIn, supportOf } from "../render/support.js";
 import type { RenderInput } from "../render/types.js";
 import { bytesOf, jsonFile, type Part, type PluginAdapter } from "./adapter.js";
+import { antigravityAdapter } from "./antigravity.js";
 import { claudeCodeAdapter } from "./claude-code.js";
 import { codexAdapter } from "./codex.js";
 import { copilotAdapter } from "./copilot.js";
 import { cursorAdapter } from "./cursor.js";
+import { geminiAdapter } from "./gemini.js";
 import { PLUGIN_NAME_PROBLEM_MESSAGES, pluginName, pluginNameProblem } from "./names.js";
 import type { BuiltPlugin, PluginInput, PluginTool, PluginWarning } from "./types.js";
 
@@ -26,6 +28,8 @@ const ADAPTERS: Record<PluginTool, PluginAdapter> = {
   codex: codexAdapter,
   cursor: cursorAdapter,
   copilot: copilotAdapter,
+  antigravity: antigravityAdapter,
+  gemini: geminiAdapter,
 };
 
 const byPath = (a: PackageFile, b: PackageFile) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
@@ -36,6 +40,7 @@ type Collected = {
   hooks: Record<string, unknown[]>;
   mcp: Record<string, unknown>;
   lsp: Record<string, unknown>;
+  sections: Map<string, { key: string; text: string }[]>;
 };
 
 const conflict = (what: string, member: RenderInput) =>
@@ -66,6 +71,13 @@ const collect = (into: Collected, part: Part, member: RenderInput) => {
         if (name in into.lsp) throw conflict(`the language server ${name}`, member);
         into.lsp[name] = server;
       }
+      return;
+    case "section": {
+      const sections = into.sections.get(part.path) ?? [];
+      if (sections.some((s) => s.key === part.key))
+        throw conflict(`${part.path}'s ${part.key}`, member);
+      into.sections.set(part.path, [...sections, { key: part.key, text: part.text }]);
+    }
   }
 };
 
@@ -107,7 +119,7 @@ export const buildPlugin = (tool: PluginTool, input: PluginInput): BuiltPlugin =
     if (!warnings.some((w) => w.code === warning.code && w.message === warning.message))
       warnings.push(warning);
   };
-  const into: Collected = { files: new Map(), hooks: {}, mcp: {}, lsp: {} };
+  const into: Collected = { files: new Map(), hooks: {}, mcp: {}, lsp: {}, sections: new Map() };
   const bundle = type === "bundle";
   /** Whether the item itself, or for a bundle any member, put something in the plugin. */
   let filled = false;
@@ -150,9 +162,18 @@ export const buildPlugin = (tool: PluginTool, input: PluginInput): BuiltPlugin =
       });
   }
   const empty = !filled;
-  const generated: PackageFile[] = [adapter.manifest(item, name)];
+  const hasMcp = Object.keys(into.mcp).length > 0;
+  const generated: PackageFile[] = [
+    adapter.mcpInManifest && hasMcp
+      ? adapter.manifest(item, name, into.mcp)
+      : adapter.manifest(item, name),
+  ];
   if (Object.keys(into.hooks).length) generated.push(adapter.hooksFile(into.hooks));
-  if (Object.keys(into.mcp).length) generated.push(adapter.mcpFile(into.mcp));
+  if (hasMcp && !adapter.mcpInManifest) generated.push(adapter.mcpFile(into.mcp));
+  for (const [path, sections] of into.sections) {
+    if (!adapter.sectionFile) throw new Error(`${adapter.toolName} plugins have no shared files.`);
+    generated.push(adapter.sectionFile(path, sections));
+  }
   if (Object.keys(into.lsp).length)
     generated.push(adapter.lspFile?.(into.lsp) ?? jsonFile(".lsp.json", into.lsp));
   for (const file of generated) {

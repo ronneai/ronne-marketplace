@@ -1,0 +1,13 @@
+{
+  "name": "examples-code-reviewer",
+  "version": "1.0.0",
+  "description": "Reviews diffs for correctness and security issues. Use after finishing a change and before opening a pull request.",
+  "mcpServers": {
+    "github-mcp": {
+      "httpUrl": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_TOKEN}"
+      }
+    }
+  }
+}

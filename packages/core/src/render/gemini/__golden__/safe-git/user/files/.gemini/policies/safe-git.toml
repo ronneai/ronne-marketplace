@@ -1,0 +1,21 @@
+# managed by rmk: @examples/safe-git@1.0.0
+
+[[rule]]
+toolName = "run_shell_command"
+commandPrefix = "git push --force"
+decision = "deny"
+priority = 3
+
+[[rule]]
+toolName = "run_shell_command"
+commandPrefix = "git push"
+decision = "ask_user"
+priority = 2
+modes = ["default","autoEdit","yolo"]
+
+[[rule]]
+toolName = "run_shell_command"
+commandPrefix = "git reset --hard"
+decision = "ask_user"
+priority = 2
+modes = ["default","autoEdit","yolo"]

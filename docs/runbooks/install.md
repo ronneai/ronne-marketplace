@@ -299,7 +299,8 @@ npm install --global @ronneai/rmk
 rmk login --registry http://localhost:7650     # or https://ronne.example.com
 ```
 
-Then, in any project folder, `rmk install` adds items for Claude Code, Codex or Cursor. Ronne
+Then, in any project folder, `rmk install` adds items for Claude Code, Codex, Cursor, GitHub Copilot,
+Antigravity or Gemini CLI. Ronne
 doesn't need a copy of your projects or their git repositories.
 
 **Upgrade:**

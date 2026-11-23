@@ -874,6 +874,77 @@ describe("rmk export from Codex and Cursor (043)", () => {
   });
 });
 
+describe("rmk export from Antigravity and Gemini CLI (029)", () => {
+  const SECRETS = { env: `sk-ant-${"a1B2c3D4".repeat(4)}`, header: "s3cr3tP4ss" };
+  const setup = () => {
+    const registry = exportRoutes({ scopes: [{ name: "team", description: "A team." }] });
+    io = fakeIo(
+      { ...identityRoutes("rmk_test_token"), ...registry.routes },
+      { env: { RMK_TOKEN: "rmk_test_token", RMK_REGISTRY: REGISTRY }, interactive: false },
+    );
+    const write = (path: string, text: string) => {
+      mkdirSync(dirname(join(io.cwd, path)), { recursive: true });
+      writeFileSync(join(io.cwd, path), text);
+    };
+    write(".agents/rules/style.md", "---\ntrigger: always_on\ndescription: Style.\n---\nStyle.\n");
+    write(
+      ".agents/mcp_config.json",
+      JSON.stringify({ mcpServers: { db: { command: "db-mcp", env: { DB_KEY: SECRETS.env } } } }),
+    );
+    write(".gemini/commands/hi.toml", 'description = "Says hi."\nprompt = "Hi {{args}}."\n');
+    write(
+      ".gemini/settings.json",
+      JSON.stringify({
+        mcpServers: {
+          web: {
+            httpUrl: "https://w.example/mcp",
+            headers: { "X-Api-Key": `${SECRETS.header}$Word` },
+          },
+        },
+      }),
+    );
+    return registry;
+  };
+  const json = async (...argv: string[]) => {
+    const result = await rmk(...argv, "--json");
+    return { code: result.exitCode, body: JSON.parse(result.stdout) };
+  };
+
+  it("lists each tool's items with --from", async () => {
+    setup();
+    const names = async (tool: string) =>
+      (await json("export", "--from", tool)).body.found.map((f: { name: string }) => f.name);
+    expect(await names("antigravity")).toEqual(expect.arrayContaining(["style", "db"]));
+    expect(await names("antigravity")).not.toContain("hi");
+    expect(await names("gemini")).toEqual(expect.arrayContaining(["hi", "web"]));
+    expect(await names("gemini")).not.toContain("style");
+  });
+
+  it("uploads their servers with no secret in any request", async () => {
+    const { drafts } = setup();
+    for (const [name, tool] of [
+      ["db", "antigravity"],
+      ["web", "gemini"],
+    ] as const) {
+      const result = await json(
+        "export",
+        name,
+        "--from",
+        tool,
+        "--to",
+        "team",
+        "--description",
+        "A server.",
+        "--yes",
+      );
+      expect(result.code, name).toBe(0);
+    }
+    expect(drafts.map((d) => d.name)).toEqual(["@team/db", "@team/web"]);
+    const sent = JSON.stringify(io.requests);
+    for (const secret of Object.values(SECRETS)) expect(sent).not.toContain(secret);
+  });
+});
+
 describe("rmk export as a change proposal (042)", () => {
   const setup = async () => {
     const registry = exportRoutes({ scopes: [{ name: "team", description: "A team." }] });

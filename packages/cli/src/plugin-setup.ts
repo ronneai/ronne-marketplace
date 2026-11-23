@@ -29,7 +29,8 @@ export const PLUGIN_SETUP_USAGE =
 
 /**
  * The tools whose marketplace the registry serves itself (077); Codex, Cursor and GitHub Copilot
- * read theirs from the git mirror (078, 028).
+ * read theirs from the git mirror (078, 028), where Antigravity's plugins and Gemini CLI's
+ * extensions are folders (029).
  */
 const TOOLS = ["claude-code"];
 
@@ -69,7 +70,7 @@ export const pluginSetupCommand = async (io: Io, args: Args, out: Output) => {
   if (!tool || rest.length) throw usage(`Usage: ${PLUGIN_SETUP_USAGE}`);
   if (!TOOLS.includes(tool))
     throw usage(
-      `rmk plugin-setup only sets up claude-code: Codex, Cursor and GitHub Copilot read plugins from a git mirror instead (rmk feed build).`,
+      `rmk plugin-setup only sets up claude-code: Codex, Cursor and GitHub Copilot read plugins from a git mirror instead (rmk feed build), and Antigravity and Gemini CLI install them from its folders.`,
     );
   const scope = scopeOf(args.values.scope);
   const remove = args.values.remove === true;

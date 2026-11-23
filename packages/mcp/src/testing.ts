@@ -33,7 +33,14 @@ const summary = (name: string, type = "skill") => ({
   installable: true,
   risky: false,
   downloads: 0,
-  support: { "claude-code": "native", codex: "native", cursor: "native", copilot: "native" },
+  support: {
+    "claude-code": "native",
+    codex: "native",
+    cursor: "native",
+    copilot: "native",
+    antigravity: "native",
+    gemini: "native",
+  },
 });
 
 const versionDetail = (
@@ -52,7 +59,14 @@ const versionDetail = (
     readme: null,
     notes: null,
     riskFlags,
-    support: { "claude-code": "native", codex: "native", cursor: "native", copilot: "native" },
+    support: {
+      "claude-code": "native",
+      codex: "native",
+      cursor: "native",
+      copilot: "native",
+      antigravity: "native",
+      gemini: "native",
+    },
   },
 });
 

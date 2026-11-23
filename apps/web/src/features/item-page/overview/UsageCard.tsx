@@ -23,6 +23,8 @@ export const TOOL_COLOR: Record<string, string> = {
   "claude-code": "bg-chart-claude-code",
   codex: "bg-chart-codex",
   copilot: "bg-chart-copilot",
+  antigravity: "bg-chart-antigravity",
+  gemini: "bg-chart-gemini",
 };
 export const toolColor = (id: string) => TOOL_COLOR[id] ?? "bg-chart";
 
@@ -36,6 +38,10 @@ const NO_RUNS: Record<string, readonly ItemType[]> = {
   cursor: ["skill", "command"],
   // Copilot reports the skills the model starts, not a command a person types (028).
   copilot: ["command"],
+  // Antigravity counts a skill the model reads, not a command a person types; Gemini CLI's commands
+  // aren't tools at all, so neither reports them (029).
+  antigravity: ["command"],
+  gemini: ["command"],
 };
 
 /**

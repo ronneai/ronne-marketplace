@@ -1,0 +1,12 @@
+[
+  {
+    "kind": "dir",
+    "path": ".agents/skills/review-diff",
+    "files": [
+      {
+        "path": "SKILL.md",
+        "executable": false
+      }
+    ]
+  }
+]

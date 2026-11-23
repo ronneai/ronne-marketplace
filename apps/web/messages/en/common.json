@@ -152,7 +152,7 @@
   "authShell": {
     "eyebrow": "Registry & marketplace",
     "headline": "Your team's AI capabilities, curated in one place",
-    "lead": "Skills, agents, rules, commands, hooks and MCP servers, reviewed before release and delivered to Claude Code, Codex, Cursor and GitHub Copilot.",
+    "lead": "Skills, agents, rules, commands, hooks and MCP servers, reviewed before release and delivered to Claude Code, Codex, Cursor, GitHub Copilot, Antigravity and Gemini CLI.",
     "reviewedTitle": "Reviewed before release",
     "reviewedBody": "Every item and change needs an approval.",
     "installTitle": "One command to install",

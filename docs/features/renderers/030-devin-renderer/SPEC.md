@@ -147,7 +147,7 @@ own page for those (see Open questions). No secret value is ever written.
   the same skill for both.
 - **Devin also reads `.agents/agents/`**, where Antigravity (029) writes its agents with its own
   tool names: with both as targets, Devin's own `.devin/agents/` file is still written, and the
-  Devin page says an Antigravity agent may appear too (029's open question 3).
+  Devin page says an Antigravity agent may appear too (029's decision 3).
 - **Two items with the same name from different scopes:** `name_clash`, as 023.
 
 ## Acceptance criteria

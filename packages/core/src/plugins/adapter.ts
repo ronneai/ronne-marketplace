@@ -16,7 +16,9 @@ export type Part =
   /** One server in the plugin's MCP file. */
   | { kind: "mcp"; name: string; server: unknown }
   /** Language servers for the plugin's `.lsp.json`, by name. */
-  | { kind: "lsp"; servers: Record<string, unknown> };
+  | { kind: "lsp"; servers: Record<string, unknown> }
+  /** A fenced section of a shared file, such as Gemini CLI's `GEMINI.md` (029). */
+  | { kind: "section"; path: string; key: string; text: string };
 
 /**
  * The parts a change becomes; none for plumbing a plugin doesn't need (such as the settings keys
@@ -29,11 +31,18 @@ export type PluginAdapter = {
   /** "Claude Code", for warnings. */
   toolName: string;
   place(change: Change): Placement;
-  manifest(item: RenderInput, name: string): PackageFile;
+  /**
+   * The plugin's manifest; `mcp` holds the plugin's MCP servers when the tool keeps them in the
+   * manifest itself (`mcpInManifest`, Gemini CLI's extensions, 029).
+   */
+  manifest(item: RenderInput, name: string, mcp?: Record<string, unknown>): PackageFile;
+  mcpInManifest?: boolean;
   hooksFile(hooks: Record<string, unknown[]>): PackageFile;
   mcpFile(servers: Record<string, unknown>): PackageFile;
   /** The language servers' file; `.lsp.json` (Claude Code's) when the tool doesn't say. */
   lspFile?(servers: Record<string, unknown>): PackageFile;
+  /** A shared file made of members' sections, in install order (029). */
+  sectionFile?(path: string, sections: readonly { key: string; text: string }[]): PackageFile;
 };
 
 const encoder = new TextEncoder();

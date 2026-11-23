@@ -154,7 +154,7 @@ describe("dependencyReports", () => {
         // `latest`'s, not the newer pre-release.
         version: "1.4.0",
         description: "The secure-coding item.",
-        tools: ["Claude Code", "Codex", "Cursor", "GitHub Copilot"],
+        tools: ["Claude Code", "Codex", "Cursor", "GitHub Copilot", "Antigravity", "Gemini CLI"],
       },
       status: null,
       problems: [],
@@ -162,7 +162,7 @@ describe("dependencyReports", () => {
     });
     expect(found["@team/github"]?.facts).toMatchObject({
       type: "mcp-server",
-      tools: ["Claude Code", "Cursor", "GitHub Copilot"],
+      tools: ["Claude Code", "Cursor", "GitHub Copilot", "Antigravity", "Gemini CLI"],
     });
   });
 
@@ -312,7 +312,7 @@ describe("searchDependencies", () => {
       type: "skill",
       version: "1.4.0",
       description: "The secure-coding item.",
-      tools: ["Claude Code", "Codex", "Cursor", "GitHub Copilot"],
+      tools: ["Claude Code", "Codex", "Cursor", "GitHub Copilot", "Antigravity", "Gemini CLI"],
       status: "published",
       mine: false,
     });

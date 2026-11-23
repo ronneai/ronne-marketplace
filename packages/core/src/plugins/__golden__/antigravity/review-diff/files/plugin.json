@@ -1,0 +1,9 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "examples-review-diff",
+  "version": "1.0.0",
+  "description": "Reviews the current git diff, or a given file or folder.",
+  "author": {
+    "name": "examples"
+  }
+}

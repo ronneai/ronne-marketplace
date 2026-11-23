@@ -1327,6 +1327,116 @@ describe("Copilot's files (028)", () => {
   });
 });
 
+describe("Antigravity's and Gemini CLI's files (029)", () => {
+  const project = () => {
+    io = fakeIo(exportRoutes().routes);
+    write(
+      io.cwd,
+      ".agents/agents/fixer/agent.md",
+      "---\nname: fixer\ndescription: Fixes.\ntools: [view_file, run_command]\nmodel: pro\n---\nFix it.\n",
+    );
+    write(io.cwd, ".agents/agents/fixer/notes.md", "Notes the agent reads.\n");
+    write(
+      io.cwd,
+      ".agents/rules/style.md",
+      '---\ntrigger: glob\nglobs: "*.ts, *.tsx"\ndescription: Style.\n---\nStyle.\n',
+    );
+    write(
+      io.cwd,
+      ".agents/mcp_config.json",
+      JSON.stringify({ mcpServers: { db: { command: "db-mcp", env: { DB_TOKEN: "literal" } } } }),
+    );
+    write(
+      io.cwd,
+      ".gemini/agents/scout.md",
+      "---\nname: scout\ndescription: Scouts.\ntools: [read_file, mcp_db_query]\n---\nScout.\n",
+    );
+    write(
+      io.cwd,
+      ".gemini/commands/git/commit.toml",
+      'description = "Commits."\nprompt = "Commit {{args}}."\n',
+    );
+    write(
+      io.cwd,
+      ".gemini/settings.json",
+      JSON.stringify({ mcpServers: { web: { httpUrl: "https://x.example/mcp" } } }),
+    );
+  };
+
+  it("finds Antigravity's and Gemini CLI's agents, rules, commands and MCP servers in a project", () => {
+    project();
+    expect(
+      discoverLocalItems(io, "project").map((i) => `${i.tool}:${i.type}:${i.name}:${i.display}`),
+    ).toEqual(
+      expect.arrayContaining([
+        "antigravity:agent:fixer:.agents/agents/fixer/agent.md",
+        "antigravity:rule:style:.agents/rules/style.md",
+        "antigravity:mcp-server:db:.agents/mcp_config.json (mcpServers.db)",
+        "gemini:agent:scout:.gemini/agents/scout.md",
+        "gemini:command:git-commit:.gemini/commands/git/commit.toml",
+        "gemini:mcp-server:web:.gemini/settings.json (mcpServers.web)",
+      ]),
+    );
+  });
+
+  it("offers only agent.md in an Antigravity agent's folder", () => {
+    project();
+    expect(discoverLocalItems(io, "project").map((i) => i.name)).not.toContain("notes");
+  });
+
+  it("finds Antigravity's home-folder files under ~/.gemini/config, and Gemini CLI's under ~/.gemini", () => {
+    io = fakeIo({});
+    write(io.home, ".gemini/config/agents/helper.md", "---\nname: helper\n---\nHelp.\n");
+    write(io.home, ".gemini/config/rules/mine.md", "---\ntrigger: always_on\n---\nMine.\n");
+    write(
+      io.home,
+      ".gemini/config/skills/notes/SKILL.md",
+      "---\nname: notes\ndescription: N.\n---\nN.\n",
+    );
+    write(io.home, ".gemini/skills/tips/SKILL.md", "---\nname: tips\ndescription: T.\n---\nT.\n");
+    write(io.home, ".gemini/commands/hi.toml", 'prompt = "Hi."\n');
+    write(io.home, ".agents/rules/stray.md", "---\ntrigger: always_on\n---\nS.\n");
+    expect(discoverLocalItems(io, "user").map((i) => `${i.tool}:${i.type}:${i.name}`)).toEqual(
+      expect.arrayContaining([
+        "antigravity:agent:helper",
+        "antigravity:rule:mine",
+        "antigravity:skill:notes",
+        "gemini:skill:tips",
+        "gemini:command:hi",
+      ]),
+    );
+    expect(discoverLocalItems(io, "user").map((i) => i.name)).not.toContain("stray");
+  });
+
+  it("plans each item with its reader, and --from picks them; no env value is uploaded", async () => {
+    project();
+    const api = apiClient(io.fetch, REGISTRY, "rmk_test_token");
+    const antigravity = await planExport(io, api, {
+      items: ["fixer", "style", "db"],
+      to: "team",
+      from: "antigravity",
+      descriptions: { db: "A database." },
+    });
+    expect(antigravity.refused).toEqual([]);
+    const text = (plan: typeof antigravity, name: string) =>
+      plan.items.find((i) => i.name === `@team/${name}`)?.manifestText ?? "";
+    expect(text(antigravity, "fixer")).toContain("model: strong");
+    expect(text(antigravity, "style")).toContain("activation: glob");
+    expect(text(antigravity, "db")).toContain("name: DB_TOKEN");
+    expect(JSON.stringify(antigravity)).not.toContain("literal");
+    const gemini = await planExport(io, api, {
+      items: ["scout", "git-commit", "web"],
+      to: "team",
+      from: "gemini",
+      descriptions: { web: "The web." },
+    });
+    expect(gemini.refused).toEqual([]);
+    expect(text(gemini, "scout")).toContain("- mcp:db/query");
+    expect(text(gemini, "git-commit")).toContain("name: args");
+    expect(text(gemini, "web")).toContain("transport: http");
+  });
+});
+
 describe("updating your drafts (051)", () => {
   const notPublished: Route = () => ({
     status: 404,

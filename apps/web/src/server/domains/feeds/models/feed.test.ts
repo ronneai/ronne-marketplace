@@ -18,8 +18,8 @@ import {
 const ref = { scope: "team", name: "secure-coding", version: "1.4.0+build.7" };
 
 describe("plugin feeds (077)", () => {
-  it("serve Claude Code, Codex, Cursor and GitHub Copilot from the instance (078, 028)", () => {
-    for (const tool of ["claude-code", "codex", "cursor", "copilot"])
+  it("serve Claude Code, Codex, Cursor, GitHub Copilot, Antigravity and Gemini CLI (078, 028, 029)", () => {
+    for (const tool of ["claude-code", "codex", "cursor", "copilot", "antigravity", "gemini"])
       expect(isServedTool(tool)).toBe(true);
     expect(isServedTool("devin")).toBe(false);
   });

@@ -423,6 +423,47 @@ describe("rmk install for GitHub Copilot", () => {
   });
 });
 
+describe("rmk install for Antigravity and Gemini CLI", () => {
+  const entries = () =>
+    JSON.parse(read(".rmk/state.json"))
+      .entries.map((e: { kind: string; path: string }) => `${e.kind} ${e.path}`)
+      .sort();
+
+  it("shares the skill with Codex, and leaves Antigravity's MCP secret out with a warning", async () => {
+    await start();
+    const result = await rmk("install", "@team/secure", "--target", "codex,antigravity");
+    expect(result.exitCode, result.stdout).toBe(0);
+    expect(read(".agents/skills/secure/SKILL.md")).toContain("Check inputs and secrets.");
+    expect(JSON.parse(read(".agents/mcp_config.json")).mcpServers.gh).toEqual({ command: "npx" });
+    expect(result.stdout).toContain("`GITHUB_TOKEN` wasn't written");
+    expect(entries()).toEqual([
+      "dir .agents/skills/secure",
+      "json-key .agents/mcp_config.json",
+      "toml-key .codex/config.toml",
+    ]);
+    expect((await rmk("remove", "@team/secure", "--target", "codex,antigravity")).exitCode).toBe(0);
+    expect(existsSync(join(io.cwd, ".agents/skills/secure"))).toBe(false);
+    expect(JSON.parse(read(".agents/mcp_config.json")).mcpServers?.gh).toBeUndefined();
+  });
+
+  it("writes Gemini CLI's settings with ${NAME}, beside Antigravity's, and says to trust the folder", async () => {
+    await start();
+    const result = await rmk("install", "@team/secure", "--target", "gemini,antigravity");
+    expect(result.exitCode, result.stdout).toBe(0);
+    expect(JSON.parse(read(".gemini/settings.json")).mcpServers.gh).toEqual({
+      command: "npx",
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: Gemini CLI's own reference syntax
+      env: { GITHUB_TOKEN: "${GITHUB_TOKEN}" },
+    });
+    expect(result.stdout).toContain("Note: Gemini CLI reads .gemini/settings.json");
+    expect(entries()).toEqual([
+      "dir .agents/skills/secure",
+      "json-key .agents/mcp_config.json",
+      "json-key .gemini/settings.json",
+    ]);
+  });
+});
+
 describe("tool notes", () => {
   it("says when Codex needs the project trusted, hooks reviewed, or AGENTS.md is too long", () => {
     const root = mkdtempSync(join(tmpdir(), "rmk-notes-"));
@@ -439,6 +480,11 @@ describe("tool notes", () => {
         ),
       ]);
       expect(toolNotes([".mcp.json"], "project", root, ["claude-code"])).toEqual([]);
+      expect(toolNotes([".gemini/settings.json"], "project", root, ["gemini"])).toEqual([
+        expect.stringContaining("Gemini CLI reads .gemini/settings.json and custom commands only"),
+      ]);
+      expect(toolNotes([".gemini/commands/review.toml"], "project", root)).toHaveLength(1);
+      expect(toolNotes([".gemini/settings.json"], "user", root)).toEqual([]);
       expect(toolNotes([".copilot/mcp-config.json"], "user", root, ["copilot"])).toEqual([]);
       expect(toolNotes([".codex/hooks.json"], "user", root)).toEqual([
         expect.stringContaining("/hooks"),

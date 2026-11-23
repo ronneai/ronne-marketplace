@@ -14,12 +14,21 @@ import { dayOf, lastSendAttempt, queueUsage, reportingTo } from "./telemetry.js"
  * is on; `rmk telemetry off` removes them where the policy allows. They're recorded in the user
  * state file under `rmk telemetry`, like `rmk mcp-setup`'s entries, so installs leave them alone.
  * Which events each tool has was checked against the vendors' docs, and Claude Code's against
- * real payloads, on 2026-09-30; Copilot's against real payloads from its CLI 1.0.114 on 2026-11-22.
+ * real payloads, on 2026-09-30; Copilot's against real payloads from its CLI 1.0.114 on 2026-11-22;
+ * Antigravity's against real payloads from its CLI 1.5.14 and Gemini CLI's against its 0.70.0
+ * source on 2026-11-23 (029).
  */
 export const TELEMETRY_ITEM = "rmk telemetry";
 
 /** The tools rmk can count runs in. */
-export const HOOK_TOOLS = ["claude-code", "codex", "cursor", "copilot"] as const;
+export const HOOK_TOOLS = [
+  "claude-code",
+  "codex",
+  "cursor",
+  "copilot",
+  "antigravity",
+  "gemini",
+] as const;
 export type HookTool = (typeof HOOK_TOOLS)[number];
 
 const isHookTool = (value: string): value is HookTool =>
@@ -32,7 +41,16 @@ export const HOOK_FILES: Record<HookTool, string> = {
   cursor: ".cursor/hooks.json",
   // A file of rmk's own: Copilot reads every `~/.copilot/hooks/*.json`.
   copilot: ".copilot/hooks/rmk-telemetry.json",
+  // Antigravity's home-folder hooks, shared by its CLI and app; rmk's is one named key (029).
+  antigravity: ".gemini/config/hooks.json",
+  gemini: ".gemini/settings.json",
 };
+
+/** The tools a run comes through in Antigravity (seen on the CLI 1.5.14, 2026-11-23). */
+const ANTIGRAVITY_MATCHER = "^(?:read_file|view_file|call_mcp_tool|invoke_subagent|mcp_.*)$";
+
+/** The tools a run comes through in Gemini CLI (its 0.70.0 source). */
+const GEMINI_MATCHER = "^(?:activate_skill|invoke_agent|mcp_.*)$";
 
 /** Copilot's events rmk counts runs in. Its payloads don't name their event, so the hook does. */
 const COPILOT_EVENTS = ["postToolUse", "postToolUseFailure", "subagentStart"] as const;
@@ -96,6 +114,31 @@ export const hookChanges = (tool: HookTool): Change[] => {
           item: { type: "command", bash: `${command} ${event}`, timeoutSec: 10 },
         }),
       ),
+    ];
+  if (tool === "antigravity")
+    return [
+      {
+        kind: "json-key",
+        path,
+        key: ["rmk-telemetry"],
+        value: {
+          PostToolUse: [
+            { matcher: ANTIGRAVITY_MATCHER, hooks: [{ type: "command", command, timeout: 10 }] },
+          ],
+        },
+      },
+    ];
+  if (tool === "gemini")
+    return [
+      {
+        kind: "json-array-item",
+        path,
+        key: ["hooks", "AfterTool"],
+        item: {
+          matcher: GEMINI_MATCHER,
+          hooks: [{ type: "command", command, name: "rmk-telemetry", timeout: 10_000 }],
+        },
+      },
     ];
   return [
     { kind: "json-key", path, key: ["version"], value: 1 },
@@ -266,6 +309,77 @@ const copilotRun = (event: string | undefined, payload: Record<string, unknown>)
   return names.length ? { names, types: ["mcp-server"], trigger, outcome } : null;
 };
 
+/** `mcp_<server>_<tool>` → the server: an item's name has no `_`, so it ends at the first one. */
+const underscoredServer = (toolName: unknown): string | null => {
+  if (typeof toolName !== "string" || !toolName.startsWith("mcp_")) return null;
+  const rest = toolName.slice("mcp_".length);
+  const end = rest.indexOf("_");
+  return end > 0 ? rest.slice(0, end) : null;
+};
+
+/** The skill a `…/skills/<name>/SKILL.md` path belongs to, or null. */
+const skillOfPath = (path: unknown): string | null => {
+  if (typeof path !== "string") return null;
+  const parts = path.split(/[\\/]/);
+  const at = parts.length - 1;
+  return parts[at] === "SKILL.md" && parts[at - 2] === "skills" && parts[at - 1]
+    ? (parts[at - 1] ?? null)
+    : null;
+};
+
+/**
+ * An Antigravity event (seen on the CLI 1.5.14, 2026-11-23): the payload names its event
+ * (`hookEventName`) and tool (`toolCall.name`, `toolCall.args`), and `error` is empty on success.
+ * A skill the model uses is a `read_file` of its `SKILL.md` (there's no skill tool); an MCP tool is
+ * `call_mcp_tool` with `ServerName` (or, loaded eagerly, `mcp_<server>_<tool>`); a subagent is
+ * `invoke_subagent` with `TypeName`.
+ */
+const antigravityRun = (payload: Record<string, unknown>): Run | null => {
+  if (payload.hookEventName !== "PostToolUse") return null;
+  const call = record(payload.toolCall);
+  const args = record(call.args);
+  const outcome = payload.error ? "error" : "success";
+  const name = call.name;
+  if (name === "read_file" || name === "view_file") {
+    const skill = skillOfPath(args.Path ?? args.AbsolutePath ?? args.path);
+    return skill ? { names: [skill], types: ["skill"], trigger: "model", outcome } : null;
+  }
+  if (name === "invoke_subagent")
+    return typeof args.TypeName === "string" && args.TypeName
+      ? { names: [args.TypeName], types: ["agent"], trigger: "model", outcome: "unknown" }
+      : null;
+  const server =
+    name === "call_mcp_tool" && typeof args.ServerName === "string"
+      ? args.ServerName
+      : underscoredServer(name);
+  return server ? { names: [server], types: ["mcp-server"], trigger: "model", outcome } : null;
+};
+
+/**
+ * A Gemini CLI event (its 0.70.0 source): `AfterTool` with `tool_name` and `tool_input`; a skill is
+ * `activate_skill` with `name`, a subagent `invoke_agent` with `agent_name`, an MCP tool carries
+ * `mcp_context.server_name`; `tool_response.error` says it failed.
+ */
+const geminiRun = (payload: Record<string, unknown>): Run | null => {
+  if (payload.hook_event_name !== "AfterTool") return null;
+  const input = record(payload.tool_input);
+  const outcome = record(payload.tool_response).error ? "error" : "success";
+  if (payload.tool_name === "activate_skill")
+    return typeof input.name === "string" && input.name
+      ? { names: [input.name], types: ["skill"], trigger: "model", outcome }
+      : null;
+  if (payload.tool_name === "invoke_agent")
+    return typeof input.agent_name === "string" && input.agent_name
+      ? { names: [input.agent_name], types: ["agent"], trigger: "model", outcome }
+      : null;
+  const context = record(payload.mcp_context);
+  const server =
+    typeof context.server_name === "string" && context.server_name
+      ? context.server_name
+      : underscoredServer(payload.tool_name);
+  return server ? { names: [server], types: ["mcp-server"], trigger: "model", outcome } : null;
+};
+
 /** One tool's event → the run it describes, or null when it isn't a run rmk counts. */
 export const runOf = (
   tool: HookTool,
@@ -273,6 +387,8 @@ export const runOf = (
   copilotEvent?: string,
 ): Run | null => {
   if (tool === "copilot") return copilotRun(copilotEvent, payload);
+  if (tool === "antigravity") return antigravityRun(payload);
+  if (tool === "gemini") return geminiRun(payload);
   const event = payload.hook_event_name;
   if (tool === "claude-code") {
     // Cursor can load Claude Code's hooks too; its own hook counts the run.

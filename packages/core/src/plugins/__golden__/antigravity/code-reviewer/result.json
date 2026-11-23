@@ -1,0 +1,23 @@
+{
+  "name": "examples.code-reviewer",
+  "empty": false,
+  "executables": [],
+  "warnings": [
+    {
+      "code": "unsupported_field",
+      "message": "Antigravity can't reference an environment variable in an MCP config, so @examples/github-mcp's `Authorization` header was left out; add it in Antigravity's MCP settings."
+    },
+    {
+      "code": "unsupported_field",
+      "message": "Antigravity can't reference an environment variable in an MCP config, so @examples/github-mcp's `GITHUB_TOKEN` wasn't written; set it in the environment Antigravity starts in, which the server inherits."
+    },
+    {
+      "code": "unmapped_tool",
+      "message": "Antigravity's agents can't name an MCP tool, so `mcp:github-mcp` was left out of @examples/code-reviewer's tools; the agent can still use the server's tools."
+    },
+    {
+      "code": "unsupported_field",
+      "message": "Antigravity's agents can't preload skills, so @examples/code-reviewer's skills are installed but not preloaded; the agent finds them as any other skill."
+    }
+  ]
+}

@@ -50,6 +50,11 @@ export const pluginNameProblem = (tool: PluginTool, name: string): PluginNamePro
       return CLAUDE_RESERVED.some((prefix) => name.startsWith(prefix)) ? "reserved" : null;
     case "cursor":
       return null;
+    case "antigravity":
+    case "gemini":
+      // Both take `scope-name` (029): Antigravity's pattern is `^[a-z0-9]+(-[a-z0-9]+)*$`, and
+      // Gemini CLI's names are lowercase and `-`; a `--` can't be written that way.
+      return name.includes("--") ? "double_hyphen" : null;
   }
 };
 

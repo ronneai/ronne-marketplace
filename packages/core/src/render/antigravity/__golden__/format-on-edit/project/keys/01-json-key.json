@@ -1,0 +1,14 @@
+{
+  "PostToolUse": [
+    {
+      "matcher": "^(?:edit_file|replace_file_content|multi_replace_file_content)$",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "cd .. || exit 1\nnpx --no-install biome format --write $RMK_FILE_PATHS",
+          "timeout": 30
+        }
+      ]
+    }
+  ]
+}

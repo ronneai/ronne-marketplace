@@ -482,7 +482,8 @@ export const installCommand = async (
  * What a tool needs from the person before it uses what was written (024): Codex reads a project's
  * `.codex/` settings only once the project is trusted, runs new hooks only once reviewed, and reads
  * at most 32 KiB of `AGENTS.md`; Cursor documents its permissions only for its CLI (025); Copilot
- * loads a project's MCP servers only once the folder is trusted (028). `root` is the project, or the
+ * loads a project's MCP servers only once the folder is trusted (028); Gemini CLI reads a project's
+ * settings and commands only in a trusted folder, and asks about new project hooks (029). `root` is the project, or the
  * home folder in user scope; `targets` are the install's.
  */
 export const CODEX_INSTRUCTIONS_LIMIT = 32 * 1024;
@@ -513,6 +514,13 @@ export const toolNotes = (
   if (scope === "project" && targets.includes("copilot") && paths.includes(".mcp.json"))
     notes.push(
       "GitHub Copilot loads a project's MCP servers only in a folder you trust: trust this one when Copilot asks.",
+    );
+  if (
+    scope === "project" &&
+    paths.some((path) => path === ".gemini/settings.json" || path.startsWith(".gemini/commands/"))
+  )
+    notes.push(
+      "Gemini CLI reads .gemini/settings.json and custom commands only in a folder you trust, and asks before it runs new or changed project hooks: trust this one when Gemini CLI asks.",
     );
   const agentsMd = scope === "project" ? "AGENTS.md" : ".codex/AGENTS.md";
   const file = join(root, agentsMd);

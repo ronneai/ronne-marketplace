@@ -1,0 +1,6 @@
+[
+  {
+    "code": "unsupported_type",
+    "message": "Gemini CLI takes no language servers, so @examples/typescript-lsp was skipped there."
+  }
+]

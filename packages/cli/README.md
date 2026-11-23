@@ -2,7 +2,8 @@
 
 `rmk` installs items from a [Ronne AI Marketplace](https://github.com/ronneai/ronne-marketplace)
 into your AI coding tools: skills, agents, rules, commands, hooks, MCP servers and more, reviewed
-before release. It writes each tool's own files (Claude Code, Codex and Cursor), records what it
+before release. It writes each tool's own files (Claude Code, Codex, Cursor, GitHub Copilot, Antigravity and Gemini
+CLI), records what it
 wrote in a lockfile and a state file, and never overwrites a file or setting you made by hand.
 
 ```sh

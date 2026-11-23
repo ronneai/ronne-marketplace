@@ -1,0 +1,15 @@
+{
+  "name": "examples.code-reviewer",
+  "empty": false,
+  "executables": [],
+  "warnings": [
+    {
+      "code": "unsupported_field",
+      "message": "Gemini CLI has no model for the `strong` hint, so @examples/code-reviewer uses the session's model; set targets.gemini.overrides.model to choose one."
+    },
+    {
+      "code": "unsupported_field",
+      "message": "Gemini CLI's agents can't preload skills, so @examples/code-reviewer's skills are installed but not preloaded; the agent finds them as any other skill."
+    }
+  ]
+}
