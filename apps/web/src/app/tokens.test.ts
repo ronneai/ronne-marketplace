@@ -53,6 +53,10 @@ const PAIRS: [string, string, number][] = [
   ["chart-cursor", "surface", 3],
   ["chart-copilot", "canvas", 3],
   ["chart-copilot", "surface", 3],
+  ["chart-antigravity", "canvas", 3],
+  ["chart-antigravity", "surface", 3],
+  ["chart-gemini", "canvas", 3],
+  ["chart-gemini", "surface", 3],
   // Code previews (the New item page's starter files).
   ["code-fg", "code-bg", 4.5],
   ["code-muted", "code-bg", 4.5],

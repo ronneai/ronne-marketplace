@@ -667,3 +667,27 @@ Witnessed: 2026-11-23 10:21 EST, by a fresh agent (adversarial; scoped to re-che
 | 21 | The changed path stays linear | no | confirmed | 25k / 50k / 100k: ~264 / 460 / 873 ms |
 
 **Overall:** met. A further, different variant, listed under the owner's rule (re-check 8) and named in §8: a credential where an address's host goes (`API_KEY=${K},x://token=…`).
+
+## Task 8 — Run counting
+
+Witnessed: 2026-11-23 10:30 EST, by a fresh agent (blind). Commit: 0786fa82 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `HOOK_TOOLS` and `HOOK_FILES` have both tools | no | confirmed | `usage-hooks.ts:24-46`; `addUsageHooks` → both "Added rmk's usage hook to ~/…" lines |
+| 2 | Antigravity's `rmk-telemetry` key loads on the real CLI 1.5.14 and runs only for the matched tools | yes | confirmed | rmk's shape beside the person's keys: logged `read_file` of a `SKILL.md`, a schema `read_file`, `call_mcp_tool`; none for `run_command`; a second run logged `invoke_subagent` |
+| 3 | Gemini CLI 0.70.0 accepts rmk's `AfterTool` entry | no | confirmed | its `loadSettings` → `errors: []`, the person's entry kept; the matcher matches `activate_skill`, `invoke_agent`, `mcp_…` only; timeout in ms |
+| 4 | Antigravity's handler reads real payloads correctly | yes | confirmed | 4 captured payloads → skill, null, mcp-server, agent |
+| 5 | Gemini CLI's handler matches its source | yes | confirmed | `fireAfterToolEvent`, `extractMcpContext`, `SKILL_PARAM_NAME = "name"`, `params.agent_name` |
+| 6 | `rmk telemetry hook antigravity` queues the runs | no | confirmed | 4 payloads → exit 0, empty output, 3 events queued |
+| 7 | `rmk telemetry` on/off touches only rmk's entries | no | confirmed | the person's key and settings kept; off → files deep-equal their originals; `{}` loads in a real `agy` run |
+| 8 | Nothing double-counts across `~/.gemini` | no | confirmed | `agy` doesn't run Gemini's `AfterTool` hooks; Gemini reads `hooks.json` only from extensions. Remark: re-reading a skill's `SKILL.md` counts again |
+| 9 | `TOOL_COLOR` and `NO_RUNS` cover both | no | confirmed | `UsageCard.tsx:26-27`, `:41-44` |
+| 10 | The tokens are in both themes and `globals.css`, 3:1 or more, not red or amber | no | confirmed | olive `#4d7c0f`, sky `#0284c7`; `tokens.test.ts` 129 passed |
+| 11 | The "What each AI tool reports" section is task 11's | no | confirmed | SPEC.md:331-332 |
+| 12 | Unit tests cover the hook changes and the handler, and fail without the code | yes | confirmed | 18 passed; three mutations each fail one test |
+| 13 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | no | confirmed | all exit 0 |
+
+**Overall:** met.
+
+After the pass (wording): SPEC says a skill the model reads again in the same conversation counts again (row 8's remark).

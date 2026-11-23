@@ -32,6 +32,8 @@
   --color-chart-claude-code: var(--chart-claude-code);
   --color-chart-codex: var(--chart-codex);
   --color-chart-copilot: var(--chart-copilot);
+  --color-chart-antigravity: var(--chart-antigravity);
+  --color-chart-gemini: var(--chart-gemini);
   --color-focus: var(--focus);
   --color-code-bg: var(--code-bg);
   --color-code-fg: var(--code-fg);

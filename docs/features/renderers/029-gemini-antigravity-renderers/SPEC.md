@@ -308,21 +308,29 @@ Neither reads hooks, permission policies or status lines (§12). `rmk export --f
 
 ## Run counting
 
-Both join `HOOK_TOOLS`, with rmk's hook in the home folder. The payload fields below are from the
-docs and are confirmed on the real CLIs in task 8, as Copilot's were:
+Both join `HOOK_TOOLS`, with rmk's hook in the home folder; Antigravity's fields were seen on its
+CLI 1.5.14 (2026-11-23), Gemini CLI's read in its 0.70.0 source, where no model could be run:
 
-- **Gemini CLI:** a `json-array-item` under `hooks.AfterTool` in `~/.gemini/settings.json`,
-  `rmk telemetry hook gemini` with `name: "rmk-telemetry"` and a short timeout. The payload names
-  its event (`hook_event_name`) and tool (`tool_name`, `tool_input`, `tool_response`); a skill run is
-  `activate_skill`, an MCP tool `mcp_<server>_<tool>` (the lockfile picks the server, as with
-  Copilot's `-`), and a subagent its own tool.
-- **Antigravity:** `rmk-telemetry` in `~/.gemini/config/hooks.json`, on `PostToolUse`. The payload
-  doesn't name its event; the tool is `toolCall.name` with `toolCall.args`, and `error` says how it
-  ended. How a skill, an MCP tool (`call_mcp_tool` or `mcp_<server>_<tool>`) and a subagent
-  (`invoke_subagent`) show is taken from the real CLI.
+- **Antigravity:** a key of rmk's own, `rmk-telemetry`, in `~/.gemini/config/hooks.json`, on
+  `PostToolUse` with the matcher `^(?:read_file|view_file|call_mcp_tool|invoke_subagent|mcp_.*)$`,
+  running `rmk telemetry hook antigravity`. The payload names its event (`hookEventName`) and tool
+  (`toolCall.name`, `toolCall.args`); `error` is empty on success. A skill the model uses is a
+  `read_file` of its `SKILL.md` (there's no skill tool), so a read of `…/skills/<n>/SKILL.md` is a
+  run of `<n>`; an MCP tool is `call_mcp_tool` with `ServerName` (or, loaded eagerly,
+  `mcp_<server>_<tool>`); a subagent is `invoke_subagent` with `TypeName`. The real CLI ran the hook
+  for the skill read and the MCP call and not for a shell command. A skill the model reads again in the
+  same conversation counts again.
+- **Gemini CLI:** a `json-array-item` under `hooks.AfterTool` in `~/.gemini/settings.json`, matcher
+  `^(?:activate_skill|invoke_agent|mcp_.*)$`, `name: "rmk-telemetry"`, `timeout: 10000`. The payload
+  names its event (`hook_event_name`) and tool (`tool_name`, `tool_input`, `tool_response`); a skill
+  is `activate_skill` with `name`, a subagent `invoke_agent` with `agent_name`, an MCP tool carries
+  `mcp_context.server_name`, and `tool_response.error` says it failed.
+- **Not counted:** a command a person types, in either (Gemini CLI's commands aren't tools); who
+  started a run is `model` for both.
 - **`rmk telemetry off`** removes rmk's entries.
-- **The web app** adds both to the usage chart (`TOOL_COLOR`, `--chart-antigravity` and
-  `--chart-gemini` tokens, never red or amber) and to the "What each AI tool reports" help section.
+- **The web app** adds both to the usage chart (`TOOL_COLOR`, `--chart-antigravity` olive and
+  `--chart-gemini` sky, 3:1 or more on both surfaces, never red or amber) and to `NO_RUNS`
+  (commands); the "What each AI tool reports" section is the Documentation's (task 11).
 
 ## Plugins and the git mirror
 

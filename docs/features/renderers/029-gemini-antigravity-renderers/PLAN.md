@@ -68,7 +68,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* exporting each golden output gives back the example item, or the warnings the
     contract names, and `rmk export --from antigravity` and `--from gemini` have CLI tests.
 
-- [ ] **8. Run counting.**
+- [x] **8. Run counting.**
   - `HOOK_TOOLS`, `HOOK_FILES` and `hookChanges` for both, and the handler's payload fields, checked
     on real payloads from both CLIs (say in Notes what was seen).
   - `TOOL_COLOR`, `NO_RUNS`, `--chart-antigravity` and `--chart-gemini` in `tokens.css` and
@@ -191,4 +191,13 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     (`ask_user`); `commandRegex` for `echo "a b"` denied it and not `echo "a b" x`. On the Antigravity
     CLI 1.5.14, `deny: ["command(regex:^echo hi$)"]` denied `echo hi` and `echo hi there` and let
     `echo hii` run, so Antigravity has no exact command rule.
+- **Run counting (task 8, 2026-11-23):** on the Antigravity CLI 1.5.14, in a scratch project with a
+  skill, a subagent and the probe MCP server, the logging hook saw `read_file` of
+  `.agents/skills/pelican-facts/SKILL.md` (the skill), `call_mcp_tool` with `ServerName: "probe"`,
+  and `invoke_subagent` with `TypeName: "counter"`, each with `error: ""`. With rmk's exact hook
+  shape (a logging command in place of `rmk`), the hook ran for the two `read_file`s (the skill and
+  an MCP schema file, which counts as nothing) and `call_mcp_tool`, not for `run_command`. Gemini
+  CLI's fields are from its source: `fireAfterToolEvent` (`tool_name`, `tool_input`,
+  `tool_response` with `error`, `mcp_context` from `extractMcpContext` with `server_name`), the
+  `activate_skill` tool's `name` and the `invoke_agent` tool's `agent_name`.
 
