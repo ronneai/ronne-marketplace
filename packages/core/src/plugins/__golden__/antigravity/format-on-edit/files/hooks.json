@@ -1,0 +1,16 @@
+{
+  "format-on-edit": {
+    "PostToolUse": [
+      {
+        "matcher": "^(?:edit_file|replace_file_content|multi_replace_file_content)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx --no-install biome format --write $RMK_FILE_PATHS",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -40,7 +40,7 @@ let revoked = false;
 const routes = (): Record<string, Route> => ({
   ...identityRoutes("rmk_feed"),
   ...Object.fromEntries(
-    ["claude-code", "codex", "cursor", "copilot"].map((tool) => [
+    ["claude-code", "codex", "cursor", "copilot", "antigravity", "gemini"].map((tool) => [
       `GET /feeds/${tool}/marketplace.json`,
       async () =>
         revoked
@@ -150,6 +150,8 @@ beforeEach(async () => {
     codex: [skill("team.style", "1.0.0")],
     cursor: [skill("team.style", "1.0.0"), hook("team.fmt", "1.1.0")],
     copilot: [skill("team.style", "1.0.0")],
+    antigravity: [skill("team.style", "1.0.0")],
+    gemini: [skill("team.style", "1.0.0")],
   };
   io = fakeIo(withZips(routes()));
   await rmk("login", "--registry", REGISTRY, "--token", "rmk_feed");
@@ -224,12 +226,14 @@ describe("rmk feed build (078)", () => {
     expect(again.exitCode, again.stderr).toBe(0);
     expect(again.stdout).toContain("Nothing changed.");
     expect(snapshot()).toEqual(before);
-    // Only the four marketplaces were read, for the public workspaces (093).
+    // Only the six marketplaces were read, for the public workspaces (093).
     expect(io.requests.slice(requests).map((r) => r.path)).toEqual([
       "/api/v1/feeds/claude-code/marketplace.json?workspaces=",
       "/api/v1/feeds/codex/marketplace.json?workspaces=",
       "/api/v1/feeds/cursor/marketplace.json?workspaces=",
       "/api/v1/feeds/copilot/marketplace.json?workspaces=",
+      "/api/v1/feeds/antigravity/marketplace.json?workspaces=",
+      "/api/v1/feeds/gemini/marketplace.json?workspaces=",
     ]);
   });
 
@@ -254,6 +258,8 @@ describe("rmk feed build (078)", () => {
       expect.objectContaining({ tool: "codex", added: [], updated: ["team.style"], removed: [] }),
       expect.objectContaining({ tool: "cursor", added: [], updated: [], removed: [] }),
       expect.objectContaining({ tool: "copilot", added: [], updated: [], removed: [] }),
+      expect.objectContaining({ tool: "antigravity", added: [], updated: [], removed: [] }),
+      expect.objectContaining({ tool: "gemini", added: [], updated: [], removed: [] }),
     ]);
     const after = snapshot();
     expect(existsSync(join(out(), "plugins/claude-code/team.review"))).toBe(false);
@@ -396,6 +402,16 @@ describe("rmk feed build (078)", () => {
     expect(snapshot()).toEqual(before);
   });
 
+  it("writes Antigravity's and Gemini CLI's plugin folders with no marketplace file (029)", async () => {
+    const result = await build("--tools", "antigravity,gemini");
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(existsSync(join(out(), "plugins/antigravity/team.style"))).toBe(true);
+    expect(existsSync(join(out(), "plugins/gemini/team.style"))).toBe(true);
+    expect(json(FEED_STATE).tools.antigravity.file).toBe("");
+    expect(json(FEED_STATE).tools.gemini.file).toBe("");
+    expect((await build("--tools", "antigravity,gemini")).stdout).toContain("Nothing changed.");
+  });
+
   it("builds only the tools named with --tools, and leaves the others alone", async () => {
     const result = await build("--tools", "codex");
     expect(result.exitCode, result.stderr).toBe(0);
@@ -418,10 +434,12 @@ describe("rmk feed build (078)", () => {
       before[".cursor-plugin/marketplace.json"],
     );
     expect(Object.keys(json(FEED_STATE).tools).sort()).toEqual([
+      "antigravity",
       "claude-code",
       "codex",
       "copilot",
       "cursor",
+      "gemini",
     ]);
   });
 

@@ -1246,7 +1246,7 @@
     },
     "feeds": {
       "title": "Flux de plugins",
-      "intro": "Le marketplace de chaque outil tel qu’il a été construit en entier la dernière fois : Claude Code lit le sien depuis ce site; rmk feed build lit ceux de Codex, de Cursor et de GitHub Copilot pour le miroir git.",
+      "intro": "Le marketplace de chaque outil tel qu’il a été construit en entier la dernière fois : Claude Code lit le sien depuis ce site; rmk feed build lit ceux de Codex, de Cursor et de GitHub Copilot pour le miroir git, où les plugins d’Antigravity et les extensions de Gemini CLI sont des dossiers sans fichier de marketplace.",
       "nearTitle": "Le marketplace de {tool} approche {what, select, both {de ses limites} size {de sa limite de taille} other {de sa limite de temps}}.",
       "sizeBody": "Claude Code lit à une adresse un marketplace d’au plus 5 Mio. Au-delà, le marketplace cesse de se charger; ajoutez plutôt le miroir git (rmk feed build) dans Claude Code, qui n’a pas cette limite.",
       "timeBody": "Claude Code attend un marketplace pendant 10 secondes au plus. Il est construit une fois par changement puis servi depuis la mémoire, donc seule la première requête après une publication attend autant.",

@@ -18,14 +18,14 @@ local folder, and a plugin's agent, skills, MCP server and hook seen loading).
 
 ## What each tool accepts
 
-| | Claude Code | Codex | Cursor | GitHub Copilot |
-|---|---|---|---|---|
-| Marketplace file | `.claude-plugin/marketplace.json` | `.agents/plugins/marketplace.json` (also reads `.claude-plugin/marketplace.json`) | `.cursor-plugin/marketplace.json` | `.github/plugin/marketplace.json` (looked up first; also reads `.claude-plugin/` and `.plugin/`) |
-| Plugin manifest | `.claude-plugin/plugin.json` (optional) | root `plugin.json` ([Agent Plugins 1.0](https://agent-plugins.org/specification)); `.codex-plugin/plugin.json` as fallback | `.cursor-plugin/plugin.json` (reads Agent Plugins too) | root `plugin.json` (Agent Plugins 1.0, with its own parts under `com.github.copilot/`) |
-| Added from | a git repo, or **an HTTPS URL to `marketplace.json`** | a git repo (`owner/repo`, a git URL, `--ref`, `--sparse`), or a local folder: `codex plugin marketplace add` | a git repo (GitHub; GitLab, Bitbucket and Azure DevOps since Cursor 3.9), imported by a **team admin** (Teams or Enterprise) in Dashboard › Settings › Plugins › Team Marketplaces › Import | a git repo (`owner/repo`, `owner/repo#ref`, a URL) or a local folder: `copilot plugin marketplace add` |
-| Plugin sources usable from a URL marketplace | `archive` (zip + `sha256`), `github`, `git-subdir`, `npm` | none | none | none: the mirror's folders |
-| Auth | `headers` / `headersHelper` on a URL source; git credentials for git | not documented (it clones with git, so presumably the machine's git credentials) | the git host's connection to Cursor | the machine's git credentials |
-| Updates | `/plugin marketplace update`, or auto-update | `codex plugin marketplace upgrade` | on push, with **Enable Auto Refresh** (GitHub imports) | `copilot plugin marketplace update` |
+| | Claude Code | Codex | Cursor | GitHub Copilot | Antigravity (029) | Gemini CLI (029) |
+|---|---|---|---|---|---|---|
+| Marketplace file | `.claude-plugin/marketplace.json` | `.agents/plugins/marketplace.json` (also reads `.claude-plugin/marketplace.json`) | `.cursor-plugin/marketplace.json` | `.github/plugin/marketplace.json` (looked up first; also reads `.claude-plugin/` and `.plugin/`) | none a third party can serve (its marketplace takes plugins through a partner form) | none (its gallery lists GitHub repositories) |
+| Plugin manifest | `.claude-plugin/plugin.json` (optional) | root `plugin.json` ([Agent Plugins 1.0](https://agent-plugins.org/specification)); `.codex-plugin/plugin.json` as fallback | `.cursor-plugin/plugin.json` (reads Agent Plugins too) | root `plugin.json` (Agent Plugins 1.0, with its own parts under `com.github.copilot/`) | root `plugin.json` (`$schema`, `name` `^[a-z0-9]+(-[a-z0-9]+)*$`, no other top-level keys than its schema's) | `gemini-extension.json` (`name`, `version`, `description`, `mcpServers`) |
+| Added from | a git repo, or **an HTTPS URL to `marketplace.json`** | a git repo (`owner/repo`, a git URL, `--ref`, `--sparse`), or a local folder: `codex plugin marketplace add` | a git repo (GitHub; GitLab, Bitbucket and Azure DevOps since Cursor 3.9), imported by a **team admin** (Teams or Enterprise) in Dashboard › Settings › Plugins › Team Marketplaces › Import | a git repo (`owner/repo`, `owner/repo#ref`, a URL) or a local folder: `copilot plugin marketplace add` | one plugin at a time, from a folder (`agy plugin install <folder>`) or a GitHub repository | one extension at a time, from a folder or a GitHub repository (`gemini extensions install`), which asks to trust it |
+| Plugin sources usable from a URL marketplace | `archive` (zip + `sha256`), `github`, `git-subdir`, `npm` | none | none | none: the mirror's folders | none: the mirror's folders | none: the mirror's folders |
+| Auth | `headers` / `headersHelper` on a URL source; git credentials for git | not documented (it clones with git, so presumably the machine's git credentials) | the git host's connection to Cursor | the machine's git credentials | the machine's git credentials (a clone) | the machine's git credentials (a clone) |
+| Updates | `/plugin marketplace update`, or auto-update | `codex plugin marketplace upgrade` | on push, with **Enable Auto Refresh** (GitHub imports) | `copilot plugin marketplace update` | install again from the updated folder | `gemini extensions update` |
 
 ### Claude Code's limits on a URL marketplace
 
@@ -90,7 +90,9 @@ Ronne serves:
   `[a-z0-9.-]`, at most 64, no `--` or `..`; Cursor: `^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$`). A name a
   tool refuses (longer than 64 characters or containing `--`, for Codex; starting with `claude-`
   or `anthropic-`, which Claude Code reserves) leaves the item out of that tool's feed, with a
-  warning.
+  warning. Antigravity and Gemini CLI take no dot (029): their manifest names the plugin
+  `scope-name` (`workspace-scope-name`), while the feed and the mirror's folder keep `scope.name`;
+  two items whose names join the same way (`@a-b/c`, `@a/b-c`) can't both be installed there.
 - **Plugin version:** the item's released version. Each release is a new version, so Claude Code
   fetches it again. Ronne versions are immutable, so a version's plugin never changes, except when
   the builder changes (below).
@@ -120,17 +122,17 @@ Ronne serves:
 The builder renders each member with the tool's `PlatformRenderer` and moves the result into the
 plugin layout. Anything that has no place in a plugin is skipped with a warning, as renderers do.
 
-| Type | Claude Code plugin | Codex plugin | Cursor plugin | GitHub Copilot plugin |
-|---|---|---|---|---|
-| skill, command | `skills/<n>/` | `skills/<n>/` | `skills/<n>/` | `skills/<n>/` |
-| agent | `agents/<n>.md` | skipped (Codex plugins carry skills, MCP servers, hooks and apps only) | `agents/<n>.md` | `com.github.copilot/agents/<n>.agent.md` |
-| rule | model and manual rules as `skills/<n>/`; `always` and `glob` rules skipped (a plugin's `CLAUDE.md` isn't loaded, and there is no rules component) | model and manual rules as `skills/<n>/`; `always` and `glob` rules skipped | `rules/<n>.mdc` | model and manual rules as `skills/<n>/`; `always` and `glob` rules as `com.github.copilot/rules/<n>.instructions.md` (where the docs put them; the CLI 1.0.114 didn't load them, 028) |
-| hook | `hooks/hooks.json` + `hooks/<n>/…`, run as `"${CLAUDE_PLUGIN_ROOT}"/hooks/<n>/…` | `hooks/hooks.json` + `hooks/<n>/…`, run as `"${PLUGIN_ROOT}"/hooks/<n>/…` | `hooks/hooks.json` + `hooks/<n>/…`, run as `./hooks/<n>/…` | `com.github.copilot/hooks/hooks.json` (`version: 1`) + `com.github.copilot/hooks/<n>/…`, run as `"$COPILOT_PLUGIN_ROOT"/com.github.copilot/hooks/<n>/…` |
-| mcp-server | `.mcp.json` (`{"mcpServers": …}`) | `mcp.json` with the Agent Plugins `$schema`; each server has `type` (`stdio` or `streamable-http`) | `mcp.json` (`{"mcpServers": …}`) | as Codex's, without Copilot's `tools` list |
-| output-style | `output-styles/<n>.md` | none | none | none |
-| lsp-server | `.lsp.json` | none | none | `com.github.copilot/lsp.json` (`{"lspServers": …}`) |
-| permission-policy, statusline | skipped (a plugin's `settings.json` only takes `agent` and `subagentStatusLine`) | skipped | skipped | skipped |
-| bundle | its members | its members | its members | its members |
+| Type | Claude Code plugin | Codex plugin | Cursor plugin | GitHub Copilot plugin | Antigravity plugin (029) | Gemini CLI extension (029) |
+|---|---|---|---|---|---|---|
+| skill, command | `skills/<n>/` | `skills/<n>/` | `skills/<n>/` | `skills/<n>/` | `skills/<n>/` | skills `skills/<n>/`; commands `commands/<n>.toml` |
+| agent | `agents/<n>.md` | skipped (Codex plugins carry skills, MCP servers, hooks and apps only) | `agents/<n>.md` | `com.github.copilot/agents/<n>.agent.md` | `agents/<n>.md` | `agents/<n>.md` |
+| rule | model and manual rules as `skills/<n>/`; `always` and `glob` rules skipped (a plugin's `CLAUDE.md` isn't loaded, and there is no rules component) | model and manual rules as `skills/<n>/`; `always` and `glob` rules skipped | `rules/<n>.mdc` | model and manual rules as `skills/<n>/`; `always` and `glob` rules as `com.github.copilot/rules/<n>.instructions.md` (where the docs put them; the CLI 1.0.114 didn't load them, 028) | `rules/<n>.md`; `manual` rules as `skills/<n>/` | `always` and `glob` rules as sections of `GEMINI.md`, which Gemini CLI reads as the extension's context by default; model and manual rules as `skills/<n>/` |
+| hook | `hooks/hooks.json` + `hooks/<n>/…`, run as `"${CLAUDE_PLUGIN_ROOT}"/hooks/<n>/…` | `hooks/hooks.json` + `hooks/<n>/…`, run as `"${PLUGIN_ROOT}"/hooks/<n>/…` | `hooks/hooks.json` + `hooks/<n>/…`, run as `./hooks/<n>/…` | `com.github.copilot/hooks/hooks.json` (`version: 1`) + `com.github.copilot/hooks/<n>/…`, run as `"$COPILOT_PLUGIN_ROOT"/com.github.copilot/hooks/<n>/…` | `hooks.json`, keyed by hook name, + `hooks/<n>/…`, run as `./hooks/<n>/…` (a plugin's hooks run from its root) | `hooks/hooks.json` (`{"hooks": …}`) + `hooks/<n>/…`, run as `"${extensionPath}"/hooks/<n>/…` |
+| mcp-server | `.mcp.json` (`{"mcpServers": …}`) | `mcp.json` with the Agent Plugins `$schema`; each server has `type` (`stdio` or `streamable-http`) | `mcp.json` (`{"mcpServers": …}`) | as Codex's, without Copilot's `tools` list | `mcp_config.json` (`{"mcpServers": …}`), secrets left out as in a project | in `gemini-extension.json`'s `mcpServers`, with `${NAME}` references |
+| output-style | `output-styles/<n>.md` | none | none | none | none | none |
+| lsp-server | `.lsp.json` | none | none | `com.github.copilot/lsp.json` (`{"lspServers": …}`) | none | none |
+| permission-policy, statusline | skipped (a plugin's `settings.json` only takes `agent` and `subagentStatusLine`) | skipped | skipped | skipped | skipped (home folder only) | skipped (policies and settings are home folder only) |
+| bundle | its members | its members | its members | its members | its members | its members |
 
 The members are rendered at project scope, the scope whose layout every renderer writes in full
 (Cursor writes rules only there), and the paths are then moved into the plugin.
@@ -144,6 +146,11 @@ Every plugin has the manifest for its tool, with `name`, `description` and `auth
   `"$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"` and `version`.
 - Cursor: `.cursor-plugin/plugin.json` with `version`.
 - GitHub Copilot: a root `plugin.json` as Codex's (028).
+- Antigravity: a root `plugin.json` with
+  `"$schema": "https://antigravity.google/schemas/v1/plugin.json"`, `version`, and `name` as
+  `scope-name` (Names, 029).
+- Gemini CLI: `gemini-extension.json` with `name` as `scope-name`, `version`, `description` and the
+  MCP servers; no `author` (029).
 
 Generated Markdown keeps the rmk managed marker. MCP configs keep env var references: secrets are
 never written.
@@ -158,7 +165,8 @@ never written.
 
 ## Endpoints
 
-All under `/api/v1/feeds/<tool>/`, where `<tool>` is `claude-code`, `codex` or `cursor`. Each needs a
+All under `/api/v1/feeds/<tool>/`, where `<tool>` is `claude-code`, `codex`, `cursor`, `copilot`,
+`antigravity` or `gemini`. Each needs a
 bearer token, like the rest of `/api/v1` (401 without one).
 
 | Method & path | Answers |
@@ -182,7 +190,7 @@ Errors use the API's shape (MVP §11), with these codes (077):
 | Status | Code | When |
 |---|---|---|
 | 401 | `token_missing`, `token_invalid`, … | No valid token (`WWW-Authenticate: Bearer realm="ronne"`) |
-| 404 | `feed_not_found` | The instance has no feed for that tool (`claude-code`, `codex` and `cursor` have one) |
+| 404 | `feed_not_found` | The instance has no feed for that tool (the six tools above have one) |
 | 404 | `plugin_not_found` | The version doesn't exist, is yanked, has nothing for the tool, or the caller doesn't see its item (093) |
 | 404 | `workspace_not_found` | `?workspaces=` names a workspace the caller doesn't see: unknown, or private and they aren't a member (093). One message for both: "There's no workspace acme you can use." |
 | 503 | `public_url_missing` | The instance has no `PUBLIC_URL`, so it can't write absolute URLs |
@@ -202,8 +210,15 @@ plugins/claude-code/<plugin>/…
 plugins/codex/<plugin>/…
 plugins/cursor/<plugin>/…
 plugins/copilot/<plugin>/…
+plugins/antigravity/<plugin>/…      no marketplace file: installed by folder (029)
+plugins/gemini/<plugin>/…           no marketplace file: installed by folder (029)
 .rmk-feed.json                      what rmk wrote: registry, tools, plugins and their sha256
 ```
+
+Antigravity and Gemini CLI can't add a marketplace a third party serves, so their plugins are only
+folders: a person clones the mirror and installs one with `agy plugin install <folder>` or
+`gemini extensions install <folder>` (which asks to trust the folder). `.rmk-feed.json` records no
+marketplace file for them.
 
 rmk only writes or deletes these paths; any other file in the folder (a README, a CI workflow) stays
 as it is.

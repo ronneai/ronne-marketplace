@@ -17,11 +17,19 @@ import { installsIn, supportOf } from "@ronneai/core/render";
 /**
  * The tools whose feed the instance serves. Claude Code reads its marketplace over HTTPS (077);
  * Codex's, Cursor's and Copilot's (028) are read only by `rmk feed build`, which writes their git
- * mirror (078).
+ * mirror (078), as are Antigravity's and Gemini CLI's (029), whose mirror has their plugin folders
+ * and no marketplace file.
  */
 export type ServedTool = PluginTool;
 
-export const SERVED_TOOLS: readonly ServedTool[] = ["claude-code", "codex", "cursor", "copilot"];
+export const SERVED_TOOLS: readonly ServedTool[] = [
+  "claude-code",
+  "codex",
+  "cursor",
+  "copilot",
+  "antigravity",
+  "gemini",
+];
 
 export const isServedTool = (value: string): value is ServedTool =>
   (SERVED_TOOLS as readonly string[]).includes(value);

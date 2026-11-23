@@ -1,0 +1,7 @@
+# managed by rmk: @examples/review-diff@1.0.0
+description = "Reviews the current git diff, or a given file or folder."
+prompt = '''
+Review the uncommitted changes in {{args}} (or the whole `git diff` if no target is given).
+
+List bugs and risky changes first, then anything unclear. Keep it short.
+'''

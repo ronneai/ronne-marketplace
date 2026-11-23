@@ -118,6 +118,7 @@ describe("GitHub Copilot plugins", () => {
       { name: "ronne-example", owner: "Ronne at example", description: "Items." },
     );
     expect(MARKETPLACE_PATHS.copilot).toBe(".github/plugin/marketplace.json");
+    if (!file) throw new Error("no marketplace");
     expect(JSON.parse(text(file.bytes))).toEqual({
       name: "ronne-example",
       owner: { name: "Ronne at example" },

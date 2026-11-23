@@ -351,12 +351,20 @@ other top-level keys); `skills/` with skills, commands and `manual` rules; `agen
 `mcp_config.json`, whose servers Antigravity namespaces as `<plugin>_<server>`, with secrets left out
 as in a project. Permission policies and status lines stay out.
 
-**A Gemini CLI extension** (extensions reference, 2026-11-22): `gemini-extension.json` with `name`
-(lowercase and `-`), `version`, `description`, `mcpServers` (no `trust`) and `contextFileName:
-"GEMINI.md"` when it has rules; `commands/<n>.toml`, `skills/`, `agents/<n>.md`, `hooks/hooks.json`
-(its shape is confirmed on the real CLI), `policies/<n>.toml` (an extension's `allow` decisions are
-ignored, so those rules warn) and `GEMINI.md` with the `always` and `glob` rules' sections. Scripts
-run as `${extensionPath}/hooks/<n>/…`.
+**A Gemini CLI extension** (extensions reference, 2026-11-22, and the CLI 0.70.0's source):
+`gemini-extension.json` with `name` (lowercase and `-`), `version`, `description` and `mcpServers`;
+`commands/<n>.toml`, `skills/`, `agents/<n>.md`, `hooks/hooks.json` (the settings file's `hooks`
+shape, its strings filled in with `${extensionPath}`) and `GEMINI.md` with the `always` and `glob`
+rules' sections, which Gemini CLI reads as the extension's context by default, so no
+`contextFileName` is written. Scripts run as `"${extensionPath}"/hooks/<n>/…`. Permission policies
+stay out: a plugin is built from the project-scope render, and Gemini CLI's policies are home-folder
+only (an extension's `allow` decisions would be ignored anyway).
+
+**Names:** neither takes a dot, so the manifest names the plugin `scope-name` (from Ronne's
+`scope.name`, which the feed and the mirror's folder keep); a `--` can't be written, and the item is
+left out of that tool's feed with a warning. On the real CLIs (2026-11-23), `agy plugin install` and
+`gemini extensions install` installed the built `examples.code-reviewer` (and Gemini CLI's
+`examples.github-mcp`) from a folder.
 
 `antigravity` and `gemini` join `PLUGIN_TOOLS`, `pluginNameProblem` (Antigravity's pattern, Gemini
 CLI's lowercase and `-`), the feed's `SERVED_TOOLS`, `rmk feed build --tools`, and Admin › Settings ›

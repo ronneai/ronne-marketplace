@@ -1,0 +1,5 @@
+{
+  "name": "examples-review-diff",
+  "version": "1.0.0",
+  "description": "Reviews the current git diff, or a given file or folder."
+}

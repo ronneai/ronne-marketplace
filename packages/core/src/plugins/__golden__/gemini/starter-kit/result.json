@@ -1,0 +1,23 @@
+{
+  "name": "examples.starter-kit",
+  "empty": false,
+  "executables": [],
+  "warnings": [
+    {
+      "code": "unsupported_field",
+      "message": "Gemini CLI has no model for the `strong` hint, so @examples/code-reviewer uses the session's model; set targets.gemini.overrides.model to choose one."
+    },
+    {
+      "code": "unsupported_field",
+      "message": "Gemini CLI's agents can't preload skills, so @examples/code-reviewer's skills are installed but not preloaded; the agent finds them as any other skill."
+    },
+    {
+      "code": "unsupported_field",
+      "message": "@examples/format-on-edit's command uses an $RMK_ variable; Gemini CLI passes the event as JSON on stdin instead, so the hook has to read it from there."
+    },
+    {
+      "code": "unsupported_type",
+      "message": "Gemini CLI's project policies don't work yet, so @examples/safe-git was skipped; install it with --scope user."
+    }
+  ]
+}

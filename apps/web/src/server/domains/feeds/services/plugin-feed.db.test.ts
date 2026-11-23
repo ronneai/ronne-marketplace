@@ -352,6 +352,25 @@ describe("the Claude Code feed (077)", () => {
     expect(listed?.sha256).toBe(sha256);
   });
 
+  it("builds an Antigravity plugin and a Gemini CLI extension, and lists them (029)", async () => {
+    const ref = { scope: "team", name: "reviewer", version: "2.0.0" };
+    const antigravity = await downloadPlugin(deps(), actor, "antigravity", ref);
+    expect(Object.keys(unzipSync(antigravity.bytes))).toEqual(
+      expect.arrayContaining(["plugin.json", "agents/reviewer.md"]),
+    );
+    const gemini = await downloadPlugin(deps(), actor, "gemini", ref);
+    expect(Object.keys(unzipSync(gemini.bytes))).toEqual(
+      expect.arrayContaining(["gemini-extension.json", "agents/reviewer.md"]),
+    );
+    for (const [tool, built] of [
+      ["antigravity", antigravity],
+      ["gemini", gemini],
+    ] as const)
+      expect(
+        (await feedPlugins(deps(), actor, tool)).find((p) => p.name === "reviewer")?.sha256,
+      ).toBe(built.sha256);
+  });
+
   it("builds a plugin with items that need each other, every one of them (112)", async () => {
     // The skill names the agent back: what releasing them together records (112).
     const style = await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName({
@@ -804,7 +823,7 @@ describe("feed stats, warnings and the cap (079)", () => {
 
   it("caps only Claude Code's marketplace, and the 507 names the git mirror", async () => {
     const tiny = { maxBytes: 100, sizeWarningBytes: 50, timeWarningMs: 60_000 };
-    for (const tool of ["codex", "cursor", "copilot"] as const)
+    for (const tool of ["codex", "cursor", "copilot", "antigravity", "gemini"] as const)
       await expect(
         marketplace(withFeeds({ feedLimits: tiny }), actor, tool, "https://r.example.com"),
       ).resolves.toBeInstanceOf(Uint8Array);

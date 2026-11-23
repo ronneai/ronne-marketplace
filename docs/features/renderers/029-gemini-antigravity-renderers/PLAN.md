@@ -75,7 +75,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     `globals.css` (tokens, never red or amber), and the "What each AI tool reports" helper.
   - *Done when:* unit tests cover the hook changes and the handler on the captured payloads.
 
-- [ ] **9. Plugins and the git mirror.**
+- [x] **9. Plugins and the git mirror.**
   - `packages/core/src/plugins/{antigravity,gemini}.ts`, with `PLUGIN_TOOLS`, `build.ts` and
     `pluginNameProblem`, a mirror with no marketplace file for both, and goldens under
     `plugins/__golden__/`.
@@ -200,4 +200,17 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   CLI's fields are from its source: `fireAfterToolEvent` (`tool_name`, `tool_input`,
   `tool_response` with `error`, `mcp_context` from `extractMcpContext` with `server_name`), the
   `activate_skill` tool's `name` and the `invoke_agent` tool's `agent_name`.
+- **Plugins (task 9, 2026-11-23):** `agy plugin validate` passed the built `examples.code-reviewer`
+  (only a "no logo" note) and `agy plugin install <folder>` installed it as `examples-code-reviewer`
+  (1 skill, 1 agent, 1 rule, 1 MCP server). `gemini extensions install <folder> --consent` asked to
+  trust the folder; with yes it installed `examples-code-reviewer` (its `GEMINI.md` as context, the
+  MCP server and the skill) and `examples-github-mcp` (the MCP server). Gemini CLI's extension
+  `hooks/hooks.json` is the settings file's `hooks` shape, its strings filled in with
+  `${extensionPath}` (its source's `loadExtensionHooks`).
+- **A plugin's hook script on a real run (after the task 9 witness):** a plugin built in the shape
+  the builder writes (`hooks.json` `{"probe-hook": {"PostToolUse": [{ "matcher": "^(?:run_command)$",
+  "hooks": [{ "command": "./hooks/probe-hook/run.sh" }] }]}}`) was installed with `agy plugin install`;
+  an `agy -p` run that ran `echo hi` ran the script, whose `pwd` was the installed plugin's folder
+  (`~/.gemini/config/plugins/team-probe`); then `agy plugin uninstall team-probe`. Installing by URL
+  wasn't tried: it needs a hosted mirror, and installing by folder is what the Documentation gives.
 

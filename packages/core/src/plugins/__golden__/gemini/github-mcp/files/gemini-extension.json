@@ -1,0 +1,13 @@
+{
+  "name": "examples-github-mcp",
+  "version": "1.0.0",
+  "description": "Connects to GitHub's MCP server for issues, pull requests and code search.",
+  "mcpServers": {
+    "github-mcp": {
+      "httpUrl": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_TOKEN}"
+      }
+    }
+  }
+}

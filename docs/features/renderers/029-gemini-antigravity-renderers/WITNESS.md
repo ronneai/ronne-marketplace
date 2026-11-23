@@ -691,3 +691,66 @@ Witnessed: 2026-11-23 10:30 EST, by a fresh agent (blind). Commit: 0786fa82 + wo
 **Overall:** met.
 
 After the pass (wording): SPEC says a skill the model reads again in the same conversation counts again (row 8's remark).
+
+## Task 9 — Plugins and the git mirror
+
+Witnessed: 2026-11-23 10:42 EST, by a fresh agent (blind). Commit: 5357a4dd + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Both in `PLUGIN_TOOLS`, adapters in `build.ts`, `pluginNameProblem` (dot → `-`, `--` refused) | no | confirmed | `types.ts:14-21`; `build.ts:31-32`; `names.ts:53-57` |
+| 2 | Plugin goldens for both, checked by the tests | no | confirmed | 9 + 8 folders; 46 passed; mutating either hook path fails a test |
+| 3 | No marketplace file for either in the mirror | no | confirmed | `marketplaceFor` null; probe build → only `.rmk-feed.json` and `plugins/{antigravity,gemini}/…`; state `file: ""` |
+| 4 | Feed state, conflicts and removal work for both | no | confirmed | edited and unknown folders → exit 3, nothing written; `--force` removes; second build "Nothing changed." |
+| 5 | `rmk feed build --tools` takes both | no | partly | works, but the usage text lists four tools (`cli.ts:49`, `feed-build.ts:422`) |
+| 6 | `SERVED_TOOLS` has both; the server builds their zips and listings | no | confirmed | probe: `antigravity` and `gemini` zips and marketplaces |
+| 7 | The feed tests include both | no | partly | CLI test yes; web `feed.test.ts:22` and `plugin-feed.db.test.ts` don't |
+| 8 | The admin panel names both and says mirror-only | no | confirmed | names from `rendererById`; `feeds.intro` in en, pt, fr |
+| 9 | `plugin-feeds.md` gets their columns | no | partly | "What each tool accepts" and Names yes; "Plugin contents per type", the manifest list, the git mirror tree and the Endpoints/`feed_not_found` lines no |
+| 10 | Antigravity plugins as the SPEC says | no | confirmed | `agy plugin validate --strict` passed all 9 |
+| 11 | Gemini CLI extensions as the SPEC says | no | partly | no `contextFileName`, no `policies/` (SPEC:354-359 says both) |
+| 12 | Every Antigravity golden installs from a folder and is listed | yes | confirmed | agy 1.5.15, fresh HOME: 7 installed, listed with matching components |
+| 13 | Every Gemini CLI golden installs from a folder and is listed | yes | confirmed | 8 installed after trusting the folder; GEMINI.md, MCP, skills listed |
+| 14 | A hook script runs from the plugin root / extension path as built | no | can't check here | reproduced through `sh`; a real agent turn was refused by the witness's permissions, and Gemini has no sign-in |
+| 15 | Installing by URL | no | can't check here | needs a hosted mirror |
+| 16 | No env value reaches a plugin | no | confirmed | `grep -rl SECRETVALUE` → nothing |
+| 17 | No other tool's goldens or marketplaces changed | no | confirmed | `git status … __golden__` → only the two new folders |
+| 18 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | no | confirmed | all exit 0 |
+
+**Overall:** not met (rows 5, 7, 9, 11; 14 and 15 unchecked).
+
+Fixes after the pass:
+- Row 5: `cli.ts` and `feed-build.ts` usage name all six tools.
+- Row 7: `feed.test.ts` checks `isServedTool` for all six; `plugin-feed.db.test.ts` builds an Antigravity plugin and a Gemini CLI extension and lists them with the same sha256, and its "caps only Claude Code" test covers the two new tools.
+- Row 9: `plugin-feeds.md` gets Antigravity and Gemini CLI columns in "Plugin contents per type", their manifests, their mirror folders with no marketplace file and how they're installed, and the six tools in Endpoints and `feed_not_found`.
+- Row 11: SPEC corrected to what's built: `GEMINI.md` is the default context (no `contextFileName`), and policies stay out (a plugin is built from the project-scope render, and Gemini CLI's policies are home-folder only).
+- Row 14: run by the implementer on the real Antigravity CLI (PLAN Notes): a plugin script hook installed with `agy plugin install` ran from the installed plugin's folder; Gemini CLI can't run a model here (owner's decision), so its hook stays checked by its source's `loadExtensionHooks` and the probe.
+- Row 15: by URL wasn't tried; the task asks for it only where the CLI takes one, and it needs a hosted mirror; the Documentation gives installing by folder.
+
+### Re-check 1
+
+Witnessed: 2026-11-23 10:52 EST, by a fresh agent (blind, scoped to rows 5, 7, 9, 11, 14, 15). Commit: 5357a4dd + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | `rmk feed build --tools` takes both, and the usage text names them | no | confirmed | `cli.ts:49`, `feed-build.ts:39,422` list all six |
+| 7 | The feed tests include both | no | confirmed | 2 files, 39 passed; dropping both from `SERVED_TOOLS` fails `feed.test.ts` |
+| 9 | `plugin-feeds.md` gets their columns | no | confirmed | every section added, matching the builders and goldens |
+| 11 | Gemini CLI extensions as the SPEC says | no | confirmed | SPEC:354-367 = `gemini.ts` and the goldens |
+| 14 | A hook script runs from the plugin root or extension path as built | no | can't check here | Antigravity rests on the implementer's run (PLAN Notes), consistent with the shape `antigravity.test.ts:53` pins; `agy` wasn't on this agent's PATH; Gemini CLI has no real run |
+| 15 | Installing by URL, where the CLI takes one | no | can't check here | both take a GitHub URL; needs a hosted mirror |
+| 18 | `pnpm lint`, `pnpm typecheck`, `pnpm test` pass | no | confirmed | all exit 0 |
+
+**Overall:** not met (rows 14, 15 unchecked).
+
+Owner's decision (2026-11-23), on rows 14 and 15: both waived. A Gemini CLI extension's hook rests on its source's `loadExtensionHooks` and the builder's tests, since no model can run here; installing by URL is left untried, and the Documentation gives installing by folder, which both real CLIs did. The Antigravity half of row 14 is checked again by a witness with `agy`'s path (below).
+
+### Re-check 2
+
+Witnessed: 2026-11-23 11:07 EST, by a fresh agent (blind, scoped to the Antigravity half of row 14). Commit: 5357a4dd + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0, Antigravity CLI 1.5.15.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 14 | (Antigravity) A script hook in a plugin built by `antigravity.ts` runs on a real run, from the installed plugin's folder | no | confirmed | `buildPlugin("antigravity", …)` on a `run.script` hook → `hooks.json` `./hooks/format-on-edit/log.sh`, the script 0755; `agy plugin install <folder>` → hooks: 1 installed; a real `agy -p` run that used `run_command` → the script logged `pwd=…/.gemini/config/plugins/examples-format-on-edit`; uninstalled, and `diff -r` of the config backup → no difference |
+
+**Overall:** met. With the owner's waiver of the Gemini half of row 14 and of row 15 (re-check 1), every claim of task 9 is confirmed.

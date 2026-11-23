@@ -6,7 +6,12 @@ import { exampleItems, loadItemDir } from "../render/harness.js";
 import { installsIn, supportOf } from "../render/support.js";
 import { buildPlugin } from "./build.js";
 import { exampleMembers } from "./harness.js";
-import { type MarketplaceEntry, marketplaceFor, marketplaceName } from "./marketplace.js";
+import {
+  MARKETPLACE_PATHS,
+  type MarketplaceEntry,
+  marketplaceFor,
+  marketplaceName,
+} from "./marketplace.js";
 import { PLUGIN_TOOLS, type PluginTool } from "./types.js";
 
 const examplesDir = fileURLToPath(new URL("../../../../examples/items/", import.meta.url));
@@ -41,15 +46,26 @@ const mirrorEntries = (tool: PluginTool): MarketplaceEntry[] => {
 };
 
 describe("marketplaces", () => {
-  it.each(PLUGIN_TOOLS)("for %s match the golden files", (tool) => {
-    const file = marketplaceFor(tool, mirrorEntries(tool), options);
-    const golden = join(goldenDir, `${tool}.json`);
-    if (process.env.UPDATE_GOLDEN === "1") {
-      mkdirSync(goldenDir, { recursive: true });
-      writeFileSync(golden, file.bytes);
+  it("for Antigravity and Gemini CLI are none: they take no marketplace a third party serves (029)", () => {
+    for (const tool of ["antigravity", "gemini"] as const) {
+      expect(MARKETPLACE_PATHS[tool]).toBeUndefined();
+      expect(marketplaceFor(tool, mirrorEntries(tool), options)).toBeNull();
     }
-    expect(new TextDecoder().decode(file.bytes)).toBe(readFileSync(golden, "utf8"));
   });
+
+  it.each(PLUGIN_TOOLS.filter((tool) => MARKETPLACE_PATHS[tool]))(
+    "for %s match the golden files",
+    (tool) => {
+      const file = marketplaceFor(tool, mirrorEntries(tool), options);
+      if (!file) throw new Error(`no marketplace for ${tool}`);
+      const golden = join(goldenDir, `${tool}.json`);
+      if (process.env.UPDATE_GOLDEN === "1") {
+        mkdirSync(goldenDir, { recursive: true });
+        writeFileSync(golden, file.bytes);
+      }
+      expect(new TextDecoder().decode(file.bytes)).toBe(readFileSync(golden, "utf8"));
+    },
+  );
 
   it("point Claude Code at archives with their SHA-256", () => {
     const file = marketplaceFor(
@@ -64,6 +80,7 @@ describe("marketplaces", () => {
       ],
       options,
     );
+    if (!file) throw new Error("no marketplace");
     expect(JSON.parse(new TextDecoder().decode(file.bytes)).plugins[0].source).toEqual({
       source: "archive",
       url: "https://r.example/x.zip",
