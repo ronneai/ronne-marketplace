@@ -2,7 +2,13 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type PackageFile, parseManifest } from "@ronneai/core";
 import { packItem } from "@ronneai/core/pack";
-import { claudeCodeRenderer, codexRenderer, copilotRenderer } from "@ronneai/core/render";
+import {
+  antigravityRenderer,
+  claudeCodeRenderer,
+  codexRenderer,
+  copilotRenderer,
+  geminiRenderer,
+} from "@ronneai/core/render";
 import { stringify as stringifyToml } from "smol-toml";
 import { afterEach, describe, expect, it } from "vitest";
 import { apiClient } from "./api.js";
@@ -106,6 +112,16 @@ const install = async (item: Published, renderer: typeof claudeCodeRenderer, tar
   writeState(places(io, "project").state, { version: 1, entries });
 };
 
+const WEB = {
+  name: "@team/web",
+  version: "1.0.0",
+  files: [
+    {
+      path: "ronne.yaml",
+      text: 'name: "@team/web"\ntype: mcp-server\ndescription: Web.\nmcp-server:\n  transport: http\n  url: https://w.example/mcp\n',
+    },
+  ],
+};
 const placeOf = (name: string) => {
   const found = discoverLocalItems(io, "project").find((i) => i.name === name);
   if (!found) throw new Error(`no ${name}`);
@@ -186,6 +202,92 @@ describe("readChange", () => {
     const change = await readChange(io, api, placeOf("jira"), base);
     expect(change.merged.changes.fields.map((f) => f.field)).toEqual(["mcp-server.args"]);
     expect(change.merged.manifest["mcp-server"]).toMatchObject({ args: ["--cloud"] });
+  });
+
+  it("reads an edited Antigravity or Gemini CLI server with that tool's reader (029)", async () => {
+    for (const [renderer, tool, file] of [
+      [antigravityRenderer, "antigravity", ".agents/mcp_config.json"],
+      [geminiRenderer, "gemini", ".gemini/settings.json"],
+    ] as const) {
+      const { routes } = await registry([SERVER]);
+      io = fakeIo(routes);
+      await install(SERVER, renderer as typeof claudeCodeRenderer, [tool]);
+      const place = placeOf("jira");
+      expect(place.tool).toBe(tool);
+      const api = apiClient(io.fetch, REGISTRY, "t");
+      const base = { item: SERVER.name, version: SERVER.version };
+      const json = JSON.parse(readFileSync(join(io.cwd, file), "utf8"));
+      json.mcpServers.jira.args = ["--cloud"];
+      write(file, JSON.stringify(json));
+      const change = await readChange(io, api, placeOf("jira"), base);
+      expect(
+        change.merged.changes.fields.map((f) => f.field),
+        tool,
+      ).toEqual(["mcp-server.args"]);
+      expect(change.merged.manifest["mcp-server"]).toMatchObject({ args: ["--cloud"] });
+    }
+  });
+
+  it("reads Antigravity's serverUrl and Gemini CLI's httpUrl, which only their readers know (029)", async () => {
+    for (const [renderer, tool, file, key] of [
+      [antigravityRenderer, "antigravity", ".agents/mcp_config.json", "serverUrl"],
+      [geminiRenderer, "gemini", ".gemini/settings.json", "httpUrl"],
+    ] as const) {
+      const { routes } = await registry([WEB]);
+      io = fakeIo(routes);
+      await install(WEB, renderer as typeof claudeCodeRenderer, [tool]);
+      const api = apiClient(io.fetch, REGISTRY, "t");
+      const base = { item: WEB.name, version: WEB.version };
+      expect((await readChange(io, api, placeOf("web"), base)).merged.unchanged, tool).toBe(true);
+      const json = JSON.parse(readFileSync(join(io.cwd, file), "utf8"));
+      json.mcpServers.web[key] = "https://w.example/v2/mcp";
+      write(file, JSON.stringify(json));
+      const change = await readChange(io, api, placeOf("web"), base);
+      expect(change.merged.manifest["mcp-server"], tool).toMatchObject({
+        url: "https://w.example/v2/mcp",
+      });
+    }
+  });
+
+  it("reads an edited Antigravity or Gemini CLI agent with that tool's reader (029)", async () => {
+    for (const [renderer, tool, file] of [
+      [antigravityRenderer, "antigravity", ".agents/agents/reviewer.md"],
+      [geminiRenderer, "gemini", ".gemini/agents/reviewer.md"],
+    ] as const) {
+      const { routes } = await registry([AGENT]);
+      io = fakeIo(routes);
+      await install(AGENT, renderer as typeof claudeCodeRenderer, [tool]);
+      const place = placeOf("reviewer");
+      expect(place.tool).toBe(tool);
+      const api = apiClient(io.fetch, REGISTRY, "t");
+      const base = { item: AGENT.name, version: AGENT.version };
+      expect((await readChange(io, api, place, base)).merged.unchanged, tool).toBe(true);
+      write(
+        file,
+        readFileSync(join(io.cwd, file), "utf8").replace(
+          "Review the diff.",
+          "Review the diff twice.",
+        ),
+      );
+      const change = await readChange(io, api, placeOf("reviewer"), base);
+      expect(change.merged.unchanged, tool).toBe(false);
+      // Only the prompt changed: the tool's own reader gives back the same tools and model.
+      expect(change.merged.changes, tool).toEqual({
+        added: [],
+        removed: [],
+        changed: ["prompt.md"],
+        fields: [],
+      });
+      // A tool added in the tool's own names reads back as the canonical one only through its
+      // own reader.
+      const shell = tool === "antigravity" ? "run_command" : "run_shell_command";
+      write(
+        file,
+        readFileSync(join(io.cwd, file), "utf8").replace("tools:\n", `tools:\n  - ${shell}\n`),
+      );
+      const added = await readChange(io, api, placeOf("reviewer"), base);
+      expect((added.merged.manifest.agent as { tools: string[] }).tools, tool).toContain("shell");
+    }
   });
 
   it("says unchanged when nothing the item carries was edited", async () => {

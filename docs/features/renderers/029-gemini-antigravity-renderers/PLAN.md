@@ -60,7 +60,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     `--target codex,antigravity` and `--target gemini,antigravity`, and the other goldens are
     unchanged.
 
-- [ ] **7. Export.**
+- [x] **7. Export.**
   - `packages/core/src/read/antigravity/` and `read/gemini/`, with tests from the renderers'
     output; both in `packages/cli/src/export.ts`, `export-proposal.ts` and the MCP server's export
     tools.

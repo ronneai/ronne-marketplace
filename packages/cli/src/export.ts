@@ -19,18 +19,24 @@ import {
 } from "@ronneai/core";
 import {
   agentName,
+  antigravityAgentName,
   CURSOR_COMMAND_EXTENSIONS,
   codexAgentName,
   commandName,
   copilotAgentName,
   cursorAgentName,
   cursorCommandName,
+  geminiAgentName,
+  geminiCommandName,
   givenDescription,
   type MergeResult,
   mcpServerName,
   ReadError,
   type ReadResult,
   readAgent,
+  readAntigravityAgent,
+  readAntigravityMcpServer,
+  readAntigravityRule,
   readCodexAgent,
   readCodexMcpServer,
   readCommand,
@@ -41,6 +47,9 @@ import {
   readCursorCommand,
   readCursorMcpServer,
   readCursorRule,
+  readGeminiAgent,
+  readGeminiCommand,
+  readGeminiMcpServer,
   readMcpServer,
   readRule,
   readSkill,
@@ -70,20 +79,24 @@ import { itemPath } from "./registry-commands.js";
 
 /**
  * Where skills live, relative to the project or the home folder (native-readers.md §4, §11):
- * Claude Code's, the shared folder, and Copilot's (`.github/skills/` in a project,
- * `~/.copilot/skills/` in the home folder).
+ * Claude Code's, the shared folder, Copilot's (`.github/skills/` in a project, `~/.copilot/skills/`
+ * in the home folder), Gemini CLI's own (`.gemini/skills/`) and Antigravity's home folder's
+ * (`~/.gemini/config/skills/`, 029).
  */
 export const SKILL_FOLDERS = [
   ".claude/skills",
   ".agents/skills",
   ".github/skills",
   ".copilot/skills",
+  ".gemini/skills",
+  ".gemini/config/skills",
 ] as const;
 
-/** Copilot's skill folders belong to one scope each, as its agents and rules do. */
+/** Copilot's and Antigravity's skill folders belong to one scope each, as their agents and rules do. */
 const SKILL_FOLDER_SCOPE: Partial<Record<(typeof SKILL_FOLDERS)[number], Scope>> = {
   ".github/skills": "project",
   ".copilot/skills": "user",
+  ".gemini/config/skills": "user",
 };
 
 /** The tool a skill folder is written for, by where it is. */
@@ -92,6 +105,8 @@ export const skillTool = (path: string): SourceTool => {
   if (slashed.includes("/.claude/skills/")) return "claude-code";
   if (slashed.includes("/.github/skills/") || slashed.includes("/.copilot/skills/"))
     return "copilot";
+  if (slashed.includes("/.gemini/config/skills/")) return "antigravity";
+  if (slashed.includes("/.gemini/skills/")) return "gemini";
   return "shared";
 };
 
@@ -109,10 +124,24 @@ export const EXPORT_TYPES: readonly ExportType[] = [
  * The AI tool an item was written for; `shared` is `.agents/skills/`, which Codex, Cursor and the
  * Copilot CLI read.
  */
-export type SourceTool = "claude-code" | "codex" | "cursor" | "copilot" | "shared";
+export type SourceTool =
+  | "claude-code"
+  | "codex"
+  | "cursor"
+  | "copilot"
+  | "antigravity"
+  | "gemini"
+  | "shared";
 /** The tools `--from` names (043). */
 export type ExportTool = Exclude<SourceTool, "shared">;
-export const EXPORT_TOOLS: readonly ExportTool[] = ["claude-code", "codex", "cursor", "copilot"];
+export const EXPORT_TOOLS: readonly ExportTool[] = [
+  "claude-code",
+  "codex",
+  "cursor",
+  "copilot",
+  "antigravity",
+  "gemini",
+];
 
 /**
  * Whether an item is one `--from <tool>` means: the shared skills folder counts for every tool that
@@ -203,6 +232,11 @@ type FileSource = {
   projectOnly?: boolean;
   /** Copilot's home-folder files are under `~/.copilot/`, its project's under `.github/`. */
   userOnly?: boolean;
+  /**
+   * In a subfolder, the only file that's an item: Antigravity's agent in a folder is
+   * `<n>/agent.md`, and the folder's other files are its own (029).
+   */
+  nested?: string;
 };
 
 /** Where each tool keeps agents, commands and rules, read recursively (native-readers.md §5–10). */
@@ -253,6 +287,38 @@ export const FILE_SOURCES: readonly FileSource[] = [
     extensions: [".instructions.md"],
     userOnly: true,
   },
+  {
+    tool: "antigravity",
+    type: "agent",
+    folder: ".agents/agents",
+    extensions: [".md"],
+    projectOnly: true,
+    nested: "agent.md",
+  },
+  {
+    tool: "antigravity",
+    type: "agent",
+    folder: ".gemini/config/agents",
+    extensions: [".md"],
+    userOnly: true,
+    nested: "agent.md",
+  },
+  {
+    tool: "antigravity",
+    type: "rule",
+    folder: ".agents/rules",
+    extensions: [".md"],
+    projectOnly: true,
+  },
+  {
+    tool: "antigravity",
+    type: "rule",
+    folder: ".gemini/config/rules",
+    extensions: [".md"],
+    userOnly: true,
+  },
+  { tool: "gemini", type: "agent", folder: ".gemini/agents", extensions: [".md"] },
+  { tool: "gemini", type: "command", folder: ".gemini/commands", extensions: [".toml"] },
 ];
 
 const filesUnder = (dir: string, extensions: readonly string[], under = ""): string[] => {
@@ -295,6 +361,12 @@ export const suggestedName = (
     return source.type === "agent"
       ? copilotAgentName(file, base)
       : nameFromPath(under, source.extensions);
+  if (source.tool === "antigravity")
+    return source.type === "agent"
+      ? antigravityAgentName({ ...file, path: under }, base)
+      : nameFromPath(under, source.extensions);
+  if (source.tool === "gemini")
+    return source.type === "agent" ? geminiAgentName(file, base) : geminiCommandName(under);
   if (source.tool === "cursor")
     return source.type === "agent"
       ? cursorAgentName(file, base)
@@ -314,18 +386,20 @@ const findFiles = (io: Io, scope: Scope, source: FileSource): LocalItem[] => {
   if (source.userOnly && scope === "project") return [];
   const { root } = places(io, scope);
   const folder = join(root, source.folder);
-  return filesUnder(folder, source.extensions).map((under) => {
-    const path = join(folder, under);
-    const file = { path: under, bytes: new Uint8Array(readFileSync(path)) };
-    return {
-      type: source.type,
-      tool: source.tool,
-      name: suggestedName(source, file, under),
-      path,
-      display: toSlashes(relative(root, path)),
-      scope,
-    };
-  });
+  return filesUnder(folder, source.extensions)
+    .filter((under) => !source.nested || !under.includes("/") || basename(under) === source.nested)
+    .map((under) => {
+      const path = join(folder, under);
+      const file = { path: under, bytes: new Uint8Array(readFileSync(path)) };
+      return {
+        type: source.type,
+        tool: source.tool,
+        name: suggestedName(source, file, under),
+        path,
+        display: toSlashes(relative(root, path)),
+        scope,
+      };
+    });
 };
 
 /** Where each tool keeps MCP servers, per scope (native-readers.md §8–10). */
@@ -346,6 +420,13 @@ const MCP_SOURCES: readonly {
     file: (scope) => (scope === "project" ? ".github/mcp.json" : ".copilot/mcp-config.json"),
     toml: false,
   },
+  {
+    tool: "antigravity",
+    file: (scope) =>
+      scope === "project" ? ".agents/mcp_config.json" : ".gemini/config/mcp_config.json",
+    toml: false,
+  },
+  { tool: "gemini", file: () => ".gemini/settings.json", toml: false },
 ];
 
 /** The table MCP servers are under: Codex's `mcp_servers`, everyone else's `mcpServers`. */
@@ -1350,7 +1431,11 @@ export const planExport = async (
               ? readCursorMcpServer
               : target.tool === "copilot"
                 ? readCopilotMcpServer
-                : readMcpServer;
+                : target.tool === "antigravity"
+                  ? readAntigravityMcpServer
+                  : target.tool === "gemini"
+                    ? readGeminiMcpServer
+                    : readMcpServer;
         read = reader(key, value, {
           itemName: `@${scope}/${short}`,
           ...(description ? { description } : {}),
@@ -1400,6 +1485,12 @@ export const planExport = async (
         if (target.tool === "codex") read = readCodexAgent(toml, { itemName, fileName: file.path });
         else if (target.tool === "copilot")
           read = (type === "agent" ? readCopilotAgent : readCopilotRule)(file, { itemName });
+        else if (target.tool === "antigravity")
+          read = (type === "agent" ? readAntigravityAgent : readAntigravityRule)(file, {
+            itemName,
+          });
+        else if (target.tool === "gemini")
+          read = (type === "agent" ? readGeminiAgent : readGeminiCommand)(file, { itemName });
         else if (target.tool === "cursor")
           read = (
             type === "agent"

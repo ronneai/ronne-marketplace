@@ -294,8 +294,8 @@ Cursor's and Copilot's (043, 028). `native-readers.md` gets a section for each.
   examples put a literal token there, so a literal is never uploaded).
 
 **Gemini CLI** reads:
-- **agents** from `.gemini/agents/*.md` (`~/.gemini/agents/`), `kind: remote` agents dropped with a
-  warning;
+- **agents** from `.gemini/agents/*.md` (`~/.gemini/agents/`); a `kind: remote` agent, which runs
+  elsewhere, is refused with a message;
 - **commands** from `.gemini/commands/**/*.toml` (`~/.gemini/commands/`), `{{args}}` as one
   argument, a subfolder's `:` name as the item name with `-`;
 - **skills** from `.agents/skills/` and `.gemini/skills/` (`~/.agents/skills/`, `~/.gemini/skills/`);

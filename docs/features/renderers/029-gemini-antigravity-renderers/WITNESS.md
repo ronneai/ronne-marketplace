@@ -400,3 +400,270 @@ Witnessed: 2026-11-22 22:53 EST, by a fresh agent (blind). Commit: 50bbf833 + wo
 | 15b | The item-page test passes | no | confirmed | 1 file, 30 tests passed |
 
 **Overall:** met.
+
+## Task 7 — Export
+
+Witnessed: 2026-11-22 23:20 EST, by a fresh agent (blind). Commit: 381c0174 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | no | confirmed | lint exit 0; typecheck exit 0; core 541, rmk 301, mcp 53, web 6966 passed |
+| 2 | Antigravity goldens (agent, rule, MCP) read back to the example, or lose only what the renderer warned about | no | confirmed | agent `{tools:[read,grep,glob,shell], model:strong}`; `mcp:github-mcp` missing as the golden's `unmapped_tool` says; rule globs exact; MCP headers and env missing as the golden's warnings say |
+| 3 | Gemini CLI agent and command goldens read back | no | confirmed | agent tools include `mcp:github-mcp`; `strong` missing as warned; command description matches, `target` → `args` |
+| 4 | The Gemini CLI MCP golden reads back to the example | no | partly | `Bearer ${GITHUB_TOKEN}` read back with no `env` entry for `GITHUB_TOKEN`, no warning |
+| 5 | Skill goldens read back through the shared skill reader | no | confirmed | secure-coding in every folder; Antigravity's review-diff as a skill |
+| 6 | No env value reaches an uploaded item | no | confirmed | hostile env values → names only; `rmk export gh --from antigravity --yes` → no `ghp_` in requests |
+| 7 | No literal credential reaches an uploaded item through these readers | no | not met | Gemini header `"s3cr3tP4ss$Word"` and `"Bearer hunter2hunter2$X"` → uploaded as `s3cr3tP4ss${Word}`, `Bearer hunter2hunter2${X}`, no warning; §8's `cleaned()` lets a literal beside a reference through (the Claude Code reader too) |
+| 8 | `$NAME` is read as `${NAME}` | no | partly | works, but making `braced()` the identity keeps 90/90 green |
+| 9 | SSE `url` is read as http with a warning | no | confirmed | warning given. Remark: `type:"sse"` refused, `type:"http"` with `url` warned |
+| 10 | Antigravity `serverUrl` (or `url`) is read as http | no | confirmed | `serverUrl` wins over `url` |
+| 11 | Gemini TOML commands, invalid TOML, subfolder names | no | confirmed | `bad.toml` refused, exit 1; `a/b/deep.toml` → `a-b-deep` |
+| 12 | A `kind: remote` agent is refused | no | confirmed | `gemini.test.ts` |
+| 13 | Folder-per-agent `agent.md` named by its folder | no | confirmed | `fixer`. Remark: `.agents/agents/fixer/notes.md` is offered as an agent |
+| 14 | Scope-only folders | no | confirmed | project `.gemini/config/*` and home `.agents/rules`, `.agents/agents` not listed |
+| 15 | A `.gemini/settings.json` with comments gives a clear problem | no | confirmed | "settings.json isn't valid JSON (…), so its MCP servers can't be read.", exit 0 |
+| 16 | `--from antigravity` and `--from gemini` select correctly, the shared `.agents/skills/` included | no | confirmed | CLI probe |
+| 17 | `rmk export --from antigravity\|gemini` has CLI tests | no | partly | only `planExport` is tested; nothing goes through `run()` |
+| 18 | Both tools are wired into `export-proposal.ts` (042) | no | partly | wired, but removing the four branches keeps 106/106 green |
+| 19 | The MCP server's export tools take both | no | confirmed | `server.ts:215` enum, used at :230 and :258 |
+| 20 | `native-readers.md` has a section for each | no | confirmed | §13 and §14 |
+| 21 | No new regex carries polynomial risk | no | confirmed | `/\$([A-Za-z_][A-Za-z0-9_]*)/g` linear on 50,000 chars |
+
+**Overall:** not met (row 7; rows 4, 8, 17, 18 partly).
+
+Fixes after the pass:
+- Row 7: §8's shared `cleaned()` keeps a credential-named header only when it's a reference, alone or after a scheme; a literal beside a reference (`s3cr3tP4ss${Word}`, `Bearer hunter2hunter2${X}`) is replaced whole by a declared variable. This changes the Claude Code reader too, which had the same gap; `native-readers.md` §8 says so. Tests in both readers check neither literal reaches the result.
+- Row 4: the Gemini CLI reader declares every variable the URL, a header or an argument references; the golden reads back with `GITHUB_TOKEN` declared as a secret.
+- Row 8: a test reads `$HOME/bin/srv` and `$REGION` as `${HOME}`, `${REGION}` (and the mixed-credential test reads `$TENANT` in the URL).
+- Row 9's remark: `type: "http"` with `url` is plain http, no warning; `type: "sse"` is read as http with the SSE warning.
+- Row 13's remark: in an Antigravity agent's folder only `agent.md` is an item (`FileSource.nested`); a test checks `notes.md` isn't offered.
+- Row 17: `cli.test.ts` runs `rmk export --from antigravity|gemini` through `run()`: listing, and uploading both servers with no secret in any request.
+- Row 18: `export-proposal.test.ts` reads Antigravity's `serverUrl` and Gemini CLI's `httpUrl` servers and edited agents and servers; removing the four branches now fails a test (checked, then restored).
+
+### Re-check 1
+
+Witnessed: 2026-11-22 23:16 EST, by a fresh agent (adversarial). Commit: 381c0174 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | yes | not met | lint and test exit 0; typecheck exit 1: `cli.test.ts(931,9)` TS2345, the tuple array has no `as const` |
+| 4 | The Gemini CLI MCP golden reads back to the example | yes | confirmed | dropping the `uses` loop fails 2 tests. Remark: `${X:-default}` isn't declared |
+| 7 | No literal credential reaches an uploaded item | yes | partly | 22 credential-named header variants clean in all six readers; still uploaded as written in every reader (since 040): URL userinfo password and `?api_key=…`, args `--password=…` and `--token hunter2hunter2${X}`, a non-credential-named header `X-Tenant: hunter2hunter2${X}` |
+| 8 | `$NAME` is read as `${NAME}` | yes | confirmed | `braced()` identity fails 2 tests |
+| 9 (remark) | `type:"http"` with `url` plain http; `type:"sse"` warned | yes | confirmed | mutation fails a test |
+| 13 (remark) | Only `agent.md` is an item in an Antigravity agent's folder | yes | confirmed | removing the `nested` filter fails a test |
+| 17 | `rmk export --from antigravity\|gemini` has CLI tests through `run()` | yes | partly | tests catch the Gemini fallback mutation, but the file breaks typecheck (row 1) |
+| 18 | Removing the proposal branches fails a test | yes | partly | removing all four fails 1 test; removing only the agent/rule or agent/command branch keeps 10/10 green |
+| 19 | Reverting `cleaned()` fails a test | yes | confirmed | fails both readers' tests |
+| 20 | Existing readers still behave | no | confirmed | core 544, rmk 307, mcp 53 passed |
+| 21 | No new regex carries polynomial risk | no | confirmed | 50,000-char crafted inputs in 2–25 ms |
+
+**Overall:** not met (rows 1, 7, 17, 18).
+
+Owner's decision on row 7 (2026-11-23): fix the older leak in 029 rather than a separate issue.
+
+Fixes after the re-check:
+- Rows 1 and 17: the tuple array has `as const`; `pnpm typecheck` exits 0.
+- Row 7: §8's shared reader also takes out the password in the address, a query value whose name reads as a credential, the value of a credential flag (`--password=…`, `--api-key …`, `--token …`, split on `-`/`_` with no backtracking pattern; a reference is kept), and, in a header or an argument that also holds a reference, a literal run of 12+ letters and digits beside it (never a variable's own name). A test runs the witness's URL, args and `X-Tenant` header and finds none of the literals; `?page=2`, `core-${TEAM}` and `--sort-key name` stay. `native-readers.md` §8 says so.
+- Row 4's remark: the Gemini CLI reader declares a variable referenced with a default; a test checks `${D_KEY:-hunter2hunter2}` declares `D_KEY` and uploads no `hunter2`.
+- Row 18: the agent proposal test adds a tool in each tool's own names (`run_command`, `run_shell_command`) and expects `shell` back; removing either file branch alone now fails it (checked, then restored).
+
+### Re-check 2
+
+Witnessed: 2026-11-23 09:04 EST, by a fresh agent (adversarial). Commit: 381c0174 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | yes | confirmed | all exit 0 (`typecheck --force`) |
+| 4 (remark) | A variable referenced with a default is declared | yes | confirmed | `gemini.test.ts:210-221`; mutation → 3 tests fail |
+| 7 | No literal credential reaches an uploaded item | yes | not met | the four mutations each fail a test, and many variants are caught; still uploaded in every reader: an arg connection string `postgresql://admin:…@localhost/db`, `--header "Authorization: Bearer …"`, `-e API_KEY=…`, `--url=https://…?api_key=…`, user-only userinfo, `%3A` colon, no-scheme and `//` addresses, `#access_token=`, `?pas%73word=`, `;token=`, `--auth`/`--bearer`/`--pw`/`--key`, `--password:x`, `--token -x`, `hunter2!hunter2${X}`. Over-replaced: `--secret server.js`, `--no-password server.js`, `?key_id=abc`, `--workspace=project2024alpha${ENV}` |
+| 17 | `rmk export --from …` has CLI tests through `run()` | yes | confirmed | 112/112; swapping either reader fails a test |
+| 18 | Removing the proposal branches fails a test | yes | confirmed | each branch alone → 1 failed |
+| 21 | No new regex or loop carries polynomial risk | no | not met | `token=a&`×6250 (50k chars) → 204,311 ms: `newVariable` rescans `taken` per candidate, O(k³), reached once per param or arg |
+
+**Overall:** not met (rows 7, 21).
+
+Fixes after the re-check:
+- Row 21: `newVariable` keeps a set of names and a running suffix, so naming is linear; a test names 6,250 variables from one URL in under 5 seconds.
+- Row 7, caught now (a test checks none of the literals is uploaded): an argument that is an address or a connection string goes through the address rules (also a `--url=…` value); a header passed as an argument (`Name: value`) through the header rules; a credential-named `NAME=value` argument (`-e API_KEY=…`); a token as the address's only userinfo (when it reads as one); the `%3A` colon; a `//` address; credential-named values after `#`; percent-encoded parameter names; `--auth`, `--bearer`, `--pw`.
+- Row 7, over-replacement: a `--no-…` flag takes no value, and a value after a credential flag that reads as a file path is kept (`--no-password server.js`, `--secret ./secret.json`); the "literal beside a reference" rule applies to headers only, so `--workspace=project2024alpha${ENV}` stays; `git@`, `/@me` and `?email=a@b.com` stay (tested).
+- Row 7, not caught, and said in `native-readers.md` §8 so the preview is read before uploading: `--key …` (often a file), `;token=` path parameters, `--password:…`, addresses with no scheme, and a literal broken up by punctuation beside a reference. `?key_id=…` is still replaced, as an access key's id.
+
+### Re-check 3
+
+Witnessed: 2026-11-23 09:17 EST, by a fresh agent (adversarial). Commit: 381c0174 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | no | confirmed | all exit 0 |
+| 7a | Each listed caught shape is caught in all six readers | no | partly | 21 shapes × 6 readers absent; a `//` address as an argument is uploaded as written |
+| 7b | The listed ordinary values stay | no | confirmed | all six readers keep them |
+| 7c | §8's "not caught" list matches what still gets through | no | not met | also leak, not named: `--header "Authorization:Bearer …"` (no space), `-H "X-Api-Key:…"`, `--passphrase …`, `-pmy77pw`, `--token -dash77`, `command: "srv --password=…"`, `//user:…@h` as an argument |
+| 7d | No secret reaches `io.requests` in an end-to-end `rmk export` | no | confirmed | 7 servers with the new shapes, 42 requests → leaked `[]` |
+| 7e | Reverting each new rule fails a test | no | partly | 11 of 18 mutations fail; 7 survive: `%3A`, `bearer`, `pw`, `--no-`, the extension rule, the `/` rule, the beside rule on args |
+| 21 | No new regex or loop is polynomial | no | confirmed | 30 crafted 50k inputs, 0.1–67 ms each; the old `newVariable` fails the 5 s bound |
+
+**Overall:** not met (7a, 7c, 7e).
+
+Fixes after the re-check:
+- 7a, 7c: a `//` address as an argument goes through the address rules; a header argument with no space after the colon is read as a header, now only after `--header`/`-H` or when its name reads as a credential (so `localhost:5432` stays), its spacing kept; `--passphrase` is a credential flag. `-pVALUE`, a value starting with `-`, and a credential in `command` itself are added to §8's "not caught" list.
+- 7e: a test pins each surviving rule with a case only it decides: `--bearer`, `--pw` and `--passphrase` take the next value; `--no-password plainvalue` and `--secret secret.json` / `--secret conf/secret` are kept; `--workspace=project2024alpha${ENV}` is kept; the no-space header after `--header`; `-H "X-Team: core"` and `localhost:5432` kept; a `//` address argument; `user%3Apc77@`.
+
+### Re-check 4
+
+Witnessed: 2026-11-23 09:20 EST, by a fresh agent (adversarial). Commit: 381c0174 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | no | confirmed | all exit 0 |
+| 7a | Every caught shape in §8 is caught in all six readers | no | confirmed | 33 caught cases × 6 readers, none of the secrets in the output |
+| 7b | The listed ordinary values stay, plus `localhost:5432` and `-H "X-Team: core"` | no | confirmed | all six readers. Side note: `--label author:jane` becomes `author:${SRV_TOKEN}` (over-catch) |
+| 7c | §8's "not caught" list matches what still gets through | no | not met | not listed and leaking: `--dsn=//admin:…@db/x`, `--header=Authorization: Bearer …` and `--header=X-Api-Key:…` as one argument, `-H "X_Api_Key: …"`; `--password:…` is listed but now caught |
+| 7e | Undoing each rule makes a test fail | no | partly | 21 of 26 mutations fail; survive: the `HEADER_FLAGS` gate, `-H` in it, `mixed=false` on header arguments, the credential-name gate, and the gate always true |
+| 21 | No new regex or loop is polynomial | no | confirmed | 40 crafted 50k inputs, slowest 71 ms |
+
+**Overall:** not met (7c, 7e).
+
+Fixes after the re-check:
+- 7c: a flag's value that is an address goes through the address rules whatever its form (`--dsn=//…`); `--header=Name: value` as one argument is a header; header names may hold `_`. `--password:…` is off §8's "not caught" list.
+- 7b's side note: with no flag, an argument is a header only when its name reads as a credential header (has a `-`, or is `Authorization`/`Cookie`), so `author:jane` and `keyspace:main` stay.
+- 7e: a test pins each gate with a case only it decides: `-H "X-Custom:hunter2hunter2${X}"` (`HEADER_FLAGS`, `-H`, and the mixed rule on header arguments); `Authorization:Bearer nf88` with no flag (the credential-name gate); `author:jane`, `keyspace:main`, `localhost:5432` kept (the gate not always true); `--header=…`, `--dsn=//…`, `X_Api_Key`. Header parsing is checked before any cleaning, so an argument that isn't used as a header declares no variable (tested).
+
+### Re-check 5
+
+Witnessed: 2026-11-23 09:35 EST, by a fresh agent (adversarial). Commit: 381c0174 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | no | confirmed | all exit 0 |
+| 7a | Everything §8 lists as caught is caught in all six readers | no | not met | 44 cases × 6 readers clean, but: a header argument whose value holds `=` (`Authorization: Basic YWRtaW46cHc=`, `X-Api-Key: k3y=v4l`) is taken by the `NAME=value` branch and mostly uploaded; regression: `--header=Referer: https://admin:…@h/x` uploaded as written (the one-argument header branch now runs before the address branch) |
+| 7b | The ordinary values stay | no | confirmed | 31 cases × 6 readers |
+| 7c | §8's "not caught" list matches what leaks | no | partly | no-flag headers whose name has no `-` (`API_KEY:…`, `Token: …`) and a `//` address in a header value leak and aren't listed |
+| 7e | Undoing each rule or gate makes a test fail | no | partly | 33 of 36 fail; survive: the `-` part of the no-flag gate, `flagged` in the one-argument form, `flag` requiring a leading `-` |
+| 7f | An unused header parse declares no variable | no | confirmed | 0 orphans over 143 cases × 6 readers |
+| 21 | No polynomial input | no | confirmed | 48 crafted 50k inputs, slowest 126.6 ms |
+
+**Overall:** not met (7a, 7c, 7e).
+
+Fixes after the re-check:
+- 7a: a `NAME=value` argument is read as a variable only when `NAME` is environment-style (`ENV_NAME`), so a header argument's value stays whole, `=` included; a header's value that is an address (`Referer: https://…`, `X-Upstream: //…`) goes through the address rules, in every header form.
+- 7c: §8's "not caught" list names a header with no flag whose name has no `-` and a variable passed on with a lowercase name; the caught list says a header's value is kept whole and its address cleaned.
+- 7e: tests pin `Authorization: Basic …=` and `X-Api-Key: k3y=v4l` (whole value), `--header=Referer: https://…` and `-H "X-Upstream: //…"` (address rules), `X-Api-Key:v4lue` with no flag (the `-` rule), `--header=X-Custom:hunter2hunter2${X}` (`flagged` in the one-argument form), and `-e API_KEY=hunter2` still a variable.
+
+### Re-check 6
+
+Witnessed: 2026-11-23 09:52 EST, by a fresh agent (adversarial). Commit: 381c0174 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | no | confirmed | all exit 0 |
+| 7a | Everything §8 lists as caught is caught in all six readers | no | not met | 62 cases × 6 readers clean, re-check 5's fixes included; regression: a credential header argument holding `://` or starting `//` got only the address rules (`-H "Cookie: sid=…; next=https://app/x"`, `-H "Authorization: Bearer … https://h"`, `-H "X-Api-Key: //…"`) |
+| 7c | §8's "not caught" list matches what leaks | no | partly | not listed: an address with a password in an http server's `headers`; a no-flag header with a `-` that isn't credential-named holding an address; `NAME=value` with a non-environment-style name (`X-Api-Key=…`, `--header=X-Api-Key=…`, `Authorization=Bearer …`, `Api_Key=…`, `apiKey=…`); `-e API_KEY=…://x` |
+| 7e | Undoing each rule or gate makes a test fail | no | confirmed | 40 mutations, all fail |
+| 7f | No orphan variables | no | confirmed | 0 over 190 cases × 6 readers |
+| 21 | No polynomial input | no | confirmed | 56 crafted 50k inputs, slowest 118.7 ms |
+
+**Overall:** not met (7a, 7c).
+
+Fixes after the re-check:
+- 7a: a credential header's value always gets the whole-value rule, address or not (`headerValue`), and a header argument is recognised before the address rule; only a header that isn't credential-named gets the address rules for an address value.
+- 7c: the same `headerValue` runs for an http server's `headers`, so an address with a password there is cleaned; a variable pair is any single word that reads as a credential, then `=` (`X-Api-Key=…`, `Api_Key=…`, `apiKey=…`, `--header=X-Api-Key=…`, `Authorization=Bearer …`), checked before the address rule (`-e API_KEY=…://x`); a no-flag header whose name doesn't read as a credential stays unread, and §8's "not caught" list says so. Tests pin each case.
+
+### Re-check 7
+
+Witnessed: 2026-11-23 09:54 EST, by a fresh agent (adversarial). Commit: 381c0174 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | no | confirmed | all exit 0 |
+| 7a | Everything §8 lists as caught is caught in all six readers | no | partly | 80 caught cases × 6 readers absent, re-check 6's leaks included; regression: `_TOKEN=lu71` uploaded (the name pattern needs a leading letter) |
+| 7b | The ordinary values stay | no | partly | `author=jane`, `tokenizer=bpe`, `session=default`, `keyspace=main`, `sort_key=name` now become `…=${…}` (credential substrings) |
+| 7c | §8's "not caught" list matches what leaks | no | partly | not listed: `--env=API_KEY=…`, `-e=API_KEY=…` (new kind); a second address in one value (new kind); `X-Next: /path?api_key=…` in an http header (variant of "address with no scheme"); dotted names (`API.KEY=…`, `--set api.key=…`) |
+| 7e | Undoing each rule or gate makes a test fail | no | partly | all new `headerValue`, `variablePair` and order mutations fail; V2 (`variablePair` without the credential test) and V6 (any flag allowed) survive |
+| 7f | No orphan variables | no | confirmed | 0 over 246 cases × 6 readers |
+| 21 | No polynomial input | no | confirmed | 66 crafted inputs, slowest 117.7 ms |
+
+**Overall:** not met (7a, 7b, 7c, 7e).
+
+Fixes after the re-check:
+- 7a, 7b: a variable pair's name is read by its words (split at `-`, `_`, `.` and camel case, no backtracking pattern): it names a credential when its last word or last two do (`_TOKEN`, `API_KEY`, `apiKey`, `X-Api-Key`, `db.password`), or when it's environment-style and ends in `_KEY` (`STRIPE_KEY`); `author=jane`, `tokenizer=bpe`, `session=default`, `keyspace=main`, `sort_key=name`, `mode=fast` and `-e LOG_LEVEL=debug` stay (tested, which also pins V2).
+- 7c: `--env=`, `-e=` and `--set` take a variable pair as their value (`ENV_FLAGS`; V6 pinned: other flags don't); every address in a value that holds several is cleaned (`cleanedUrls`, in arguments and headers); dotted names are read as words. §8's "not caught" list now says "an address or a path with no scheme (`user:pass@host`, `/path?api_key=…` in a header)".
+- The header functions' JSDoc is back above `isHeaderArg`.
+
+### Re-check 8
+
+Witnessed: 2026-11-23 10:02 EST, by a fresh agent (adversarial). Commit: 381c0174 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | no | confirmed | all exit 0 |
+| 7a | Everything §8 lists as caught is caught in all six readers | no | partly | 302 cases × 6 readers; re-check 7's misses hold; still leaking: addresses split by `;` or `\|`, and a second address that starts `//` |
+| 7b | The ordinary values stay | no | partly | all listed values stay; over-catch: `-e SORT_KEY=name`, `-e PRIMARY_KEY=id` (the `_KEY` rule), not said in §8 |
+| 7c | §8's "not caught" list matches what leaks | no | partly | not listed: `--build-arg=API_KEY=…`, `--set-string=api.key=…` (the `=` form of flags outside `ENV_FLAGS`), `--set a=1,api.key=…`, `-e GITHUB_PAT=…`; exotic names (`1TOKEN=`, non-ASCII) also leak |
+| 7e | Undoing each rule or gate makes a test fail | no | partly | survive: the camel-case split, the `authorization`/`cookie` words, `--set` in `ENV_FLAGS`, V6, a part's `//` check |
+| 7f | No orphan variables | no | confirmed | 0 over 302 cases × 6 readers |
+| 21 | No polynomial input | no | confirmed | 75 crafted inputs, slowest 120.9 ms |
+
+**Overall:** not met (7a, 7b, 7c, 7e).
+
+Owner's decision (2026-11-23): one last round of fixes, then §8 says the cleaner is a best effort and the preview is what to read, and the final re-check lists any further variant in §8 instead of failing the task.
+
+Fixes after the re-check:
+- 7a: every address in a value is cleaned when it holds more than one `//`, split at `,`, `;`, `|` or spaces.
+- 7c: a variable pair is read after any flag (`--build-arg=…`, `--set-string=…`), and in a comma list (`--set a=1,api.key=…`); `pat` names a credential (`GITHUB_PAT`). `ENV_FLAGS` is gone.
+- 7b: §8 says an environment-style `…_KEY` such as `SORT_KEY=name` is replaced too.
+- 7e: a test pins each surviving branch: `githubToken=`, `myApiKey=` (camel case), `Authorization=`, `Cookie=`, `--set=api.key=`, `--build-arg=NODE_ENV=production` and `--label=tier=web` kept (any flag, ordinary pairs stay), `https://a,https://b,//u:…@h` (a part's `//`).
+- §8 opens its "not caught" list by saying the cleaner is a best effort and the export preview, which shows every value before anything is uploaded, is what to read.
+
+### Re-check 9
+
+Witnessed: 2026-11-23 10:15 EST, by a fresh agent (adversarial; the last round, per the owner's decision). Commit: 381c0174 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | no | confirmed | all exit 0 |
+| 7a | Everything §8 lists as caught is caught in all six readers | no | partly | 114 caught cases × 6 readers clean, every r8 fix included; regression: a comma list holding a credential pair skips the address rule for its other parts (`--set=x=${K},token=${T},u=https://admin:pw@h` keeps `pw`; caught at r8) |
+| 7a′ | Undoing each r8 fix makes a test fail | no | confirmed | 20 mutations, all fail |
+| 7b | Ordinary values stay, apart from the over-catch §8 names | no | confirmed | 84 cases × 6 readers; only `SORT_KEY=name`, `PRIMARY_KEY=id` change. Note: `--feature-gates=Auth=true` → `Auth=${…}` (not named) |
+| 7c | §8 states the best effort, the preview, and the `…_KEY` over-catch | no | confirmed | `native-readers.md` §8; `ENV_FLAGS` gone |
+| 7f | No orphan variables | no | confirmed | 0 over 384 cases × 6 readers |
+| 21 | No polynomial input | no | confirmed | 92 crafted inputs, slowest 116.1 ms |
+
+**Overall:** not met (7a's regression). Variants to add to §8, listed by the pass: other address separators (`&`, `+`, brackets, a full-width comma), an address inside another's query, a pair's value holding a comma, pairs split by `;` or spaces, pair names whose last word isn't a credential word (`GH_PAT2`, `API_KEY_1`, `API_KEY_PROD`, `DB_PWD`, `SESSION_ID`, `-e KEY`), other characters or a leading digit in names, other assignment spacing (`TOKEN =v`, `API_KEY:=v`, `/api_key=v`), `///` and `\\` addresses, a user-only userinfo or path token that doesn't look random, unusual header arguments, a credential flag's value that reads as a file path; over-catch: a credential-named pair after any flag (`--feature-gates=Auth=true`) and an empty `token=`.
+
+Fixes after the re-check:
+- 7a: in a comma list, each part that isn't a credential pair keeps the address rule (`u=https://user:pass@host`, a bare address); a test with the pass's three inputs finds no password.
+- The variants and the two over-catches are named in §8, after the best-effort statement.
+
+### Re-check 10
+
+Witnessed: 2026-11-23 10:17 EST, by a fresh agent (adversarial; scoped to re-check 9's fixes). Commit: 381c0174 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | no | confirmed | all exit 0; core `src/read` 104 passed |
+| 7a | In a comma list holding a credential pair, each other part keeps the address rule, in all six readers | no | partly | re-check 9's three inputs clean in all six, and many variants; still leaking: a bare address whose query holds `=` beside a pair (`API_KEY=${K},https://admin:pv04@h/?a=b`, `--set=token=${T},https://h/x?token=pv14`): the part is split at the query's `=` |
+| 7a′ | Reverting the fix makes a test fail | no | confirmed | restoring re-check 9's code, or dropping the bare-address branch, fails the test |
+| 7b | The fix doesn't newly wreck ordinary values | no | confirmed | all kept in all six readers |
+| 7f | No orphan variables | no | confirmed | 150 reads, none |
+| 21 | The changed path stays linear | no | confirmed | 25k / 50k / 100k addresses: 271 / 485 / 948 ms |
+| 7c | §8 names re-check 9's variants and over-catches accurately | no | confirmed | every named example checked |
+
+**Overall:** not met (7a).
+
+Fix after the re-check: a list part is a bare address when it starts with `//` or the text before its first `=` holds `://`, so it isn't split at a query's `=`; the test adds `API_KEY=${K},https://admin:pv04@h/?a=b` and `--set=token=${T},https://h/x?token=pv14`, and neither password reaches the result.
+
+### Re-check 11
+
+Witnessed: 2026-11-23 10:21 EST, by a fresh agent (adversarial; scoped to re-check 10's fix). Commit: 381c0174 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | no | confirmed | all exit 0 |
+| 7a | A bare address whose query or fragment holds `=`, beside a credential pair, isn't split at it and loses its credential, in all six readers | no | confirmed | 27 leak inputs × 6 readers → `BAD=0`, incl. `&` in the query, `//` starts, fragments, two addresses, `postgres://…?sslmode=require`, `HTTPS://` |
+| 7a′ | Reverting the fix makes a test fail | no | confirmed | 1 failed, 18 passed; restored: 19 passed |
+| 7b | The fix doesn't newly wreck ordinary values | no | confirmed | 14 ordinary inputs × 6 readers kept byte for byte |
+| 7f | No orphan variables | no | confirmed | 246 reads, none |
+| 21 | The changed path stays linear | no | confirmed | 25k / 50k / 100k: ~264 / 460 / 873 ms |
+
+**Overall:** met. A further, different variant, listed under the owner's rule (re-check 8) and named in §8: a credential where an address's host goes (`API_KEY=${K},x://token=…`).

@@ -212,16 +212,18 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     .describe("Only items of this type: skill, agent, command, rule or mcp-server");
 
   const exportFrom = z
-    .enum(["claude-code", "codex", "cursor", "copilot"])
+    .enum(["claude-code", "codex", "cursor", "copilot", "antigravity", "gemini"])
     .optional()
-    .describe("Only items written for this AI tool: claude-code, codex, cursor or copilot");
+    .describe(
+      "Only items written for this AI tool: claude-code, codex, cursor, copilot, antigravity or gemini",
+    );
 
   server.registerTool(
     "list_local_items",
     {
       title: "List items to export",
       description:
-        "The skills, agents, commands, rules and MCP servers in this project's AI tool folders (Claude Code's, Codex's, Cursor's and GitHub Copilot's) (or your home folder's, with scope user), each with whose it is: yours, installed, installed and edited, a registry copy, or written by rmk. Only items marked yours can be exported. Reads no network.",
+        "The skills, agents, commands, rules and MCP servers in this project's AI tool folders (Claude Code's, Codex's, Cursor's, GitHub Copilot's, Antigravity's and Gemini CLI's) (or your home folder's, with scope user), each with whose it is: yours, installed, installed and edited, a registry copy, or written by rmk. Only items marked yours can be exported. Reads no network.",
       inputSchema: {
         scope,
         type: exportType,
@@ -254,7 +256,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
           "skill, agent, command, rule or mcp-server: needed when a name is more than one item",
         ),
         from: exportFrom.describe(
-          "claude-code, codex, cursor or copilot: needed when a name is an item in more than one tool",
+          "claude-code, codex, cursor, copilot, antigravity or gemini: needed when a name is an item in more than one tool",
         ),
         description: z
           .string()
