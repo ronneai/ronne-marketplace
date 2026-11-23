@@ -75,8 +75,11 @@ Checked 2026-10-03:
 Ronne serves:
 - **Claude Code live from the instance** (077): a URL marketplace whose entries are `archive` zips
   built and served by the instance, read with a personal access token.
-- **Codex and Cursor from a git mirror** (078): `rmk feed build` writes a repository tree that an
-  admin commits to a git host, and refreshes on a schedule. Claude Code can use the same repository.
+- **Codex, Cursor and GitHub Copilot from a git mirror** (078, 028): `rmk feed build` writes a
+  repository tree that an admin commits to a git host, and refreshes on a schedule. Claude Code can
+  use the same repository.
+- **Antigravity's plugins and Gemini CLI's extensions as folders in that mirror** (029), with no
+  marketplace file: each is installed from a clone.
 
 ## Names
 

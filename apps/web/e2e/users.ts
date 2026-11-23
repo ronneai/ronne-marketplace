@@ -166,6 +166,8 @@ export const E2E_USERS = {
   reader: "reader@e2e.test",
   downloader: "downloader@e2e.test",
   installer: "installer@e2e.test",
+  // Antigravity and Gemini CLI's rmk tests (029): sign-ins are limited to 5 a minute per email.
+  toolInstaller: "tool-installer@e2e.test",
   // Two same-named items in two workspaces (118), on desktop and on a phone.
   twinReader: "twin-reader@e2e.test",
   renamer: "renamer@e2e.test",
@@ -421,6 +423,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   reader: "Rea Reader",
   downloader: "Dan Downloader",
   installer: "Ines Installer",
+  toolInstaller: "Tod Installer",
   twinReader: "Tia Twin",
   renamer: "Ren Amer",
   phoneRenamer: "Phone Renamer",

@@ -791,3 +791,77 @@ Witnessed: 2026-11-23 11:23 EST, by a fresh agent (blind). Commit: a1f2793f + wo
 | 10 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | no | confirmed | each exit 0 |
 
 **Overall:** met. Left for task 11: `topics.ts:109,387,392`, `MVP.md:271` (§3.3's plugin feeds bullets), `plugin-feeds.md:78`, `MVP.md:916` (§14.6's usage line).
+
+## Task 11 — End to end and the Documentation
+
+Witnessed: 2026-11-23 12:30 EST, by a fresh agent (blind). Commit: 2ea14ac2 + working-tree diff; ronne-web-029 on docs/marketplace-029-gemini-antigravity, working tree against origin/main c96cdc1. Machine: macOS 27.2, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Antigravity e2e test passes alone: `.agents/rules/` picks Antigravity; five types installed, with Gemini CLI too, removed cleanly | no | confirmed | builds current; `playwright test e2e/rmk.e2e.ts --project chromium` → 11 passed, `rmk.e2e.ts:382` included |
+| 2 | The Gemini CLI e2e test passes alone: `GEMINI.md` picks Gemini CLI; five types installed and removed cleanly | no | confirmed | same run, `rmk.e2e.ts:471` |
+| 3 | The docs render tests cover the new pages | no | confirmed | `DocsPage.test.tsx:35-43`, `pages.test.tsx:33`, `docs.test.ts:64`; www `pnpm test` → 226 passed |
+| 4 | `pnpm docs:check` passes with ronne-web's branch; the two `topics.ts` agree | no | confirmed | exit 0; the comparison is `docs-links.test.js` in `pnpm test`: fails against `../ronne-web` main, passes against `../ronne-web-029` |
+| 5 | Marketplace lint, typecheck and tests pass | no | confirmed | all exit 0 with `RONNE_WEB_DIR=../ronne-web-029` |
+| 6 | `TOOL_PAGES` and the app's `topics.ts` include both tools, and help links reach them | no | confirmed | `tool-paths.ts:118-119`, `ToolsPanel.tsx:81`, `topics.ts` group and sections |
+| 7 | The two pages exist in en, pt and fr with every point the SPEC's Documentation section requires | no | confirmed | `www/src/content/docs/{en,pt,fr}/{antigravity,gemini}.tsx` |
+| 8 | Your AI tools rows, export, usage and plugin feed sections, in all three languages | no | confirmed | `rmk.tsx`, `items.tsx`, `export.tsx`, `usage.tsx`, `plugins.tsx`, `mcp.tsx` |
+| 9 | Every fact on the new pages and passages matches the code | no | partly | sampled against the code and a reader probe: all match except `en/gemini.tsx:159-160` (and pt, fr): "Rules for the other tools cover the whole tool: a pattern on them warns", while `gemini/renderer.ts:374,427` leaves such a rule out |
+| 10 | `data.ts` `typeSupport` matches each renderer's `supports()` | no | confirmed | all 11 types for both |
+| 11 | pt and fr read naturally and follow the translation guide | no | confirmed | glossary terms, articles, punctuation; nit: fr "Aussi comme cible" reads stiffly |
+| 12 | MVP §3.3 and §15 match what was built | no | confirmed | `MVP.md:235-247`, `:262`, `:273-274`, `:917-923`, `:964` |
+
+**Overall:** not met (row 9).
+
+Fixes after the pass:
+- Row 9: the bullet now says a rule for another tool covers the whole tool, and one with a pattern is left out with a warning, in en, pt and fr.
+- Row 11's nit is kept: "Aussi comme cible" is the released Copilot page's header too, and the two pages stay alike.
+
+### Re-check 1
+
+Witnessed: 2026-11-23 12:14 EST, by a fresh agent (blind, scoped to row 9 and five further facts). Commit: 2ea14ac2 + working-tree diff; ronne-web-029 working tree against origin/main c96cdc1. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9a | Shell patterns: trailing `*` a prefix, none exact, elsewhere warns | no | confirmed | probe against core `dist`; `renderer.ts:377-389` |
+| 9b | "A rule for another tool covers the whole tool; one with a pattern is left out, with a warning" | no | partly | the pattern half holds; a rule with no pattern for an MCP server or tool whose name is too long for Gemini CLI is also left out with a warning (`renderer.ts:364`, `mappings.ts:33`) |
+| 9c | Priorities deny 3, ask 2, allow 1 | no | confirmed | `mappings.ts:94`; probe |
+| 9d | `allow` and `ask` don't apply in plan mode | no | confirmed | `mappings.ts:100`, `renderer.ts:360`; probe |
+| 9e | Policies only in the home folder; skipped in a project with `--scope user`; extensions leave them out | no | confirmed | probe; `plugins/gemini.ts:10-11` |
+| 9f | pt and fr policy bullets say the same as en and follow the guide | no | confirmed | same statements, glossary terms, punctuation (share 9b's gap) |
+| 9g | Gemini hook events, tool filters, `$RMK_` warning | no | confirmed | `mappings.ts:51-62`; `renderer.ts:231-305` |
+| 9h | Hook variables warn; a script name with `$` is left out | no | confirmed | `renderer.ts:246-257,278-284` |
+| 9i | Agent model only from a Gemini CLI override; dependent skills installed, not preloaded | no | confirmed | `renderer.ts:85-107` |
+| 9j | The trust note after a project install | no | confirmed | `install.ts:517-524` |
+| 9k | Antigravity policies, as the page says, in en, pt and fr | no | confirmed | `antigravity/mappings.ts:69-75`, `renderer.ts:363-384` |
+| 9l | www `pnpm lint` and `pnpm test` pass | no | confirmed | exit 0; 226 tests |
+
+**Overall:** not met (9b).
+
+Fix after the re-check: the bullet adds, in en, pt and fr, that a rule for an MCP server or tool whose name is too long for Gemini CLI is left out with a warning too.
+
+### Re-check 2
+
+Witnessed: 2026-11-23 12:16 EST, by a fresh agent (blind, scoped to row 9b). Commit: 2ea14ac2 + working-tree diff; ronne-web-029 working tree against c96cdc1. Machine: macOS 27.2, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9b | The en policy bullet matches `policyRule` and `toolOf` in every case | no | partly | probe `policy-probe-r2.mjs`: every listed case matches, including too-long MCP names; two schema-valid inputs are also left out with a warning and not mentioned: an MCP tool named only with underscores (`mappings.ts:29`) and a shell pattern with a control character (`renderer.ts:350-355`) |
+| 9f | pt and fr say what en says and follow the guide | no | confirmed | same statements; glossary; punctuation |
+| L | www lint and tests pass | no | confirmed | 226 tests |
+
+**Overall:** not met (9b).
+
+Fix after the re-check (wording only): the bullet now says any rule Gemini CLI can't express is left out with a warning, and names the three kinds: a pattern on another tool, an MCP server or tool whose name it can't use (too long, for example), and a shell pattern with a control character; in en, pt and fr.
+
+### Re-check 3
+
+Witnessed: 2026-11-23 12:18 EST, by a fresh agent (blind, scoped to rows 9b, 9f and L; wording only). Commit: 2ea14ac2 + working-tree diff; ronne-web-029 working tree against c96cdc1. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9b | The en policy bullet matches `policyRule` and `toolOf` in every case; every left-out rule falls under its general sentence | no | confirmed | probe against current `dist`; every null path of `policyRule` (`renderer.ts:342-387`) checked against the schema: each is a pattern on another tool, a name it can't use, or a control character, as the bullet says |
+| 9f | pt and fr say what en says and follow the guide | no | confirmed | same statements in order; fr punctuation |
+| L | www lint and tests pass | no | confirmed | 226 tests |
+
+**Overall:** met. With the first pass's other rows confirmed, every claim of task 11 is confirmed.

@@ -115,6 +115,8 @@ export const TOOL_PAGES: Record<string, TopicSlug> = {
   codex: "codex",
   cursor: "cursor",
   copilot: "copilot",
+  antigravity: "antigravity",
+  gemini: "gemini",
 };
 
 /**

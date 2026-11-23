@@ -268,8 +268,10 @@ the approval gate (owner, 2026-10-03; M11, contract in [plugin feeds](../spec/pl
   Plugins are built from the renderers' output, so the mappings above stay the single source.
 - **Claude Code** adds the instance directly: an HTTPS `marketplace.json` with `archive` (zip)
   entries, read with a personal access token through `headersHelper` ([077](../features/plugin-feeds/077-claude-code-marketplace/SPEC.md)).
-- **Codex and Cursor** only add git repositories (Cursor: a team admin imports it), so `rmk feed
-  build` writes the feed as a repository tree that a scheduled CI job keeps current ([078](../features/plugin-feeds/078-plugin-feed-mirror/SPEC.md)).
+- **Codex, Cursor and Copilot** only add git repositories (Cursor: a team admin imports it), so `rmk feed
+  build` writes the feed as a repository tree that a scheduled CI job keeps current ([078](../features/plugin-feeds/078-plugin-feed-mirror/SPEC.md), [028](../features/renderers/028-copilot-renderer/SPEC.md)).
+- **Antigravity and Gemini CLI** have no marketplace a third party can serve, so the same mirror
+  carries their plugins and extensions as folders, installed from a clone ([029](../features/renderers/029-gemini-antigravity-renderers/SPEC.md)).
 
 (This was called "native plugin export" until 2026-09-30; "export" now means sending a local item
 to the registry as a draft, §4.1 and §6.)
@@ -915,7 +917,10 @@ what each number needs, so M9 ([features 046, 047](../features/README.md)) start
   changes often: check the vendor docs before building (as for renderers, §3.3). As of 2026-09-30,
   Claude Code reports skills, commands, agents and MCP servers; Codex and Cursor report agents and MCP
   servers but no skill or command runs, so those count installs only there
-  ([046](../features/usage/046-usage-telemetry/SPEC.md)).
+  ([046](../features/usage/046-usage-telemetry/SPEC.md)). Since then, Copilot (2026-11-22, [028](../features/renderers/028-copilot-renderer/SPEC.md))
+  reports skills, agents and MCP servers, and Antigravity and Gemini CLI (2026-11-23, [029](../features/renderers/029-gemini-antigravity-renderers/SPEC.md))
+  report skills the model uses, agents and MCP servers; a command a person types isn't counted in
+  any of the three.
 - **Success rate** only where the tool reports how a run ended; otherwise it isn't shown.
 
 **On the item page ([047](../features/usage/047-usage-on-item-page/SPEC.md)):** installs and runs over 30

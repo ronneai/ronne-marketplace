@@ -91,7 +91,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     which come with the Documentation pages and ronne-web's `topics.ts`.)
   - *Done when:* a search for `"copilot"` finds no tool list without `antigravity` and `gemini`.
 
-- [ ] **11. End to end and the Documentation.**
+- [x] **11. End to end and the Documentation.**
   - Playwright tests in `apps/web/e2e/rmk.e2e.ts`, like Copilot's: a project with
     `.agents/rules/` picks Antigravity, one with `GEMINI.md` picks Gemini CLI; each installs a
     skill, an agent, a hook, an MCP server and a rule, then removes everything cleanly.
