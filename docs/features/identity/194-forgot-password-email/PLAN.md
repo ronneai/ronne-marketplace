@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Decision.**
+- [x] **1. Decision.**
   - MVP.md §15's "Web sign-in" row says a forgotten password can be reset by email (a code, then
     two-factor, then a new password; never a sign-in; never for root), and §8's Auth row no longer
     says "there's no email in the MVP" for passwords. `docs/features/README.md` lists 194 in M32.
