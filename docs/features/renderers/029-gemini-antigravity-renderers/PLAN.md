@@ -27,7 +27,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* golden files for those example items in both scopes are committed, and the other
     renderers' goldens are unchanged.
 
-- [ ] **3. Antigravity's settings types.** [risky]
+- [x] **3. Antigravity's settings types.** [risky]
   - `hook` (one `hooks.json` key per item, the event table, `SessionStart`/`Stop`'s shape checked
     on the real CLI), `mcp-server` (secrets left out with a warning), and the home-folder-only
     `permission-policy` and `statusline`.
@@ -120,3 +120,33 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     `toolCall.args`, `conversationId`, `workspacePaths`, `transcriptPath`, `stepIdx`; `PostToolUse`
     adds `error`. A `matcher` of `*` and of `""` both matched every tool. These matter for tasks 3
     and 8: a hook matcher needs the CLI's names (and the app's, from the docs).
+- **What the Antigravity CLI 1.5.14 showed (task 3, 2026-11-22)**, in scratch projects trusted with
+  `--settings '{"trustedWorkspaces":[…]}'`, with logging hooks:
+  - `SessionStart` and `Stop` run bare handlers; wrapped in `{ "hooks": [...] }` they are refused
+    ("command hook must specify 'command'"), and one invalid hook drops the whole `hooks.json`.
+  - A matcher must match the whole name: `^(?:read_file|view_file)$` fired on `read_file`, `read`
+    and `view_file` never fired. `"enabled": false` turns a hook off. A tool event with no `matcher`
+    ran for every tool.
+  - A hook runs from the folder its `hooks.json` is in: `.agents/` in a project,
+    `~/.gemini/config/` at home; `./hooks/<n>/run.sh` ran from both. The only variable it gets is
+    `ANTIGRAVITY_CONVERSATION_ID`.
+  - An MCP server's `env` values `${PROBE_SRC}` and `$PROBE_SRC` reached it as written, not
+    expanded; it inherited `PROBE_SRC` from Antigravity's own environment, and ran in the project
+    folder.
+  - `permissions.deny: ["command(echo)"]` denied `echo hi` ("Matches user-configured deny rule")
+    and let `ls` run.
+  - The renderer's own output loaded: the `format-on-edit` golden's matcher fired on `edit_file`,
+    and the `github-mcp` golden's `serverUrl` was connected (it then asked for OAuth, its token
+    header being left out).
+  - After the task 3 witness: `cd .. && pwd` and `cd .. && ./.agents/hooks/sc/run.sh` in a
+    project's `.agents/hooks.json` both ran at the project root.
+  - After the adversarial pass: `cd .. && true & pwd` ran `pwd` in `.agents/`; with
+    `cd .. || exit 1` on a line of its own, `true & pwd`, a command starting with a `#` comment, and
+    a plain one all ran at the project root.
+  - **The status line** (the owner's terminal, 2026-11-22): with
+    `"statusLine": {"type": "command", "command": "\"$HOME\"/'.gemini/antigravity-cli/statusline/probe/my status.sh'"}`
+    in the scratch `~/.gemini/antigravity-cli/settings.json`, `agy` 1.5.14 ran the script, which saved
+    the session JSON it got on stdin (`"version": "1.5.14"`, `cwd`, `workspace`, `model`, …), and the
+    owner saw its output, `STATUS-OK`, in the status line. So a shell runs it: `"$HOME"` expands and a
+    quoted path with a space works.
+

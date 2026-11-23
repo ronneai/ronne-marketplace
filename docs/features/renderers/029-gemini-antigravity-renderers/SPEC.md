@@ -142,27 +142,42 @@ leaves `always` and `glob` rules out with Gemini CLI as a target, and writes its
   2026-11-22). A missing or misspelled `trigger` silently drops the rule, so the golden files pin
   it. Antigravity truncates a rule file over 24,000 bytes and caps all always-on rules at 20,000
   tokens; `rmk` warns about a body over 24,000 bytes.
-- **`hook`** — one `json-key` per item, `<n>` in `hooks.json`, since Antigravity keys hooks by name:
-  `{ "PreToolUse": [{ "matcher": "<tool>", "hooks": [{ "type": "command", "command": "…",
-  "timeout": 30 }] }] }` (timeout in seconds). Events: `session.start` → `SessionStart`,
-  `tool.before` → `PreToolUse`, `tool.after` → `PostToolUse`, `agent.stop` → `Stop`; the rest warn
-  (`PreInvocation` runs before every model call, not once per prompt). The docs show
-  `SessionStart` and `Stop` handlers both bare and wrapped in `{ "hooks": [...] }`: the real CLI
-  settles it in task 3. A matcher is a regular expression over Antigravity's tool names; an MCP
-  tool filter is left out with a warning that the hook runs for every tool, since lazily loaded MCP
-  tools all run as `call_mcp_tool`. A `run.script` goes to `.agents/hooks/<n>/` and runs as
-  `"$(git rev-parse --show-toplevel)"/…`, since no variable or working folder is documented (user
-  scope: `"$HOME"/.gemini/config/hooks/<n>/…`).
-- **`mcp-server`** (degraded) — `mcpServers.<n>` in `mcp_config.json`: stdio as `command`, `args`
-  and `cwd`; http as `serverUrl` and `headers`. Antigravity documents no way to reference an
-  environment variable, and `rmk` never writes a secret, so `env` entries and headers that need one
-  are left out with a warning naming each variable to set up in Antigravity; the server gets the
-  environment Antigravity was started with (owner, 2026-11-22).
+- **`hook`** — one `json-key` per item, `<n>` in `hooks.json`, since Antigravity keys hooks by name.
+  Tool events take `{ "matcher": "<tool>", "hooks": [{ "type": "command", "command": "…",
+  "timeout": 30 }] }` (timeout in seconds; no `matcher` runs for every tool); `SessionStart` and
+  `Stop` take bare handlers, `[{ "type": "command", … }]`, since the CLI 1.5.14 refuses the wrapped
+  form there. Events: `session.start` → `SessionStart`, `tool.before` → `PreToolUse`, `tool.after` →
+  `PostToolUse`, `agent.stop` → `Stop`; the rest warn (`PreInvocation` runs before every model call,
+  not once per prompt). One invalid hook makes Antigravity drop the whole file, so only these shapes
+  are written. A matcher is a regular expression the whole tool name must match (`read` didn't match
+  `read_file`), and the CLI's names differ from the app's, so it names both:
+  `^(?:read_file|view_file)$` (below). An MCP tool filter is left out with a warning that the hook
+  runs for every tool, since lazily loaded MCP tools all run as `call_mcp_tool`; so is a filter on
+  another event. A hook runs from the folder its `hooks.json` is in (`.agents/` or
+  `~/.gemini/config/`), so in a project its command starts with a line of its own, `cd .. || exit 1`,
+  to run from the project root as in the other tools (a line, so a `&` or a `#` in the command can't
+  take it apart), and a `run.script` goes to `.agents/hooks/<n>/` and runs, after that line, as
+  `./.agents/hooks/<n>/<script>`; in the home folder a script goes to
+  `~/.gemini/config/hooks/<n>/` and runs as `./hooks/<n>/<script>`, and a command as written.
+  `$RMK_` variables warn: the event comes as JSON on stdin. The prefix is POSIX shell, like every
+  hook command rmk writes; Antigravity runs commands through `cmd /c` on Windows (its status line
+  docs), where a project hook wouldn't run, which the Antigravity page says.
+- **`mcp-server`** (degraded) — `mcpServers.<n>` in `mcp_config.json`: stdio as `command` and
+  `args`; http as `serverUrl` and the `headers` that name no variable. Antigravity expands no
+  variable there (on the CLI 1.5.14 an `env` value of `${NAME}` or `$NAME` reached the server as
+  written), and `rmk` never writes a secret, so `env` and any header that names a variable are left
+  out with a warning naming each one. The server inherits the environment Antigravity was started
+  with (seen on the CLI 1.5.14), so setting the variables there is enough (owner, 2026-11-22). A
+  `${NAME}` in the URL or the arguments, which hold no secret value, is written as it is, with a
+  warning that the server gets it unexpanded.
 - **`permission-policy`** (degraded, home folder only) — `json-array-item`s under
   `permissions.allow`, `.deny` and `.ask` in `~/.gemini/antigravity-cli/settings.json`: `shell` →
-  `command(<prefix>)`, `read` → `read_file(<glob>)`, `edit` and `write` → `write_file(<glob>)`,
-  `web-fetch` → `read_url(<domain>)`, `mcp:<s>/<t>` → `mcp(<s>/<t>)` (`mcp(<s>/*)` for a whole
-  server).
+  `command(<prefix>)` (a prefix: `command(echo)` denied `echo hi` on the CLI 1.5.14, so a pattern's
+  trailing `*` is dropped, `*` alone is `command(*)`, and one elsewhere warns), `read` → `read_file(<glob>)`, `edit` and
+  `write` → `write_file(<glob>)`, `web-fetch` → `read_url(<domain>)`, each `(*)` without a pattern,
+  `mcp:<s>/<t>` → `mcp(<s>/<t>)` (`mcp(<s>/*)` for a whole server). `grep`, `glob` and `web-search`
+  have no action, and warn. Whether a prefix `allow` also covers a compound command (`git push;
+  …`) isn't documented, and couldn't be seen headless; the Antigravity page says so.
 - **`statusline`** (degraded, home folder only) — the script under
   `~/.gemini/antigravity-cli/statusline/<n>/`, and `statusLine: { "type": "command", "command":
   "<path>" }` in `~/.gemini/antigravity-cli/settings.json`. The CLI runs it through `sh -c` with the
@@ -216,6 +231,7 @@ leaves `always` and `glob` rules out with Gemini CLI as a target, and writes its
 | `shell` | `run_command` | `run_shell_command` |
 | `web-fetch` | `read_url_content` | `web_fetch` |
 | `web-search` | `search_web` | `google_web_search` |
+| hook `matcher` | the CLI's name and the app's: `read_file\|view_file`, `edit_file\|replace_file_content\|multi_replace_file_content`, `write_file\|write_to_file`, `run_command`, `search_web`; the app's only for `grep_search`, `find_by_name`, `read_url_content` (the CLI has no such tools) | the names above |
 | `mcp:<s>/<t>` | none: a warning (agents name servers in `mcpServers`, 145/146) | `mcp_<s>_<t>` (`mcp_<s>_*` for a whole server; a hook matcher `mcp_<s>_.*`) |
 | `session.start` | `SessionStart` | `SessionStart` |
 | `session.end` | none | `SessionEnd` |

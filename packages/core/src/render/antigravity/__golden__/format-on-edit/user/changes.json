@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "kind": "json-key",
+    "path": ".gemini/config/hooks.json",
+    "key": [
+      "format-on-edit"
+    ]
+  }
+]

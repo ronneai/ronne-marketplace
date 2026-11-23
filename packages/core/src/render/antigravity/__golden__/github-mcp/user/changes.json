@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "kind": "json-key",
+    "path": ".gemini/config/mcp_config.json",
+    "key": [
+      "mcpServers",
+      "github-mcp"
+    ]
+  }
+]

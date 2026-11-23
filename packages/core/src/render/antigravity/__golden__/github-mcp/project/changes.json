@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "kind": "json-key",
+    "path": ".agents/mcp_config.json",
+    "key": [
+      "mcpServers",
+      "github-mcp"
+    ]
+  }
+]

@@ -1,6 +1,6 @@
 [
   {
     "code": "unsupported_type",
-    "message": "@examples/git-branch (statusline) isn't rendered for Antigravity yet."
+    "message": "Antigravity's status line is a setting in the home folder only, so @examples/git-branch was skipped; install it with --scope user."
   }
 ]

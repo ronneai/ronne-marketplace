@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "kind": "json-key",
+    "path": ".agents/hooks.json",
+    "key": [
+      "format-on-edit"
+    ]
+  }
+]

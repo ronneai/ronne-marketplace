@@ -109,3 +109,93 @@ Witnessed: 2026-11-22 21:04 EST, by a fresh agent (blind). Commit: d00a0888 + wo
 **Overall:** met.
 
 After the pass (wording only, from the witness's remarks): `renderer.ts:78`'s comment says no `tools` means Antigravity's default set, not the parent's tools; 097 SPEC:96 quotes the warning as "can't choose"; 029 SPEC says a list where nothing maps is written as no list.
+
+## Task 3 — Antigravity's settings types
+
+Witnessed: 2026-11-22 21:41 EST, by a fresh agent (blind). Commit: 476d0646 + working-tree diff. Machine: macOS (Darwin 27.2), Node v24.0.0 (not the `.nvmrc` 26).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A hook is one `json-key` per item, `<n>` in `.agents/hooks.json`, or `~/.gemini/config/hooks.json` at home | no | confirmed | `renderer.ts:252-256`; goldens `format-on-edit/{project,user}/changes.json` |
+| 2 | Events: `session.start`→`SessionStart`, `tool.before`→`PreToolUse`, `tool.after`→`PostToolUse`, `agent.stop`→`Stop`; the other six warn and write nothing | no | confirmed | `mappings.ts` EVENTS; test covers all ten |
+| 3 | `SessionStart`/`Stop` take bare handlers, tool events `{matcher, hooks:[…]}`, and the real CLI 1.5.14 refuses the wrapped form | yes | confirmed | own scratch project: bare start/stop and matcher hooks fired; wrapped SessionStart → "invalid hook "w-start": command hook must specify 'command'", no hook in the file fired; mutation → 2 tests fail |
+| 4 | A matcher names the CLI's and the app's names as an anchored regex, for all 8 tools; an MCP filter, an unknown tool or a filter on a non-tool event warns | yes | confirmed | test covers all 8 and `mcp:…`, `constructor`, Stop; real CLI: `^(?:read_file\|view_file)$` fired only on the read, `^(?:run_command)$` only on the shell call |
+| 5 | A `run.script` goes to `hooks/<n>/` next to `hooks.json` and runs as `./hooks/<n>/<script>` in both scopes | yes | confirmed | real CLI: project hooks ran with `cwd=…/proj/.agents`, user `./hooks/ucwd/run.sh` wrote `…/agy-home/.gemini/config`; test covers both scopes; a name with a space and `'` is quoted |
+| 6 | `$RMK_` variables in a command warn | no | confirmed | `renderer.ts:228-233`; golden warnings |
+| 7 | mcp-server: stdio `command`+`args`, http `serverUrl`+headers without a variable; the real CLI accepts it | yes | confirmed | goldens; own stdio probe answered and logged `W_TOKEN=inherited-ok`; agy log "OAuth setup failed for github-mcp" (parsed and contacted) |
+| 8 | No secret is written: `env` and headers that name a variable are left out with a warning naming each, and a test shows it | no | confirmed | test with `not.toContain("API_TOKEN")`; mutations → 2 tests fail each |
+| 9 | permission-policy home-only, `permissions.<decision>` items in `~/.gemini/antigravity-cli/settings.json` by the action table; grep, glob, web-search warn | yes | confirmed | test covers every row; golden `safe-git/user/keys`; mutations → 2 tests fail each |
+| 10 | statusline home-only: script under `~/.gemini/antigravity-cli/statusline/<n>/` and `statusLine {type:"command", command:"\"$HOME\"/…"}` | no | confirmed | golden `git-branch/user`; project warns `--scope user`; mutation → 2 tests fail |
+| 11 | The status line works on the real CLI | no | can't check here | only shows in the interactive UI |
+| 12 | `output-style` and `lsp-server` are `none`, with a warning | no | confirmed | `supports()`; goldens `concise`, `typescript-lsp` |
+| 13 | Unit tests cover every row of Antigravity's mapping table | no | partly | nothing tests `supports()`: making `output-style` "native" → 500/500 still pass |
+| 14 | Goldens exist for the settings examples in both scopes; other renderers' goldens unchanged | no | confirmed | `git status --short --untracked-files=all packages/core/src/render/*/__golden__` → only `antigravity/` |
+| 15 | Core tests, typecheck and lint pass | no | confirmed | 46 files, 500 passed; `tsc --noEmit` clean; `pnpm lint` exit 0 |
+
+**Overall:** not met (rows 11, 13).
+
+Bugs the pass found, beyond the rows: an MCP `url` or `args` naming `${VAR}` is written as is with no warning; a shell rule of `*` is dropped instead of `command(*)`; a header `a$b` is dropped as a variable; and a hook's `run.command` runs from `.agents/`, not the project root, so the `format-on-edit` golden would format `.agents/`.
+
+Fixes after the pass:
+- Row 13: a test pins `supports()` for every type.
+- The working folder: in a project, a command is written as `cd .. && <command>` and a script runs as `cd .. && ./.agents/hooks/<n>/<script>`, so both run from the project root (checked on the CLI 1.5.14: both `pwd`s were the project root); in the home folder, as before. SPEC and the `format-on-edit` golden say so.
+- A `${NAME}` in an MCP URL or arguments is written with a warning that the server gets it unexpanded; only `${NAME}` (the manifest's syntax) counts as a variable, so `a$b` is kept; `*` alone is `command(*)`. Each has a test.
+- Row 11: the owner is checking the status line in a terminal (pending).
+
+### Adversarial pass
+
+Witnessed: 2026-11-22 21:43 EST, by a fresh agent (adversarial). Commit: 476d0646 + working-tree diff (packages/core/src/render/antigravity/*, its __golden__, 029 SPEC/PLAN/WITNESS). Machine: macOS (Darwin 27.2), Node v24.0.0; real Antigravity CLI 1.5.14 with the scratch home.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A hook is one `json-key` per item, `<n>` in `.agents/hooks.json` / `~/.gemini/config/hooks.json` | no | confirmed | probe `adv.probe.test.ts`; goldens |
+| 2 | Four events mapped, the other six warn; prototype event names write nothing | no | confirmed | probe: `__proto__`, `constructor` → no change, a warning; replacing `own()` with an index keeps 19/19 green (untested guard; the schema refuses them) |
+| 3 | The CLI accepts every shape written and doesn't drop the file | yes | confirmed | real CLI `tproj`: bare SessionStart `timeout:600`, bare Stop `timeout:1` with a Unicode command, PreToolUse with no matcher all ran |
+| 4 | Matchers: anchored regex; MCP, unknown or `__proto__` tool → no matcher plus a warning; non-tool event filter warns | yes | confirmed | probe; real CLI `^(?:run_command)$` fired on `ls` |
+| 5 | A project command runs from the project root (`cd .. && <command>`) | yes | partly | `;`, `\|\|`, `\|` and multi-line keep the cd; `cd .. && true & pwd` wrote `…/proj/.agents` |
+| 6 | The `cd ..` holds in nested layouts | no | confirmed | started from `proj/sub/deeper` → `proj/.agents/hooks.json`, `cd ..` → `proj`; with `proj/sub/.agents` too, each reached its own root |
+| 7 | A script runs as `cd .. && ./.agents/hooks/<n>/<script>` / `./hooks/<n>/<script>`, and an odd name can't inject | yes | confirmed | real CLI pwd `…/proj`; `a b/$(touch x)';.sh` quoted; `-x.sh` prefixed `./` |
+| 8 | No secret value reaches a written file | no | confirmed | RenderInput carries no env values (`render/types.ts:19-51`); `${…}` only as a reference; `grep -rl GITHUB_TOKEN __golden__` → only `warnings.json` |
+| 9 | A test shows no secret is written | no | confirmed | `renderer.test.ts:239`; mutation → 2 tests fail |
+| 10 | Header names `__proto__` and `constructor` are safe | no | confirmed | own keys inside the value; `apply.ts:207-218` |
+| 11 | A permission `decision` outside allow/ask/deny can't be written | no | confirmed | schema enum; `apply.ts` would throw `unsafe_key` |
+| 12 | Odd permission patterns don't break the CLI's settings | no | confirmed | real CLI: malformed rules beside `command(echo)` → `echo hi` still denied |
+| 13 | Permission rules by the action table, home folder only | yes | confirmed | probe; mutation → 3 tests fail |
+| 14 | An `allow` rule's prefix doesn't widen to compound commands | no | can't check here | headless `-p` ran `echo hi; touch control.txt` with no rules at all |
+| 15 | statusline home only, odd names quoted | no | confirmed | `dir/a b'$(x).sh` → quoted |
+| 16 | The status line works on the real CLI | no | can't check here | interactive UI only |
+| 17 | `output-style` and `lsp-server` are `none`, and a test pins `supports()` | no | confirmed | mutation → test fails |
+| 18 | Goldens for both scopes; the other renderers' goldens unchanged | no | confirmed | `git status --short --untracked-files=all packages/core/src/render` |
+| 19 | Core tests and typecheck pass | no | confirmed | 46 files, 504 passed; typecheck exit 0 |
+
+**Overall:** not met (row 5; rows 14 and 16 need an interactive session).
+
+Fixes after the pass:
+- Row 5: a project command (and a script) now runs after a line of its own, `cd .. || exit 1`, so `&` and a leading `#` comment can't take it apart (on the CLI 1.5.14 `true & pwd`, a commented command and a plain one all ran at the root); a test pins it, and SPEC says so.
+- Row 2: a test pins `own()` for `constructor`, `__proto__` and `toString` events.
+- Row 16: the owner ran the status line in a terminal (PLAN Notes): `agy` 1.5.14 ran the quoted `"$HOME"/'…/my status.sh'` and showed `STATUS-OK`.
+- Row 14: Antigravity's own matching, which rmk doesn't decide: SPEC says a prefix `allow` covering a compound command isn't documented, and the Antigravity page will say so.
+
+### Re-check 1
+
+Witnessed: 2026-11-22 21:57 EST, by a fresh agent (adversarial). Commit: 476d0646 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0; real Antigravity CLI 1.5.14 with the scratch home.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Adversarial row 5: a project hook's command runs from the project root, whatever it holds | yes | confirmed | `renderer.ts:197`; 12 SessionStart hooks with the prefix: `true & pwd`, a leading comment, a trailing `\`, `<<EOF` and `<<'EOF'` heredocs, `pwd; exit 3`, `(sleep 1; pwd) &` and the control all wrote the project root; `exit 0` then `pwd` and a comment-only command wrote nothing |
+| 2 | None of these hooks makes Antigravity drop `hooks.json` | no | confirmed | agy log "loaded 14 named hooks from 2 hooks.json file(s)"; only `exit 3` and the background job logged as failed (their own results); the schema refuses an empty command |
+| 3 | A tool-event hook with the prefix still gets the event on stdin | no | confirmed | `proj2`: `stdin.json` holds the event JSON, `pwd` the project root |
+| 4 | A test pins the own-line prefix | yes | confirmed | `atRoot` as `cd .. && …` → 6 tests fail |
+| 5 | Row 2's `own()` guard is tested | yes | confirmed | `renderer.test.ts:423`; index lookup → 1 test fails |
+| 6 | Blind row 13: unit tests cover every row, `supports()` included | yes | confirmed | `renderer.test.ts:355-380`; dropping a case → test fails |
+| 7 | Blind row 11 / adversarial row 16: the status line works on the real CLI | yes | confirmed | own pty run via `expect`, statusLine through `--settings` with a path needing quotes (`r1 w/it'\''s.sh`) → screen showed `R1-STATUS-OK`, the script saved the session JSON; backs the owner's run |
+| 8 | Adversarial row 14: a prefix `allow` rule doesn't widen to a compound command | yes | can't check here | `allow: ["command(echo)"]`: `echo hi; touch compound.txt` ran unasked, but so did a command with no rules at all (`proj5`), so this home auto-runs commands; Antigravity's matching, not rmk's output |
+| 9 | SPEC discloses row 14 instead of claiming it | yes | confirmed | `SPEC.md:177-178` |
+| 10 | SPEC's hook bullet matches the code and the `format-on-edit` golden | yes | confirmed | `SPEC.md:156-161`; golden command `"cd .. \|\| exit 1\nnpx --no-install biome format --write $RMK_FILE_PATHS"`; at home as is (`renderer.ts:241,248`) |
+| 11 | Core tests, typecheck and lint pass | no | confirmed | 46 files, 505 passed; `tsc --noEmit` exit 0; `pnpm lint` exit 0 |
+
+**Overall:** not met (row 8 only).
+
+Owner's decision on row 8 (2026-11-22): re-scope the claim. rmk writes the prefix rule (confirmed, adversarial row 13) and discloses the open question (row 9); whether Antigravity's prefix `allow` covers a compound command is Antigravity's matching, which rmk doesn't decide, and the Antigravity page says so. With that scope, every claim of task 3 is confirmed, and the task is ticked.
+
+Also after this re-check (its risk note, not tested): the `cd .. || exit 1` line is POSIX shell, and Antigravity runs commands through `cmd /c` on Windows (status line docs), so SPEC now says a project hook wouldn't run there, like every hook command rmk writes.

@@ -1,0 +1,4 @@
+{
+  "type": "command",
+  "command": "\"$HOME\"/.gemini/antigravity-cli/statusline/git-branch/statusline.sh"
+}

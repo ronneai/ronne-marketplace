@@ -1,6 +1,6 @@
 [
   {
     "code": "unsupported_type",
-    "message": "@examples/safe-git (permission-policy) isn't rendered for Antigravity yet."
+    "message": "Antigravity's permissions are settings in the home folder only, so @examples/safe-git was skipped; install it with --scope user."
   }
 ]
