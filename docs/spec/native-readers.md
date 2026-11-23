@@ -211,8 +211,8 @@ Claude Code keeps per project under `projects.<path>.mcpServers` (its local scop
   or a path with no scheme (`user:pass@host`, `/path?api_key=…` in a header), and a literal broken up by punctuation beside a reference
   (`hunter2!hunter2${X}`).
   Also not caught (seen in the last review, 2026-11-23): addresses split by other characters (`&`,
-  `+`, brackets, a full-width comma) or one inside another's query (`?next=https://user:pass@h`); a
-  pair's value holding a comma, pairs split by `;` or spaces; pair names whose last word isn't a
+  `+`, brackets, a full-width comma) or one inside another's query (`?next=https://user:pass@h`), or a
+  credential where an address's host goes (`x://token=…`); a pair's value holding a comma, pairs split by `;` or spaces; pair names whose last word isn't a
   credential word (`API_KEY_1`, `DB_PWD`, `SESSION_ID`, `KEY`), with other characters (`a[0].token`,
   a leading digit, non-ASCII) or other spacing (`TOKEN = v`, `API_KEY:=v`, `/api_key=v`); `///` and
   `\\` addresses, a user-only userinfo or a path token that doesn't look random; header arguments
