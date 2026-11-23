@@ -8,7 +8,8 @@ renderer turns `ronne.yaml` into a tool's files, and a reader turns a tool's fil
 
 Status: the skill reader is built (038, `readSkill` in `@ronneai/core/read`); the other four types
 are built (040); Codex's and Cursor's own files (§9–10) are
-[043](../features/export-import/043-codex-cursor-readers/SPEC.md)'s, checked on 2026-09-30;
+[043](../features/export-import/043-codex-cursor-readers/SPEC.md)'s, checked on 2026-09-30; Copilot's (§11) are
+[028](../features/renderers/028-copilot-renderer/SPEC.md)'s, checked on 2026-11-22;
 exporting an edited install as a change proposal is
 [042](../features/export-import/042-export-change-proposal/SPEC.md). §5–8 were checked against Claude Code's documentation (sub-agents, commands
 and skills, memory and rules, MCP) and its renderer on **2026-09-30**. The readers' tool, model

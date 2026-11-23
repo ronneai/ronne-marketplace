@@ -15,7 +15,7 @@ introduction and one row per feature: what it does, what it depends on, and its 
 | [M3 — Review & release](M03-review-release.md) |
 | [M4 — `rmk` + Claude Code](M04-rmk-claude-code.md) |
 | [M5 — Codex, Cursor, MCP](M05-codex-cursor-mcp.md) |
-| [M5b — Tier-2 platforms (on hold)](M05b-tier-2-platforms.md) |
+| [M5b — Tier-2 platforms](M05b-tier-2-platforms.md) |
 | [M6 — Visual composer and npm](M06-visual-composer-and-npm.md) |
 | [M7 — Export from your tools](M07-export-from-your-tools.md) |
 | [M8 — Catalogue improvements](M08-catalogue-improvements.md) |

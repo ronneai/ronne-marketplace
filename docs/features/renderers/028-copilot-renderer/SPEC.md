@@ -1,6 +1,6 @@
 # 028 — GitHub Copilot renderer
 
-> Milestone: M5b · Depends on: 021, 022, 025 · Design: [MVP §3.1](../../../MVP/MVP.md#31-item-types), [§3.3](../../../MVP/MVP.md#33-platform-renderers) · Contracts: [`docs/spec/manifest.md`](../../../spec/manifest.md), [`docs/spec/cli-files.md`](../../../spec/cli-files.md)
+> Milestone: M5b · Depends on: 021, 022, 025, 043, 046, 076, 078 · Design: [MVP §3.1](../../../MVP/MVP.md#31-item-types), [§3.3](../../../MVP/MVP.md#33-platform-renderers) · Contracts: [`docs/spec/manifest.md`](../../../spec/manifest.md), [`docs/spec/cli-files.md`](../../../spec/cli-files.md), [`docs/spec/native-readers.md`](../../../spec/native-readers.md), [`docs/spec/plugin-feeds.md`](../../../spec/plugin-feeds.md)
 
 > Off hold on 2026-11-22 (owner), at full parity with Claude Code, Codex and Cursor: the renderer,
 > a reader for `rmk export --from copilot` (043), run counting (046/047), a plugin and a place in
