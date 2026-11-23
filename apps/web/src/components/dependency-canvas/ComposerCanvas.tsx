@@ -3,10 +3,9 @@
 import "@xyflow/react/dist/base.css";
 import "./canvas.css";
 import {
-  applyNodeChanges,
   Background,
   MiniMap,
-  type NodeChange,
+  type NodeChangeset,
   Panel,
   ReactFlow,
   type ReactFlowInstance,
@@ -236,7 +235,7 @@ export const ComposerCanvas = ({
   );
 
   const onNodesChange = useCallback(
-    (changes: NodeChange<FlowNode>[]) => {
+    (changes: NodeChangeset<FlowNode>) => {
       // A drag that ended, or a move with the arrow keys: the layout file takes it from here.
       const moved: Record<string, Position> = {};
       for (const change of changes) {
@@ -249,7 +248,7 @@ export const ComposerCanvas = ({
       setHeld(
         (current) =>
           new Map(
-            applyNodeChanges(changes, withHeld(latest.current, current, describe)).map((node) => [
+            changes.applyTo(withHeld(latest.current, current, describe)).map((node) => [
               node.id,
               {
                 selected: node.selected,
