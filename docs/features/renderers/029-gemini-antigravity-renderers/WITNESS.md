@@ -83,3 +83,29 @@ Witnessed: 2026-11-22 20:22 EST, by a fresh agent (blind). Commit: 9bb6335f + wo
 **Overall:** met.
 
 Left for task 2 (not blocking): the shared warning reads "Antigravity don't choose" with one tool name, and MVP.md:252's list of `.agents/skills/` readers leaves out Antigravity.
+
+## Task 2 — Antigravity's file types
+
+Witnessed: 2026-11-22 21:04 EST, by a fresh agent (blind). Commit: d00a0888 + working-tree diff (untracked `packages/core/src/render/antigravity/`, edits to `agents-skills.ts`, `MVP.md`, 029 `SPEC.md` and `PLAN.md`). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `antigravity/{renderer.ts,mappings.ts,renderer.test.ts}` exist and render `skill`, `command`, `agent` and `rule` | no | confirmed | `renderer.ts` switch; hook, mcp-server, permission-policy and statusline warn "isn't rendered for Antigravity yet" (task 3), as the goldens show |
+| 2 | `detect()` is true for `.agents/rules`, `.agents/agents`, `.agents/hooks.json` or `.agents/mcp_config.json`, not for `.agents/` or `.agents/skills/` alone | no | confirmed | detect list; test passes; mutation (adding `.agents`) → test fails |
+| 3 | Skills and commands: in a project byte for byte the shared `.agents/skills/<n>/`; in user scope `~/.gemini/config/skills/<n>/` | no | confirmed | test against `codexRenderer`; goldens `secure-coding/user/files/.gemini/config/skills/…`; mutation → 3 tests fail; real CLI listed `secure-coding` among its skills |
+| 4 | A skill's `agent:` and `context:` are dropped, and the shared warning names Antigravity | no | confirmed | probe2, both scopes → "…; Antigravity can't choose an agent for a skill, so it runs in the current one." No unit test covers it |
+| 5 | Agent at `.agents/agents/<n>.md` (user `.gemini/config/agents/`) with `name`, `description`, mapped `tools`, MCP tools as `unmapped_tool`, the prompt as body | yes | confirmed | `mappings.ts` = SPEC table; golden `code-reviewer.md`; real CLI `agy agents` lists `code-reviewer` |
+| 6 | Model hint `fast`→`flash`, `strong`→`pro`, `default`→`inherit`, or the override; other overrides warn | no | confirmed | MODELS; golden `model: pro`; override test; mutation → 1 test fails |
+| 7 | A manifest without `tools` leaves the key out (platform default); on CLI 1.5.14 that's a default set | yes | confirmed | `renderer.ts:79`; mutation → test fails; `manifest.md:54`; real CLI log of `probe-none` calling `read_file`, `send_message`. Remark: a list where nothing maps also drops the key |
+| 8 | Skill dependencies warn that they aren't preloaded | no | confirmed | golden `code-reviewer/*/warnings.json` |
+| 9 | Rules: `always_on`, `glob` with one quoted comma-separated `globs`, `model_decision` with `description`, at `.agents/rules/` (user `.gemini/config/rules/`) | no | confirmed | golden `house-style.md`; triggers pinned by test; mutation → test fails |
+| 10 | A `manual` rule is the same skill as Codex's (user: `.gemini/config/skills/`); a body over 24,000 bytes warns | no | confirmed | tests pass |
+| 11 | Goldens for the example items exist in both scopes | no | confirmed | `find antigravity/__golden__ -type f`: all 11 items, `project/` and `user/` |
+| 12 | The other renderers' goldens are unchanged, after the `agents-skills.ts` wording change and MVP.md:252 | no | confirmed | `git status --short --untracked-files=all packages/core/src/render/*/__golden__` → only antigravity; 46 files, 494 tests passed |
+| 13 | Typecheck and lint pass | no | confirmed | typecheck exit 0; `pnpm lint` exit 0 |
+| 14 | The Antigravity CLI is installed with a scratch home, and the missing-`tools` meaning is settled in SPEC.md | yes | confirmed | `agy --version` → 1.5.14; SPEC diff |
+| 15 | (Notes) CLI tool names; payload has `hookEventName` and `cwd`; `*` and `""` match every tool | yes | confirmed | `agy-log/*.json`; aliases and dropped names rest on the implementer's logs |
+
+**Overall:** met.
+
+After the pass (wording only, from the witness's remarks): `renderer.ts:78`'s comment says no `tools` means Antigravity's default set, not the parent's tools; 097 SPEC:96 quotes the warning as "can't choose"; 029 SPEC says a list where nothing maps is written as no list.

@@ -126,10 +126,15 @@ leaves `always` and `glob` rules out with Gemini CLI as a target, and writes its
 - **`agent`** — `.agents/agents/<n>.md` with `name`, `description`, `tools` (Antigravity's names,
   below; a tool with none is an `unmapped_tool` warning), `model` from the hint (`fast` → `flash`,
   `strong` → `pro`, `default` → `inherit`) or `targets.antigravity.overrides.model`, and the prompt
-  as the body. The docs disagree on what a missing `tools` means (`[]` in the subagent reference,
-  "all tools" for plugin agents): the real CLI settles it in task 2, and an agent with no `tools` in
-  its manifest gets whatever means "all its parent's tools". Antigravity notes that a misspelled tool
-  can hang a subagent, which is why names come only from the table. Skill dependencies (097) aren't
+  as the body. A manifest without `tools` means the platform's default (manifest spec), so the key
+  is left out: on the CLI 1.5.14 such a subagent gets a default set (`read_file`, `search_web`,
+  `send_message`, `manage_task`, …), and a list gives it those tools plus `send_message` and
+  `manage_task` (2026-11-22). The names are the documented ones, which the app reads; the CLI 1.5.14
+  takes them as aliases of its own (`view_file` → `read_file`, `replace_file_content` → `edit_file`,
+  `write_to_file` → `write_file`) and drops, without hanging, the ones it doesn't have (`grep_search`,
+  `find_by_name`, `read_url_content`). Antigravity notes that a misspelled tool can hang a subagent,
+  which is why names come only from the table. A list where nothing maps (only `mcp:` tools) is
+  written as no list, so the agent gets that default set, as with the other tools. Skill dependencies (097) aren't
   preloaded: the `skills` field isn't documented as preloading, so they warn, as Copilot's do.
 - **`rule`** — `.agents/rules/<n>.md`: `always` → `trigger: always_on`; `glob` → `trigger: glob`
   and `globs` as one comma-separated, quoted string; `model` → `trigger: model_decision` and

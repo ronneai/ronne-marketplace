@@ -18,7 +18,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - `docs/features/README.md` and the M5b file: 029 `in progress` with its new dependencies.
   - *Done when:* they agree with SPEC.md, and `pnpm witness:check` and `pnpm docs:check` pass.
 
-- [ ] **2. Antigravity's file types.**
+- [x] **2. Antigravity's file types.**
   - `packages/core/src/render/antigravity/{renderer.ts,mappings.ts,renderer.test.ts}`, with
     `skill`, `command`, `agent` and `rule` (`manual` as a skill), and `detect()`.
   - The shared skill helpers rooted at `~/.gemini/config/skills/` in user scope.
@@ -103,3 +103,20 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 - **The real CLIs as local test targets** (owner, 2026-11-22): Gemini CLI (Apache-2.0) and the
   Antigravity CLI (proprietary) are installed globally on the owner's machine with scratch home
   folders, so the owner's own `~/.gemini` is untouched. Neither is a dependency of Ronne.
+- **What the Antigravity CLI 1.5.14 showed (task 2, 2026-11-22)**, in a scratch project with a
+  logging `PreToolUse`/`PostToolUse` hook in the scratch `~/.gemini/config/hooks.json` and probe
+  subagents asked to list their tools:
+  - The CLI's own tool names are `read_file`, `write_file`, `edit_file`, `run_command`,
+    `search_web`, `invoke_subagent` (plus `send_message`, `manage_task`, `schedule`,
+    `define_subagent`, `manage_subagents`, `run_workflow`, `swarm`, `ask_question`). It has no grep,
+    glob or fetch tool: the model ran `ls`, `grep` and `curl` through `run_command`.
+  - A subagent's `tools` takes the documented names as aliases: `view_file`, `replace_file_content`,
+    `write_to_file`, `run_command` and `search_web` gave `read_file`, `edit_file`, `write_file`,
+    `run_command` and `search_web`; `grep_search`, `find_by_name` and `read_url_content` were dropped
+    without a hang. `send_message` and `manage_task` are always added.
+  - A subagent without `tools` got `read_file`, `search_web`, `send_message`, `manage_task`,
+    `schedule` and `generate_image`: the platform's default, not its parent's tools.
+  - The hook payload has `hookEventName` and `cwd` (not in the docs), with `toolCall.name` and
+    `toolCall.args`, `conversationId`, `workspacePaths`, `transcriptPath`, `stepIdx`; `PostToolUse`
+    adds `error`. A `matcher` of `*` and of `""` both matched every tool. These matter for tasks 3
+    and 8: a hook matcher needs the CLI's names (and the app's, from the docs).

@@ -51,7 +51,7 @@ export const skillFolder = (
       ? [
           {
             code: "unsupported_field",
-            message: `${item.name} names the agent that runs it; ${place.readers} don't choose an agent for a skill, so it runs in the current one.`,
+            message: `${item.name} names the agent that runs it; ${place.readers} can't choose an agent for a skill, so it runs in the current one.`,
           },
         ]
       : [],

@@ -249,7 +249,7 @@ Surveyed September 2026; the Claude Code, Codex and Cursor columns were re-check
 Notes:
 - Claude Code reads `AGENTS.md` only when the project has no `CLAUDE.md` (checked 2026-09-28), so rules for Claude go to `.claude/rules/`, which it always reads ([023](../features/renderers/023-claude-code-renderer/SPEC.md)).
 - The Codex and Cursor columns were re-checked on 2026-09-28 for [024](../features/renderers/024-codex-renderer/SPEC.md) and [025](../features/renderers/025-cursor-renderer/SPEC.md): both moved commands into skills, and Cursor also reads `.claude/skills/`, `.claude/agents/` and Claude Code's hooks for compatibility, which matters when both are targets. With both targets, Cursor leaves skills, commands and hooks to Claude Code's copy (re-checked 2026-09-29 for 025).
-- When one project targets several tools, the renderer writes each shared format once. For example, a single `.agents/skills/<n>/` serves Codex, Cursor, Gemini and Devin.
+- When one project targets several tools, the renderer writes each shared format once. For example, a single `.agents/skills/<n>/` serves Codex, Cursor, Gemini CLI, Antigravity and Devin.
 - Agents and skills named in frontmatter ([097](../features/items/097-frontmatter-references/SPEC.md), checked 2026-10-05): a skill's `agent: @scope/name` is written for Claude Code as the installed agent's name with `context: fork`, and an agent's skill dependencies as `skills:` (preloaded; not skills with `disable-model-invocation`), both `plugin:name` inside a plugin. Codex and Cursor read neither, and the Agent Skills standard refuses unknown keys, so the `.agents/skills/` copy goes without `agent` and `context`, with a warning.
 
 #### Native plugin feeds (M11)
