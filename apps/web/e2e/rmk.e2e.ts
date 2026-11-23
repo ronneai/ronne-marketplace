@@ -374,6 +374,181 @@ test("rmk installs for GitHub Copilot, alone and with Claude Code, and removes c
 });
 
 /**
+ * Antigravity (029): its own files, picked from a project's `.agents/rules/`. Its MCP config can't
+ * name a variable, so the secret is left out with a warning; a project hook steps up to the project
+ * from `.agents/` before it runs. With Gemini CLI too, the always rule is Gemini CLI's `GEMINI.md`
+ * section, which Antigravity reads.
+ */
+test("rmk installs for Antigravity, alone and with Gemini CLI, and removes cleanly", async ({
+  request,
+}) => {
+  const home = mkdtempSync(join(tmpdir(), "rmk-e2e-home-"));
+  const project = mkdtempSync(join(tmpdir(), "rmk-e2e-project-"));
+  mkdirSync(join(project, ".agents/rules"), { recursive: true });
+  writeFileSync(join(project, ".agents/rules/mine.md"), "Mine.\n");
+  const token = await request.post("/api/v1/auth/token", {
+    data: { email: E2E_USERS.toolInstaller, password: E2E_PASSWORD, name: "e2e rmk antigravity" },
+  });
+  expect(token.status()).toBe(201);
+  const env = {
+    ...process.env,
+    HOME: home,
+    RMK_TOKEN: (await token.json()).token,
+    RMK_REGISTRY: baseURL,
+  };
+  const rmk = (...args: string[]) => {
+    try {
+      return {
+        code: 0,
+        out: execFileSync("node", [BIN, ...args], {
+          cwd: project,
+          env,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+        }),
+      };
+    } catch (error) {
+      const failed = error as { status: number; stdout: string; stderr: string };
+      return { code: failed.status, out: `${failed.stdout}${failed.stderr}` };
+    }
+  };
+  const read = (path: string) => readFileSync(join(project, path), "utf8");
+  const name = (item: string) => `@${E2E_SCOPE}/${item}`;
+  const items = [name(E2E_RMK_ITEMS.agent), name(E2E_RMK_ITEMS.hook), name(E2E_RMK_ITEMS.rule)];
+
+  try {
+    // Only Antigravity's .agents/rules/ is here, so rmk picks Antigravity on its own.
+    const install = rmk("install", ...items);
+    expect(install.code, install.out).toBe(0);
+    expect(install.out).toContain("for antigravity.");
+    expect(install.out).toContain("Antigravity can't reference an environment variable");
+    const agent = read(`.agents/agents/${E2E_RMK_ITEMS.agent}.md`);
+    expect(agent).toContain(`name: ${E2E_RMK_ITEMS.agent}`);
+    expect(agent).toContain("  - view_file\n");
+    expect(read(`.agents/skills/${E2E_PROPOSAL_ITEM}/SKILL.md`)).toContain("Write the why");
+    expect(read(`.agents/rules/${E2E_RMK_ITEMS.rule}.md`)).toContain("trigger: always_on");
+    expect(JSON.parse(read(".agents/mcp_config.json")).mcpServers[E2E_RMK_ITEMS.mcp]).toEqual({
+      command: "npx",
+      args: ["-y", "@example/mcp"],
+    });
+    expect(JSON.parse(read(".agents/hooks.json"))[E2E_RMK_ITEMS.hook]).toEqual({
+      PostToolUse: [
+        {
+          matcher: "^(?:edit_file|replace_file_content|multi_replace_file_content)$",
+          hooks: [{ type: "command", command: "cd .. || exit 1\necho kit 1.1.0" }],
+        },
+      ],
+    });
+
+    // With Gemini CLI too, Antigravity leaves the always rule to GEMINI.md, which it reads.
+    const both = rmk("install", "--target", "antigravity,gemini");
+    expect(both.code, both.out).toBe(0);
+    expect(both.out).toContain("Antigravity reads Gemini CLI's copy");
+    expect(existsSync(join(project, `.agents/rules/${E2E_RMK_ITEMS.rule}.md`))).toBe(false);
+    expect(read("GEMINI.md")).toContain(`<!-- rmk:begin ${name(E2E_RMK_ITEMS.rule)} -->`);
+    expect(read(`.gemini/agents/${E2E_RMK_ITEMS.agent}.md`)).toContain('"mcp_kit-mcp_*"');
+
+    const remove = rmk("remove", ...items, "--target", "antigravity,gemini");
+    expect(remove.code, remove.out).toBe(0);
+    expect(read(".agents/rules/mine.md")).toBe("Mine.\n");
+    expect(JSON.parse(read(".agents/hooks.json"))).toEqual({});
+    expect(JSON.parse(read(".agents/mcp_config.json"))).toEqual({});
+    expect(existsSync(join(project, `.agents/agents/${E2E_RMK_ITEMS.agent}.md`))).toBe(false);
+    expect(existsSync(join(project, `.agents/skills/${E2E_PROPOSAL_ITEM}`))).toBe(false);
+    expect(existsSync(join(project, `.gemini/agents/${E2E_RMK_ITEMS.agent}.md`))).toBe(false);
+    expect(JSON.parse(read(".rmk/state.json")).entries).toEqual([]);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+/**
+ * Gemini CLI (029): its own files, picked from a project's `GEMINI.md`. The always rule is a
+ * section of it, after the person's own text; settings, hooks and MCP servers share
+ * `.gemini/settings.json`, which keeps the person's own keys; rmk says the folder must be trusted.
+ */
+test("rmk installs for Gemini CLI and removes cleanly", async ({ request }) => {
+  const home = mkdtempSync(join(tmpdir(), "rmk-e2e-home-"));
+  const project = mkdtempSync(join(tmpdir(), "rmk-e2e-project-"));
+  writeFileSync(join(project, "GEMINI.md"), "Be brief.\n");
+  mkdirSync(join(project, ".gemini"));
+  writeFileSync(join(project, ".gemini/settings.json"), '{ "ui": { "theme": "mine" } }\n');
+  const token = await request.post("/api/v1/auth/token", {
+    data: { email: E2E_USERS.toolInstaller, password: E2E_PASSWORD, name: "e2e rmk gemini" },
+  });
+  expect(token.status()).toBe(201);
+  const env = {
+    ...process.env,
+    HOME: home,
+    RMK_TOKEN: (await token.json()).token,
+    RMK_REGISTRY: baseURL,
+  };
+  const rmk = (...args: string[]) => {
+    try {
+      return {
+        code: 0,
+        out: execFileSync("node", [BIN, ...args], {
+          cwd: project,
+          env,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+        }),
+      };
+    } catch (error) {
+      const failed = error as { status: number; stdout: string; stderr: string };
+      return { code: failed.status, out: `${failed.stdout}${failed.stderr}` };
+    }
+  };
+  const read = (path: string) => readFileSync(join(project, path), "utf8");
+  const name = (item: string) => `@${E2E_SCOPE}/${item}`;
+  const items = [name(E2E_RMK_ITEMS.agent), name(E2E_RMK_ITEMS.hook), name(E2E_RMK_ITEMS.rule)];
+
+  try {
+    // Only Gemini CLI's GEMINI.md is here, so rmk picks Gemini CLI on its own.
+    const install = rmk("install", ...items);
+    expect(install.code, install.out).toBe(0);
+    expect(install.out).toContain("for gemini.");
+    expect(install.out).toContain(
+      "Gemini CLI reads .gemini/settings.json and custom commands only",
+    );
+    expect(read(`.gemini/agents/${E2E_RMK_ITEMS.agent}.md`)).toContain(
+      "  - read_file\n  - read_many_files\n",
+    );
+    expect(read(`.agents/skills/${E2E_PROPOSAL_ITEM}/SKILL.md`)).toContain("Write the why");
+    const gemini = read("GEMINI.md");
+    expect(gemini.startsWith("Be brief.\n")).toBe(true);
+    expect(gemini).toContain(`<!-- rmk:begin ${name(E2E_RMK_ITEMS.rule)} -->`);
+    expect(gemini).toContain("Keep functions small.");
+    const settings = JSON.parse(read(".gemini/settings.json"));
+    expect(settings.ui).toEqual({ theme: "mine" });
+    expect(settings.mcpServers[E2E_RMK_ITEMS.mcp]).toEqual({
+      command: "npx",
+      args: ["-y", "@example/mcp"],
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: Gemini CLI's own reference syntax
+      env: { KIT_TOKEN: "${KIT_TOKEN}" },
+    });
+    expect(settings.hooks.AfterTool).toEqual([
+      {
+        matcher: "^(?:replace)$",
+        hooks: [{ type: "command", command: "echo kit 1.1.0", name: E2E_RMK_ITEMS.hook }],
+      },
+    ]);
+
+    const remove = rmk("remove", ...items);
+    expect(remove.code, remove.out).toBe(0);
+    expect(read("GEMINI.md")).toBe("Be brief.\n");
+    expect(JSON.parse(read(".gemini/settings.json"))).toEqual({ ui: { theme: "mine" } });
+    expect(existsSync(join(project, `.gemini/agents/${E2E_RMK_ITEMS.agent}.md`))).toBe(false);
+    expect(existsSync(join(project, `.agents/skills/${E2E_PROPOSAL_ITEM}`))).toBe(false);
+    expect(JSON.parse(read(".rmk/state.json")).entries).toEqual([]);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+/**
  * `rmk export` (038): a skill the person wrote in `.claude/skills/`, uploaded with the built `rmk`
  * as a draft, which its author opens in the web editor with the same files. The folder on disk
  * isn't changed, and what's never uploaded stays behind.

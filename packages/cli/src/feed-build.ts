@@ -36,9 +36,10 @@ import type { Output } from "./output.js";
 import { writeFileAtomic } from "./project.js";
 
 /**
- * `rmk feed build --out <dir> [--tools claude-code,codex,cursor,copilot] [--workspace <name>]... [--force]`
+ * `rmk feed build --out <dir> [--tools claude-code,codex,cursor,copilot,antigravity,gemini] [--workspace <name>]... [--force]`
  * (feature 078, contract `docs/spec/plugin-feeds.md`, The git mirror): writes the registry's plugin
- * feeds as a repository tree that Codex, Cursor and Claude Code add as a marketplace. It holds the
+ * feeds as a repository tree that Codex, Cursor, Copilot and Claude Code add as a marketplace, with
+ * Antigravity's and Gemini CLI's plugins as folders (029). It holds the
  * public workspaces' items, and a private workspace's only when `--workspace` names it (093). For each tool it reads the
  * instance's marketplace, downloads the zips it doesn't have yet, checks each sha256, unpacks them
  * to `plugins/<tool>/<plugin>/`, and writes the tool's marketplace file with folder sources.
@@ -169,7 +170,7 @@ const readState = (out: string): FeedState | null => {
 
 export type FeedConflict = { path: string; reason: "unmanaged" | "edited" };
 
-/** The tools to build: `--tools`, or all three. */
+/** The tools to build: `--tools`, or all of them. */
 const toolsOf = (value: string | undefined): PluginTool[] => {
   if (value === undefined) return [...PLUGIN_TOOLS];
   const tools = value
@@ -216,7 +217,8 @@ const zipPath = (tool: PluginTool, plugin: string, version: string) => {
 type Planned = {
   tool: PluginTool;
   served: ServedMarketplace;
-  marketplace: PackageFile;
+  /** The tool's marketplace file, or null for a tool that has none (029). */
+  marketplace: PackageFile | null;
   /** Plugins to write, unpacked, by name. */
   write: Map<string, { files: PackageFile[]; state: PluginState }>;
   keep: Map<string, PluginState>;
@@ -262,12 +264,14 @@ export const feedBuild = async (
         const files = filesUnder(join(toolDir, entry.name));
         if (!files || treeOf(files) !== recorded.tree) conflicts.push({ path, reason: "edited" });
       }
-    const file = join(out, MARKETPLACE_PATHS[tool]);
-    if (existsSync(file)) {
+    // Antigravity and Gemini CLI have no marketplace file: only their plugin folders (029).
+    const marketplacePath = MARKETPLACE_PATHS[tool];
+    const file = marketplacePath ? join(out, marketplacePath) : null;
+    if (marketplacePath && file && existsSync(file)) {
       const bytes = readFileSync(file);
-      if (!state) conflicts.push({ path: MARKETPLACE_PATHS[tool], reason: "unmanaged" });
+      if (!state) conflicts.push({ path: marketplacePath, reason: "unmanaged" });
       else if (sha256(bytes) !== state.file)
-        conflicts.push({ path: MARKETPLACE_PATHS[tool], reason: "edited" });
+        conflicts.push({ path: marketplacePath, reason: "edited" });
     }
   }
   if (conflicts.length && !options.force)
@@ -361,7 +365,7 @@ export const feedBuild = async (
       mustStayInside(out, `plugins/${plan.tool}/${name}`, "It would remove", here);
     for (const name of plan.write.keys())
       mustStayInside(out, `plugins/${plan.tool}/${name}`, "It would write", here);
-    mustStayInside(out, plan.marketplace.path, "It would write", here);
+    if (plan.marketplace) mustStayInside(out, plan.marketplace.path, "It would write", here);
   }
   mustStayInside(out, FEED_STATE, "It would write", here);
   // Through a new file and a rename, which replaces a link rather than writing where it points.
@@ -389,10 +393,11 @@ export const feedBuild = async (
         if (file.executable) chmodSync(full, 0o755);
       }
     }
-    writeIfChanged(plan.marketplace.path, plan.marketplace.bytes);
+    if (plan.marketplace) writeIfChanged(plan.marketplace.path, plan.marketplace.bytes);
     next.tools[plan.tool] = {
       marketplace: plan.served.name,
-      file: sha256(plan.marketplace.bytes),
+      // A tool with no marketplace file records none (029).
+      file: plan.marketplace ? sha256(plan.marketplace.bytes) : "",
       plugins: Object.fromEntries(
         [...plan.keep, ...[...plan.write].map(([n, w]) => [n, w.state] as const)].sort((a, b) =>
           byName(a[0], b[0]),
@@ -415,7 +420,7 @@ export const feedCommand = async (io: Io, args: Args, out: Output, api: () => Ap
   const [action, ...rest] = args.positionals;
   if (action !== "build" || rest.length)
     throw usage(
-      "Usage: rmk feed build --out <dir> [--tools claude-code,codex,cursor,copilot] [--workspace <name>]... [--force]\n       rmk feed build --print-workflow github|gitlab [--workspace <name>]...",
+      "Usage: rmk feed build --out <dir> [--tools claude-code,codex,cursor,copilot,antigravity,gemini] [--workspace <name>]... [--force]\n       rmk feed build --print-workflow github|gitlab [--workspace <name>]...",
     );
   const workspaces = workspacesOf(args.values.workspace);
   const host = args.values["print-workflow"];

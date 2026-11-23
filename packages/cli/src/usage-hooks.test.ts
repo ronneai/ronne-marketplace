@@ -5,7 +5,14 @@ import { run } from "./cli.js";
 import { writeUserConfig } from "./config.js";
 import { queuedUsage, refreshPolicy, type UsagePolicy } from "./telemetry.js";
 import { type FakeIo, fakeIo, identityRoutes, REGISTRY } from "./testing.js";
-import { addUsageHooks, HOOK_FILES, hookedTools, runHook, runOf } from "./usage-hooks.js";
+import {
+  addUsageHooks,
+  HOOK_FILES,
+  hookChanges,
+  hookedTools,
+  runHook,
+  runOf,
+} from "./usage-hooks.js";
 
 let io: FakeIo;
 afterEach(() => io?.cleanup());
@@ -269,6 +276,124 @@ const hook = async (tool: string, payload: unknown) => {
   return run(["telemetry", "hook", tool], io);
 };
 
+/** Antigravity CLI 1.5.14 payloads captured on 2026-11-23 (paths shortened). */
+const ANTIGRAVITY = {
+  skill: {
+    conversationId: "<id>",
+    cwd: "/work/project",
+    error: "",
+    hookEventName: "PostToolUse",
+    modelName: "gemini-3.8-flash-high",
+    stepIdx: 2,
+    toolCall: {
+      args: { Path: "/work/project/.agents/skills/pelican-facts/SKILL.md" },
+      id: "call_1",
+      name: "read_file",
+    },
+    workspacePaths: ["/work/project"],
+  },
+  mcp: {
+    conversationId: "<id>",
+    cwd: "/work/project",
+    error: "",
+    hookEventName: "PostToolUse",
+    stepIdx: 5,
+    toolCall: {
+      args: { Arguments: {}, ServerName: "probe", ToolName: "whoami" },
+      id: "call_2",
+      name: "call_mcp_tool",
+    },
+  },
+  agent: {
+    conversationId: "<id>",
+    cwd: "/work/project",
+    error: "",
+    hookEventName: "PostToolUse",
+    stepIdx: 7,
+    toolCall: {
+      args: { Prompt: "Count the words.", Role: "Word Counter", TypeName: "counter" },
+      id: "call_3",
+      name: "invoke_subagent",
+    },
+  },
+};
+
+/** Gemini CLI 0.70.0 payloads, in the shape its source builds (`fireAfterToolEvent`). */
+const GEMINI = {
+  skill: {
+    session_id: "<id>",
+    cwd: "/work/project",
+    hook_event_name: "AfterTool",
+    tool_name: "activate_skill",
+    tool_input: { name: "secure" },
+    tool_response: { llmContent: "…", returnDisplay: "…" },
+  },
+  mcp: {
+    session_id: "<id>",
+    cwd: "/work/project",
+    hook_event_name: "AfterTool",
+    tool_name: "mcp_github-mcp_search_issues",
+    tool_input: {},
+    tool_response: { llmContent: "…" },
+    mcp_context: { server_name: "github-mcp", tool_name: "search_issues" },
+  },
+  agent: {
+    session_id: "<id>",
+    cwd: "/work/project",
+    hook_event_name: "AfterTool",
+    tool_name: "invoke_agent",
+    tool_input: { agent_name: "reviewer", prompt: "Review." },
+    tool_response: { llmContent: "…" },
+  },
+};
+
+describe("runOf: Antigravity's and Gemini CLI's events (029)", () => {
+  it("counts Antigravity's skill reads, MCP calls and subagents, from real payloads", () => {
+    expect(runOf("antigravity", ANTIGRAVITY.skill)).toEqual({
+      names: ["pelican-facts"],
+      types: ["skill"],
+      trigger: "model",
+      outcome: "success",
+    });
+    expect(runOf("antigravity", ANTIGRAVITY.mcp)).toMatchObject({
+      names: ["probe"],
+      types: ["mcp-server"],
+    });
+    expect(runOf("antigravity", ANTIGRAVITY.agent)).toMatchObject({
+      names: ["counter"],
+      types: ["agent"],
+    });
+    const eager = { ...ANTIGRAVITY.mcp, toolCall: { name: "mcp_github-mcp_search", args: {} } };
+    expect(runOf("antigravity", eager)?.names).toEqual(["github-mcp"]);
+    expect(runOf("antigravity", { ...ANTIGRAVITY.mcp, error: "failed" })?.outcome).toBe("error");
+    const other = {
+      ...ANTIGRAVITY.skill,
+      toolCall: { name: "read_file", args: { Path: "/w/a.md" } },
+    };
+    expect(runOf("antigravity", other)).toBeNull();
+    expect(runOf("antigravity", { ...ANTIGRAVITY.skill, hookEventName: "PreToolUse" })).toBeNull();
+  });
+
+  it("counts Gemini CLI's skills, subagents and MCP tools", () => {
+    expect(runOf("gemini", GEMINI.skill)).toEqual({
+      names: ["secure"],
+      types: ["skill"],
+      trigger: "model",
+      outcome: "success",
+    });
+    expect(runOf("gemini", GEMINI.mcp)?.names).toEqual(["github-mcp"]);
+    expect(runOf("gemini", { ...GEMINI.mcp, mcp_context: undefined })?.names).toEqual([
+      "github-mcp",
+    ]);
+    expect(runOf("gemini", GEMINI.agent)?.names).toEqual(["reviewer"]);
+    expect(
+      runOf("gemini", { ...GEMINI.skill, tool_response: { error: { message: "no" } } })?.outcome,
+    ).toBe("error");
+    expect(runOf("gemini", { ...GEMINI.skill, tool_name: "read_file" })).toBeNull();
+    expect(runOf("gemini", { ...GEMINI.skill, hook_event_name: "BeforeTool" })).toBeNull();
+  });
+});
+
 describe("rmk telemetry hook", () => {
   it("queues Copilot's run of an installed MCP server, and leaves Claude Code's hook alone under Copilot", async () => {
     await setUp("choice", { "@team/github-mcp": { version: "1.0.0", type: "mcp-server" } });
@@ -350,6 +475,42 @@ const rmkOnPath = () => {
 };
 
 describe("adding and removing the hooks", () => {
+  it("writes Antigravity's named hook and Gemini CLI's AfterTool entry (029)", () => {
+    expect(hookChanges("antigravity")).toEqual([
+      {
+        kind: "json-key",
+        path: ".gemini/config/hooks.json",
+        key: ["rmk-telemetry"],
+        value: {
+          PostToolUse: [
+            {
+              matcher: "^(?:read_file|view_file|call_mcp_tool|invoke_subagent|mcp_.*)$",
+              hooks: [{ type: "command", command: "rmk telemetry hook antigravity", timeout: 10 }],
+            },
+          ],
+        },
+      },
+    ]);
+    expect(hookChanges("gemini")).toEqual([
+      {
+        kind: "json-array-item",
+        path: ".gemini/settings.json",
+        key: ["hooks", "AfterTool"],
+        item: {
+          matcher: "^(?:activate_skill|invoke_agent|mcp_.*)$",
+          hooks: [
+            {
+              type: "command",
+              command: "rmk telemetry hook gemini",
+              name: "rmk-telemetry",
+              timeout: 10000,
+            },
+          ],
+        },
+      },
+    ]);
+  });
+
   it("adds them once per tool when reporting is on, in the user's settings, and says so", async () => {
     await setUp("choice", {});
     rmkOnPath();

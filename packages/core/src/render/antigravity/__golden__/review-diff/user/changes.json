@@ -1,0 +1,12 @@
+[
+  {
+    "kind": "dir",
+    "path": ".gemini/config/skills/review-diff",
+    "files": [
+      {
+        "path": "SKILL.md",
+        "executable": false
+      }
+    ]
+  }
+]

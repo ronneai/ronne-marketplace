@@ -137,7 +137,7 @@
   },
   "export": {
     "question": "Déjà écrit dans votre outil d’IA?",
-    "answer": "Envoyez-le ici avec rmk export : il lit votre skill, agent, commande, règle ou serveur MCP depuis Claude Code, Codex, Cursor ou GitHub Copilot, vous montre tout ce qu’il téléverserait et crée ici un brouillon privé à vérifier et soumettre. L’exporter de nouveau met ce brouillon à jour."
+    "answer": "Envoyez-le ici avec rmk export : il lit votre skill, agent, commande, règle ou serveur MCP depuis Claude Code, Codex, Cursor, GitHub Copilot, Antigravity ou Gemini CLI, vous montre tout ce qu’il téléverserait et crée ici un brouillon privé à vérifier et soumettre. L’exporter de nouveau met ce brouillon à jour."
   },
   "approve-many": {
     "question": "En approuver plusieurs à la fois?",

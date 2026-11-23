@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "file",
+    "path": ".gemini/antigravity-cli/statusline/git-branch/statusline.sh",
+    "executable": true
+  },
+  {
+    "kind": "json-key",
+    "path": ".gemini/antigravity-cli/settings.json",
+    "key": [
+      "statusLine"
+    ]
+  }
+]

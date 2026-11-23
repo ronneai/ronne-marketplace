@@ -1,0 +1,9 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "examples-git-branch",
+  "version": "1.0.0",
+  "description": "Shows the current folder and git branch in the status line.",
+  "author": {
+    "name": "examples"
+  }
+}

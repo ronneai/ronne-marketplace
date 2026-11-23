@@ -1,0 +1,7 @@
+name: "@examples/secure-coding"
+type: skill
+description: Checks code for common security mistakes such as injection, unsafe deserialisation and leaked secrets. Use when writing or reviewing code that handles input, auth or secrets.
+license: MIT
+keywords: [security, review]
+skill:
+  entry: SKILL.md

@@ -1,0 +1,15 @@
+{
+  "name": "examples.github-mcp",
+  "empty": false,
+  "executables": [],
+  "warnings": [
+    {
+      "code": "unsupported_field",
+      "message": "Antigravity can't reference an environment variable in an MCP config, so @examples/github-mcp's `Authorization` header was left out; add it in Antigravity's MCP settings."
+    },
+    {
+      "code": "unsupported_field",
+      "message": "Antigravity can't reference an environment variable in an MCP config, so @examples/github-mcp's `GITHUB_TOKEN` wasn't written; set it in the environment Antigravity starts in, which the server inherits."
+    }
+  ]
+}

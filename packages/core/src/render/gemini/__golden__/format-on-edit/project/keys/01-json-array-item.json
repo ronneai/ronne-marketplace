@@ -1,0 +1,11 @@
+{
+  "matcher": "^(?:replace)$",
+  "hooks": [
+    {
+      "type": "command",
+      "command": "npx --no-install biome format --write $RMK_FILE_PATHS",
+      "name": "format-on-edit",
+      "timeout": 30000
+    }
+  ]
+}

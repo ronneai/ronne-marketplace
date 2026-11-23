@@ -1,0 +1,10 @@
+[
+  {
+    "code": "unmapped_tool",
+    "message": "Antigravity's agents can't name an MCP tool, so `mcp:github-mcp` was left out of @examples/code-reviewer's tools; the agent can still use the server's tools."
+  },
+  {
+    "code": "unsupported_field",
+    "message": "Antigravity's agents can't preload skills, so @examples/code-reviewer's skills are installed but not preloaded; the agent finds them as any other skill."
+  }
+]

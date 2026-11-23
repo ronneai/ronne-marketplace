@@ -1246,7 +1246,7 @@
     },
     "feeds": {
       "title": "Plugin feeds",
-      "intro": "Each tool’s marketplace as it was last built in full: Claude Code reads its own from this website; rmk feed build reads Codex’s, Cursor’s and GitHub Copilot’s for the git mirror.",
+      "intro": "Each tool’s marketplace as it was last built in full: Claude Code reads its own from this website; rmk feed build reads Codex’s, Cursor’s and GitHub Copilot’s for the git mirror, where Antigravity’s plugins and Gemini CLI’s extensions are folders with no marketplace file.",
       "nearTitle": "{tool}’s marketplace is near {what, select, both {its limits} size {its size limit} other {its time limit}}.",
       "sizeBody": "Claude Code reads a marketplace of at most 5 MiB from an address. Past it, the marketplace stops loading; add the git mirror (rmk feed build) in Claude Code instead, which has no such limit.",
       "timeBody": "Claude Code waits 10 seconds for a marketplace. It’s built once per change and then answered from memory, so only the first request after a release waits this long.",

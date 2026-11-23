@@ -190,7 +190,7 @@ targets:
       model: sonnet      # platform-specific values passed to that renderer
 ```
 
-- Keys are renderer ids (`claude-code`, `codex`, `cursor`, `copilot`, `gemini`, `devin`, …).
+- Keys are renderer ids (`claude-code`, `codex`, `cursor`, `copilot`, `antigravity`, `gemini`, `devin`, …).
 - `enabled` defaults to `true` for every platform that supports the type.
 - `overrides` is free-form here and validated by the renderer, which documents what it accepts.
 

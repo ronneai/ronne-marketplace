@@ -93,7 +93,7 @@ from what they resolved.
   name>` (the skills docs show `skills: [my-plugin:api-conventions]`, and plugin agents as
   `plugin:agent`; checked 2026-10-05).
 - Codex and Cursor, the `.agents/skills/` copy: `agent` and `context` are removed, with a warning
-  from each tool that writes it ("<name> names the agent that runs it; Codex and Cursor don't choose
+  from each tool that writes it ("<name> names the agent that runs it; Codex and Cursor can't choose
   an agent for a skill, so it runs in the current one."). When Cursor leaves the skill to Claude
   Code's copy (025), it reads `.claude/skills/`, which keeps both keys; Cursor's docs list neither,
   so it's expected to ignore them, and no warning is given there.

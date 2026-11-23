@@ -1,0 +1,11 @@
+{
+  "name": "examples.safe-git",
+  "empty": true,
+  "executables": [],
+  "warnings": [
+    {
+      "code": "unsupported_type",
+      "message": "Antigravity's permissions are settings in the home folder only, so @examples/safe-git was skipped; install it with --scope user."
+    }
+  ]
+}

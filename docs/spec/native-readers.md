@@ -10,6 +10,8 @@ Status: the skill reader is built (038, `readSkill` in `@ronneai/core/read`); th
 are built (040); Codex's and Cursor's own files (§9–10) are
 [043](../features/export-import/043-codex-cursor-readers/SPEC.md)'s, checked on 2026-09-30; Copilot's (§11) are
 [028](../features/renderers/028-copilot-renderer/SPEC.md)'s, checked on 2026-11-22;
+Antigravity's and Gemini CLI's (§13–14) are
+[029](../features/renderers/029-gemini-antigravity-renderers/SPEC.md)'s, checked on 2026-11-22;
 exporting an edited install as a change proposal is
 [042](../features/export-import/042-export-change-proposal/SPEC.md). §5–8 were checked against Claude Code's documentation (sub-agents, commands
 and skills, memory and rules, MCP) and its renderer on **2026-09-30**. The readers' tool, model
@@ -175,7 +177,48 @@ Claude Code keeps per project under `projects.<path>.mcpServers` (its local scop
 - **No value leaves the machine.** An `env` value is never read into the manifest. A header or
   argument whose value is a literal credential is replaced by a `${VAR}` reference, the variable is
   added to `env` as a secret, and the preview says so; if the reader can't tell, the item is
-  stopped (§3).
+  stopped (§3). A header named as a credential (`Authorization`, `X-Api-Key`, …) keeps its value
+  only when it's a reference, alone or after a scheme (`Bearer ${TOKEN}`): one that mixes a literal
+  with a reference (`s3cret${X}`) is replaced whole (029). Also taken out (029): the password in the address
+  (`https://user:pass@host/`), a query value whose name reads as a credential (`?api_key=…`), the
+  value of a flag that takes one (`--password=…`, `--api-key …`, `--token …`, `--auth …`,
+  `--passphrase …`, `--bearer …`, `--pw …`; a
+  reference is kept; a `--no-…` flag, or a next value that reads as a file path, isn't), an
+  argument that is an address or a connection string, alone or as a flag's value, and every address
+  in a value that holds several, split at `,`, `;`, `|` or spaces (`--urls=https://a,//user:pass@b`)
+  (`postgresql://user:pass@host/db`, `//user:pass@host`, `--dsn=//user:pass@host`), a header passed
+  as an argument (after `--header` or `-H`, as `--header=Name: value`, or with no flag when its
+  name reads as a credential and has a `-` or is `Authorization` or `Cookie`, such as `X-Api-Key`;
+  with or without a space after the colon; its value whole, `=` included: a credential header's by
+  the whole-value rule even when it holds an address, another header's address by the address
+  rules, in arguments and in an http server's `headers` alike), a credential-named variable passed
+  as one, after any flag or in a comma list (`-e API_KEY=…`, `--build-arg=API_KEY=…`,
+  `--set a=1,api.key=…`, `X-Api-Key=…`, `githubToken=…`, `_TOKEN=…`, `GITHUB_PAT=…`, `STRIPE_KEY=…`;
+  one word whose last part names a credential, then `=`, so `author=jane` and `sort_key=name` stay,
+  though an environment-style `…_KEY` such as `SORT_KEY=name`, a credential-named pair after any
+  flag such as `--feature-gates=Auth=true`, and an empty `token=` are replaced too), a token used as the address's user (`https://ghp_…@host`), the encoded
+  `%3A` form of the password's colon, credential-named values after `#` and percent-encoded names,
+  and, in a header that also holds a reference, a literal run of 12 or more letters and digits
+  beside it (`hunter2hunter2${X}`).
+- **This is a best effort.** The rules recognise the shapes credentials usually take; no set of
+  patterns can recognise every one, so the export preview, which shows every file and value before
+  anything is uploaded, is what to read. Not caught, among others: a short credential after a flag
+  or in a parameter whose name doesn't say it is one (`--key …`, `;token=` path parameters), a
+  value glued to a short flag (`-pSECRET`), a header with no flag whose name has no `-`
+  (`API_KEY:…`, `Token: …`) or a header with no flag whose name doesn't read as a credential
+  (`X-Upstream: //user:pass@host`), a value that starts with `-`
+  (`--token -x…`), a credential written into `command` itself rather than its arguments, an address
+  or a path with no scheme (`user:pass@host`, `/path?api_key=…` in a header), and a literal broken up by punctuation beside a reference
+  (`hunter2!hunter2${X}`).
+  Also not caught (seen in the last review, 2026-11-23): addresses split by other characters (`&`,
+  `+`, brackets, a full-width comma) or one inside another's query (`?next=https://user:pass@h`), or a
+  credential where an address's host goes (`x://token=…`); a pair's value holding a comma, pairs split by `;` or spaces; pair names whose last word isn't a
+  credential word (`API_KEY_1`, `DB_PWD`, `SESSION_ID`, `KEY`), with other characters (`a[0].token`,
+  a leading digit, non-ASCII) or other spacing (`TOKEN = v`, `API_KEY:=v`, `/api_key=v`); `///` and
+  `\\` addresses, a user-only userinfo or a path token that doesn't look random; header arguments
+  written unusually (a space before the colon, `X-Custom-Pass`, an upper-case `--HEADER=`, a
+  leading space, the value as the next argument, a non-ASCII name); and a credential flag's value
+  that reads as a file path (`--token abc.defg`).
 - Dropped, with a warning each: `oauth`, `headersHelper`, `timeout`, `alwaysLoad`, and any other
   key.
 - An `env` value is read on the machine only to tell whether the variable is a secret; a value that
@@ -340,4 +383,95 @@ only.
 Hooks, permission policies, status lines and LSP servers live as keys inside the tools' settings
 files next to the person's own settings; output styles and bundles are rare. They're authored in
 the web app. Rules written as sections of `AGENTS.md` have no boundary (§7). Codex's custom prompts
-and Cursor's `.cursorrules` are deprecated by their tools, and not read.
+and Cursor's `.cursorrules` are deprecated by their tools, and not read. Sections of Gemini CLI's
+`GEMINI.md` have no boundary either, as `AGENTS.md`'s.
+
+## 13. Antigravity (029)
+
+Checked against antigravity.google/docs (subagents, rules, mcp, customization-discovery) and the
+Antigravity renderer (029), and the CLI 1.5.14's own tool names, on **2026-11-22**.
+
+**Skill.** Source: `.agents/skills/<n>/` (project, §4's shared folder) and
+`~/.gemini/config/skills/<n>/` (home only).
+
+**Agent.** Source: `.agents/agents/**/*.md` (project) and `~/.gemini/config/agents/**/*.md` (home);
+an agent in a folder is `<n>/agent.md`, named by its folder, and that folder's other files are its
+own, not agents.
+
+| Manifest | From |
+|---|---|
+| name | frontmatter `name`, else the file's name (the folder's, for `agent.md`) |
+| `description` | `description` |
+| `agent.prompt` | `prompt.md`, the body |
+| `agent.tools` | the app's names and the CLI's: `view_file`, `read_file` → `read`; `replace_file_content`, `multi_replace_file_content`, `edit_file` → `edit`; `write_to_file`, `write_file` → `write`; `grep_search` → `grep`; `find_by_name` → `glob`; `run_command` → `shell`; `read_url_content` → `web-fetch`; `search_web` → `web-search` |
+| `agent.model` | `flash` → `fast`, `pro` → `strong`; `inherit` → none |
+| `targets.antigravity.overrides.model` | any other `model` |
+
+- Dropped, with a warning each: a tool Ronne has no name for, and any other field (`mainAgent`,
+  `subagent`, `commandExecutionPolicy`, `mcpServers`, …).
+
+**Rule.** Source: `.agents/rules/**/*.md` (project) and `~/.gemini/config/rules/**/*.md` (home).
+
+| Manifest | From |
+|---|---|
+| `description` | frontmatter `description`, else the body's first line |
+| `rule.body` | `rule.md`, the body |
+| `rule.activation` | `trigger`: `always_on` → `always`, `glob` → `glob`, `model_decision` → `model`, `manual` → `manual` |
+| `rule.globs` | `globs` (or `glob`), comma-separated |
+
+- A missing or unknown `trigger`, which makes Antigravity drop the rule, is read as `manual`, with a
+  warning; so is `glob` with no globs.
+
+**MCP server.** Source: `mcpServers.<n>` in `.agents/mcp_config.json` (project) and
+`~/.gemini/config/mcp_config.json` (home), through §8's rules: `serverUrl` (or `url`) is `http`,
+`command` is `stdio`. Antigravity's own examples put a literal token in `env`, which §8 keeps out:
+only the names are read. Other keys (`cwd`, `disabled`, `enabledTools`, …) are dropped with a
+warning.
+
+**Not read for Antigravity:** hooks (`hooks.json`) and its CLI's settings, for §12's reasons.
+
+## 14. Gemini CLI (029)
+
+Checked against geminicli.com/docs (subagents, custom-commands, tools/mcp-server) and the CLI
+0.70.0's source, and the Gemini CLI renderer (029), on **2026-11-22**.
+
+**Skill.** Source: `.agents/skills/<n>/` (§4's shared folder), `.gemini/skills/<n>/`, and in the
+home folder `~/.agents/skills/<n>/` and `~/.gemini/skills/<n>/`.
+
+**Agent.** Source: `.gemini/agents/**/*.md` (project) and `~/.gemini/agents/**/*.md` (home).
+
+| Manifest | From |
+|---|---|
+| name | frontmatter `name`, else the file's name |
+| `description` | `description` |
+| `agent.prompt` | `prompt.md`, the body |
+| `agent.tools` | `read_file`, `read_many_files` → `read`; `replace` → `edit`; `write_file` → `write`; `grep_search` (or `search_file_content`) → `grep`; `glob` → `glob`; `run_shell_command` → `shell`; `web_fetch` → `web-fetch`; `google_web_search` → `web-search`; `mcp_<s>_<t>` → `mcp:<s>/<t>` and `mcp_<s>_*` → `mcp:<s>`, split at the first `_` as Gemini CLI does, each a reference to the server |
+| `targets.gemini.overrides.model` | `model`, unless `inherit` |
+
+- Dropped, with a warning each: a tool Ronne has no name for, and any other field (`temperature`,
+  `max_turns`, `mcp_servers`, …).
+- A remote agent (`kind: remote`) runs elsewhere, so it isn't read: `rmk` refuses it with a message.
+
+**Command.** Source: `.gemini/commands/**/*.toml` (both scopes); a subfolder joins the name
+(`git/commit.toml` → `git-commit`).
+
+| Manifest | From |
+|---|---|
+| `description` | `description` |
+| `command.body` | `command.md`, the `prompt` |
+| `command.args` | one argument, `args`, when the prompt has `{{args}}` (where Gemini CLI puts what the person typed) |
+
+- `!{…}` and `@{…}`, which Gemini CLI runs as a shell command or reads as a file, stay as written,
+  with a warning; other keys are dropped with a warning; a file that isn't TOML, or has no `prompt`,
+  is refused.
+
+**MCP server.** Source: `mcpServers.<n>` in `.gemini/settings.json` (both scopes), through §8's
+rules: `httpUrl` is `http`; `url` is SSE, read as `http` with a warning (unless `type: "http"`);
+`command` is `stdio`. A bare `$NAME`, which Gemini CLI also expands, is read as `${NAME}`, and a
+variable the URL, a header or an argument references is declared, as Gemini CLI fills it in from
+its own environment. Other keys (`trust`, `includeTools`,
+`cwd`, `timeout`, …) are dropped with a warning. A `settings.json` with comments, which Gemini CLI
+allows, can't be parsed, and `rmk` says so.
+
+**Not read for Gemini CLI:** hooks and policies (`settings.json`'s `hooks`, `~/.gemini/policies/`),
+for §12's reasons, and sections of `GEMINI.md`.

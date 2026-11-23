@@ -157,7 +157,7 @@ was planned:
 | [026](renderers/026-support-matrix/SPEC.md) | Per-item support matrix | renderers | M5 | done |
 | [027](cli-api/027-registry-mcp-server/SPEC.md) | Registry MCP server and `rmk mcp-setup` | cli-api | M5 | done |
 | [028](renderers/028-copilot-renderer/SPEC.md) | GitHub Copilot renderer | renderers | M5b | done |
-| [029](renderers/029-gemini-antigravity-renderers/SPEC.md) | Antigravity CLI and Gemini CLI renderers | renderers | M5b | specified |
+| [029](renderers/029-gemini-antigravity-renderers/SPEC.md) | Antigravity CLI and Gemini CLI renderers | renderers | M5b | done |
 | [030](renderers/030-devin-renderer/SPEC.md) | Devin renderer | renderers | M5b | specified |
 | [031](items/031-visual-composer/SPEC.md) | Visual composer | items | M6 | done |
 | [032](web-ui/032-design-system/SPEC.md) | Design system and app shell | web-ui | M1 | done |

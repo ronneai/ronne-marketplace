@@ -106,7 +106,7 @@ export const TOPICS = [
     slug: "export",
     title: "Exporting your own items",
     summary:
-      "Sending a skill, agent, command, rule or MCP server you wrote in Claude Code, Codex or Cursor to the marketplace as a draft.",
+      "Sending a skill, agent, command, rule or MCP server you wrote in one of your AI tools to the marketplace as a draft.",
     sections: [
       { id: "what", title: "What it's for" },
       { id: "reads", title: "What it reads, and what it never uploads" },
@@ -384,12 +384,12 @@ export const TOPICS = [
     slug: "plugins",
     title: "Plugin marketplaces",
     summary:
-      "Installing released items as plugins: in Claude Code from this website, in Codex and Cursor from a git mirror.",
+      "Installing released items as plugins: in Claude Code from this website, in the other AI tools from a git mirror.",
     sections: [
       { id: "what", title: "What it is" },
       { id: "claude-code", title: "Claude Code" },
       { id: "tokens", title: "Tokens" },
-      { id: "mirror", title: "Codex and Cursor (git mirror)" },
+      { id: "mirror", title: "The other AI tools (git mirror)" },
       { id: "keeping", title: "Keeping the mirror current" },
       { id: "large", title: "Large marketplaces" },
       { id: "which", title: "Plugins or rmk" },
@@ -467,6 +467,30 @@ export const TOPICS = [
       { id: "plugins", title: "Plugins" },
     ],
   },
+  {
+    slug: "antigravity",
+    title: "Antigravity",
+    summary:
+      "Where rmk puts each type of item for Antigravity, and how it works with Codex and Gemini CLI.",
+    sections: [
+      { id: "paths", title: "Where each type goes" },
+      { id: "with-other-tools", title: "With Codex and Gemini CLI" },
+      { id: "notes", title: "Good to know" },
+      { id: "plugins", title: "Plugins" },
+    ],
+  },
+  {
+    slug: "gemini",
+    title: "Gemini CLI",
+    summary:
+      "Where rmk puts each type of item for Gemini CLI, and what its trusted folders and hook review mean for them.",
+    sections: [
+      { id: "paths", title: "Where each type goes" },
+      { id: "trust", title: "Trusted folders and hooks" },
+      { id: "notes", title: "Good to know" },
+      { id: "plugins", title: "Extensions" },
+    ],
+  },
 ] as const;
 
 export type Topic = (typeof TOPICS)[number];
@@ -498,7 +522,18 @@ export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
   },
   {
     label: "Installing items",
-    topics: ["rmk", "plugins", "mcp", "usage", "claude-code", "codex", "cursor", "copilot"],
+    topics: [
+      "rmk",
+      "plugins",
+      "mcp",
+      "usage",
+      "claude-code",
+      "codex",
+      "cursor",
+      "copilot",
+      "antigravity",
+      "gemini",
+    ],
   },
   { label: "Organising", topics: ["workspaces", "scopes", "items"] },
   { label: "Publishing", topics: ["export", "review", "versions", "changes"] },

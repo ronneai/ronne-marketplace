@@ -255,6 +255,8 @@ describe("the catalogue", () => {
       codex: "native",
       cursor: "off",
       copilot: "native",
+      antigravity: "native",
+      gemini: "native",
     });
     expect(page.entries.find((e) => e.name === "policy")?.support).toMatchObject({
       codex: "degraded",

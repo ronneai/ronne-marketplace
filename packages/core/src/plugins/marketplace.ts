@@ -31,12 +31,14 @@ export type MarketplaceOptions = {
 };
 
 /** Each tool's marketplace file, relative to the marketplace's root. */
-export const MARKETPLACE_PATHS: Record<PluginTool, string> = {
+export const MARKETPLACE_PATHS: Partial<Record<PluginTool, string>> = {
   "claude-code": ".claude-plugin/marketplace.json",
   codex: ".agents/plugins/marketplace.json",
   cursor: ".cursor-plugin/marketplace.json",
   // Copilot looks here first, so it doesn't pick up Claude Code's `.claude-plugin/` in the mirror.
   copilot: ".github/plugin/marketplace.json",
+  // Antigravity and Gemini CLI take no marketplace a third party serves: their plugins are only
+  // folders in the git mirror (029).
 };
 
 /**
@@ -59,14 +61,18 @@ const pathOf = (tool: PluginTool, source: PluginSource) => {
   return source.path;
 };
 
-/** The tool's marketplace file, its entries sorted by name. */
+/**
+ * The tool's marketplace file, its entries sorted by name; null for a tool that has none
+ * (Antigravity, Gemini CLI: 029).
+ */
 export const marketplaceFor = (
   tool: PluginTool,
   entries: readonly MarketplaceEntry[],
   options: MarketplaceOptions,
-): PackageFile => {
+): PackageFile | null => {
   const sorted = [...entries].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   const path = MARKETPLACE_PATHS[tool];
+  if (!path) return null;
   switch (tool) {
     case "claude-code":
       // The version goes here, not in the plugin's own manifest (contract). Claude Code reads the
@@ -117,5 +123,7 @@ export const marketplaceFor = (
           source: `./${pathOf(tool, entry.source)}`,
         })),
       });
+    default:
+      return null;
   }
 };

@@ -105,6 +105,8 @@ const TOOL_NAMES: Record<PluginTool, string> = {
   codex: "Codex",
   cursor: "Cursor",
   copilot: "GitHub Copilot",
+  antigravity: "Antigravity",
+  gemini: "Gemini CLI",
 };
 
 const itemName = (ref: { workspace?: string; scope: string; name: string }) => formatItemName(ref);
@@ -439,6 +441,8 @@ const marketplaceUntraced = async (
     owner: `Ronne at ${host}`,
     description: `Released items from the Ronne registry at ${base}`,
   });
+  // Every tool's served listing is in Claude Code's shape, which always has a file.
+  if (!file) throw new Error("Claude Code's marketplace has a file.");
   if (feed.unbuilt) buildRest(deps, tool);
   const complete = !feed.unbuilt && !feed.failed;
   // A complete build is what the tool will see: record it (the revision's largest is kept), and

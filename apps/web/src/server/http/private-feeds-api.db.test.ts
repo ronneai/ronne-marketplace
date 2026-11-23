@@ -213,7 +213,7 @@ describe("the plugin feeds and a private workspace (093)", () => {
       "team.style",
     ]);
     // Two private keys share nothing: acme's member and beta's each get only their own.
-    for (const tool of ["claude-code", "codex", "cursor", "copilot"]) {
+    for (const tool of ["claude-code", "codex", "cursor", "copilot", "antigravity", "gemini"]) {
       expect(await plugins("member", "", tool)).toEqual(["acme.acme-infra.deploy", "team.style"]);
       expect(await plugins("betaMember", "", tool)).toEqual(["beta.beta-tools.lint", "team.style"]);
       expect(await plugins("outsider", "", tool)).toEqual(["team.style"]);
