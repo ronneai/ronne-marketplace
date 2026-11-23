@@ -1,1 +1,7 @@
-[]
+[
+  {
+    "kind": "file",
+    "path": ".gemini/policies/safe-git.toml",
+    "executable": false
+  }
+]

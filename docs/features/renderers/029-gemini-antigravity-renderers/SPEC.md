@@ -173,7 +173,10 @@ leaves `always` and `glob` rules out with Gemini CLI as a target, and writes its
 - **`permission-policy`** (degraded, home folder only) — `json-array-item`s under
   `permissions.allow`, `.deny` and `.ask` in `~/.gemini/antigravity-cli/settings.json`: `shell` →
   `command(<prefix>)` (a prefix: `command(echo)` denied `echo hi` on the CLI 1.5.14, so a pattern's
-  trailing `*` is dropped, `*` alone is `command(*)`, and one elsewhere warns), `read` → `read_file(<glob>)`, `edit` and
+  trailing `*` is dropped, `*` alone is `command(*)`, and one elsewhere warns; Antigravity has no
+  exact rule, as `command(regex:^echo hi$)` also denied `echo hi there`, so a pattern without `*` is
+  a prefix for `deny` and `ask`, the safe side, and is left out of `allow` with a warning, which
+  would widen it), `read` → `read_file(<glob>)`, `edit` and
   `write` → `write_file(<glob>)`, `web-fetch` → `read_url(<domain>)`, each `(*)` without a pattern,
   `mcp:<s>/<t>` → `mcp(<s>/<t>)` (`mcp(<s>/*)` for a whole server). `grep`, `glob` and `web-search`
   have no action, and warn. Whether a prefix `allow` also covers a compound command (`git push;
@@ -200,7 +203,9 @@ leaves `always` and `glob` rules out with Gemini CLI as a target, and writes its
   (`kind`, `name`, `description`, `display_name`, `tools`, `mcp_servers`, `model`, `temperature`,
   `max_turns`, `timeout_mins`; an unknown key or a tool name it can't parse, and the agent doesn't
   load), so only names from the table are written. It splits an MCP tool name at the first `_`
-  after `mcp_`, so a server whose name has `_` can't be named, and warns. Skill dependencies (097) warn: Gemini CLI's agents
+  after `mcp_`, so a server whose name has `_` can't be named, and warns. It cuts an MCP tool's name
+  over 63 characters to its first and last 30 (`generateValidName`), so a longer name, or a whole
+  server whose `mcp_<s>_` runs past 30, can't be named either, in an agent, a hook or a policy. Skill dependencies (097) warn: Gemini CLI's agents
   can't preload skills.
 - **`rule`** — as Codex's (024) with `GEMINI.md` for `AGENTS.md`: `always` and `glob` as a fenced
   section, `glob` opening with the files it's for; `model` and `manual` as skills. Gemini CLI 0.70.0
@@ -209,18 +214,40 @@ leaves `always` and `glob` rules out with Gemini CLI as a target, and writes its
 - **`hook`** — a `json-array-item` under `hooks.<Event>` in `settings.json`: `{ "matcher":
   "<tool>", "hooks": [{ "type": "command", "command": "…", "name": "<n>", "timeout": 30000 }] }`
   (timeout in milliseconds: the manifest's seconds × 1000). Events below. A matcher is a regular
-  expression over Gemini CLI's tool names on `BeforeTool` and `AfterTool`; on any other event a
-  tool filter is left out with a warning. A `run.script` runs as
-  `"$GEMINI_PROJECT_DIR"/.gemini/hooks/<n>/…` (user scope: `"$HOME"/.gemini/hooks/<n>/…`). Gemini
-  CLI fingerprints project hooks and warns about new or changed ones, which `rmk` notes after an
-  install.
+  expression Gemini CLI tests, unanchored, against the tool's name on `BeforeTool` and `AfterTool`
+  (the CLI 0.70.0's `matchesToolName`), so it's written anchored, `^(?:replace)$`; on any other
+  event a tool filter is left out with a warning. Hooks run from the project folder. A `run.script`
+  goes to `.gemini/hooks/<n>/` and runs as `$GEMINI_PROJECT_DIR/.gemini/hooks/<n>/…`, unquoted,
+  since Gemini CLI puts the folder there already shell-quoted (`expandCommand`); in the home folder
+  as `"$HOME"/.gemini/hooks/<n>/…`. Gemini CLI fingerprints project hooks and warns about new or
+  changed ones, which `rmk` notes after an install. It replaces `$NAME` and `${NAME}` in every
+  settings value when it loads them, quoted or not, and saves a project hook's command, so
+  expanded, in `~/.gemini/trusted_hooks.json`: a command that names a variable warns (a secret it
+  names would land in that file; a script that reads the variable keeps it out), and a script whose
+  name has `$` is left out with a warning. The same expansion means that if `GEMINI_PROJECT_DIR` is
+  already set where Gemini CLI starts (Gemini CLI started from one of its own hooks), a project
+  script's path takes that folder instead; rmk can't prevent it, and the Gemini CLI page says so.
 - **`mcp-server`** — `mcpServers.<n>` in `settings.json`: stdio as `command`, `args` and `env` with
-  `${NAME}`; http as `httpUrl` and `headers` with `${NAME}`. Gemini CLI redacts inherited variables
-  that look like secrets (`*TOKEN*`, `*KEY*`, …) unless `env` lists them, which it always does here.
+  `${NAME}`; http as `httpUrl` and `headers` with `${NAME}`. Gemini CLI expands `${NAME}` and `$NAME`
+  in every settings value when it loads them, from its own environment, leaving an unset one as
+  written (the CLI 0.70.0's `resolveEnvVarsInString`), so the file holds only the reference. It
+  redacts inherited variables that look like secrets (`*TOKEN*`, `*KEY*`, …) from a stdio server's
+  environment unless `env` lists them, which it always does here.
 - **`permission-policy`** (degraded, home folder only) — `~/.gemini/policies/<n>.toml`, one
-  `[[rule]]` per rule: `toolName`, `commandPrefix` for shell patterns (a trailing `*` dropped),
-  `mcpName` for an MCP tool, `decision` (`allow`, `deny`, `ask_user`), with the marker as a `#`
-  comment.
+  `[[rule]]` per rule: `toolName`, `commandPrefix` for shell patterns ending in `*` (the `*`
+  dropped; `*` alone none, one elsewhere a warning), `commandRegex` for a pattern without `*`, that
+  command exactly (the CLI 0.70.0 matches it from the command's opening quote in its JSON
+  arguments, so the escaped command and the closing quote, `git status"`, don't cover
+  `git status; rm …`), `mcpName` and `toolName` (`*` for a whole server) for an
+  MCP tool, `decision` (`allow`, `deny`, `ask_user`) and `priority`, which the CLI 0.70.0 requires:
+  deny 3, ask 2, allow 1, so deny wins over ask over allow, as in the other tools, and a rule the
+  person wrote in their own policies (priority 4 or more) wins over rmk's. `allow` and `ask` rules
+  carry `modes = ["default", "autoEdit", "yolo"]`, so plan mode's own read-only rules, in a lower
+  tier, still hold; in plan mode an item's `ask` on a read doesn't apply either, and plan mode's
+  own rules let reads through, which the Gemini CLI page says. `read` is `read_file` and `read_many_files`. A pattern with a control character
+  or a lone surrogate, which TOML can't hold (and one bad value drops the whole file), warns. A pattern
+  on any other tool can't be said (its `argsPattern` is a regular expression over the arguments),
+  and warns. The marker is a `#` comment.
 - **Trusted folders:** in a folder the person hasn't trusted, Gemini CLI doesn't load
   `.gemini/settings.json`, connect MCP servers or load custom commands, which `rmk` notes after a
   project install, as it does for Codex.

@@ -358,7 +358,11 @@ const homeOnly = (item: RenderInput, what: string): Rendered => ({
 });
 
 /** One permission rule as Antigravity writes it (`action(target)`), or null when it can't. */
-const permissionRule = (tool: string, pattern: string | undefined): string | null => {
+const permissionRule = (
+  tool: string,
+  pattern: string | undefined,
+  decision: string,
+): string | null => {
   const mcp = /^mcp:([^/]+)(?:\/(.+))?$/.exec(tool);
   if (mcp) return pattern === undefined ? `mcp(${mcp[1]}/${mcp[2] ?? "*"})` : null;
   const action = own(PERMISSION_ACTIONS, tool);
@@ -367,9 +371,14 @@ const permissionRule = (tool: string, pattern: string | undefined): string | nul
   if (action !== "command") return `${action}(${pattern})`;
   // A command rule is a prefix (on the CLI 1.5.14 `command(echo)` denied `echo hi`), so a
   // pattern's trailing `*` is dropped; one anywhere else can't be said.
-  const prefix = pattern.replace(/\s*\*$/, "");
+  const prefix = pattern.endsWith("*") ? pattern.slice(0, -1).trimEnd() : pattern;
   if (!prefix) return "command(*)";
-  return prefix.includes("*") ? null : `command(${prefix})`;
+  if (prefix.includes("*")) return null;
+  // Antigravity has no exact command rule (on the CLI 1.5.14 `command(regex:^echo hi$)` also
+  // denied `echo hi there`), so a pattern without `*` would widen an `allow`: left out. A `deny` or
+  // `ask` that covers more is the safe side, and stays a prefix.
+  if (prefix === pattern && decision === "allow") return null;
+  return `command(${prefix})`;
 };
 
 /** `permissions.allow`, `.ask` and `.deny` in the CLI's settings (degraded, home folder only). */
@@ -385,7 +394,7 @@ const renderPermissionPolicy = (
     const rule = record(raw);
     const tool = String(rule.tool ?? "");
     const pattern = typeof rule.pattern === "string" ? rule.pattern : undefined;
-    const written = permissionRule(tool, pattern);
+    const written = permissionRule(tool, pattern, String(rule.decision));
     if (written === null) {
       warnings.push(
         unsupported(

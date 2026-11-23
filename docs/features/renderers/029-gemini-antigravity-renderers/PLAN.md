@@ -43,7 +43,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* golden files for those example items in both scopes are committed, and the other
     renderers' goldens are unchanged.
 
-- [ ] **5. Gemini CLI's settings types.** [risky]
+- [x] **5. Gemini CLI's settings types.** [risky]
   - `hook` and `mcp-server` in `settings.json` (`${NAME}`, `httpUrl`), the home-folder-only
     `permission-policy` (`~/.gemini/policies/<n>.toml`), and `statusline`, `output-style` and
     `lsp-server` as `none`.
@@ -165,4 +165,28 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     and skipped a control file whose `prompt` is a number; running it with `src/a.ts` gave the
     prompt with `src/a.ts` where `{{args}}` was. `TomlCommandDefSchema` is `prompt` (required) and
     `description`; `!{` and `@{` are its shell and file injection triggers.
+- **What Gemini CLI 0.70.0 showed (task 5, 2026-11-22)**, from its source and its own loaders
+  imported from the installed bundle (no model):
+  - Hooks: `HookRegistry.processHookDefinition` takes `{ matcher, sequential, hooks: [...] }` and
+    skips an invalid entry on its own; `validateHookConfig` needs `type` and `command`; an unknown
+    event is skipped with a warning. `matchesToolName` is `new RegExp(matcher).test(toolName)`,
+    unanchored. `HookRunner` runs a command with `cwd` the project folder, `GEMINI_PROJECT_DIR`,
+    `GEMINI_CWD`, `GEMINI_SESSION_ID` and `CLAUDE_PROJECT_DIR` set, a default timeout of 60,000 ms,
+    and `expandCommand` replaces `$GEMINI_PROJECT_DIR` with the folder already shell-quoted. Project
+    hooks are blocked in an untrusted folder.
+  - Settings: `_doLoadSettings` strips comments before `JSON.parse`; `resolveSettings` expands
+    `$NAME`, `${NAME}` and `${NAME:-default}` in every value from the environment, leaving an unset
+    one as written.
+  - Policies: `PolicyRuleSchema` requires `toolName`, `decision` (`allow`, `deny`, `ask_user`) and
+    `priority` (0–999); an MCP rule matches by `mcpName` with `toolName` the tool's own name or `*`.
+  - The goldens through its loaders: `loadPoliciesFromToml` read `safe-git.toml`'s three rules at
+    priorities 4.3, 4.2 and 4.2 (the user tier), and refused a control rule without `priority`
+    ("priority is required"). `loadSettings` on a trusted scratch project (`GEMINI_CLI_TRUST_WORKSPACE=true`)
+    loaded the golden hook under `AfterTool` and the golden MCP server, with `Bearer ${GITHUB_TOKEN}`
+    expanded in memory from the environment; untrusted, the project's settings weren't loaded.
+  - After the task 5 blind pass: Gemini CLI's own `PolicyEngine`, with `commandRegex = "git status\""`
+    as `allow`, allowed `git status` and left `git statusx` and `git status; rm -rf x` to its default
+    (`ask_user`); `commandRegex` for `echo "a b"` denied it and not `echo "a b" x`. On the Antigravity
+    CLI 1.5.14, `deny: ["command(regex:^echo hi$)"]` denied `echo hi` and `echo hi there` and let
+    `echo hii` run, so Antigravity has no exact command rule.
 

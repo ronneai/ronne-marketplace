@@ -3,6 +3,7 @@ name: code-reviewer
 description: Reviews diffs for correctness and security issues. Use after finishing a change and before opening a pull request.
 tools:
   - read_file
+  - read_many_files
   - grep_search
   - glob
   - run_shell_command

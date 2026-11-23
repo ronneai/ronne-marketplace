@@ -426,4 +426,25 @@ describe("the Antigravity renderer", () => {
       expect(warnings[0]?.message).toContain("no event for");
     }
   });
+
+  it("never widens an allow: a shell pattern without * is left out of allow, kept as a prefix otherwise", () => {
+    const { changes, warnings } = antigravityRenderer.render(
+      withBlock("safe-git", "permission-policy", {
+        rules: [
+          { tool: "shell", pattern: "git status", decision: "allow" },
+          { tool: "shell", pattern: "git status*", decision: "allow" },
+          { tool: "shell", pattern: "rm -rf /", decision: "deny" },
+          { tool: "shell", pattern: "git push", decision: "ask" },
+        ],
+      }),
+      { scope: "user" },
+    );
+    expect(changes.map((c) => (c.kind === "json-array-item" ? [c.key[1], c.item] : []))).toEqual([
+      ["allow", "command(git status)"],
+      ["deny", "command(rm -rf /)"],
+      ["ask", "command(git push)"],
+    ]);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]?.message).toContain("`git status`");
+  });
 });

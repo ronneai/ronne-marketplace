@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "kind": "json-array-item",
+    "path": ".gemini/settings.json",
+    "key": [
+      "hooks",
+      "AfterTool"
+    ]
+  }
+]

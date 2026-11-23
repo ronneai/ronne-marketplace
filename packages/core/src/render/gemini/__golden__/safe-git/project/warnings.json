@@ -1,6 +1,6 @@
 [
   {
     "code": "unsupported_type",
-    "message": "@examples/safe-git (permission-policy) isn't rendered for Gemini CLI yet."
+    "message": "Gemini CLI's project policies don't work yet, so @examples/safe-git was skipped; install it with --scope user."
   }
 ]

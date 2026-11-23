@@ -240,3 +240,124 @@ Witnessed: 2026-11-22 22:10 EST, by a fresh agent (blind, scoped to row 8 and th
 | 14 | Core tests, typecheck and lint pass | no | confirmed | 47 files, 516 passed; typecheck exit 0; `pnpm lint` exit 0 |
 
 **Overall:** met.
+
+## Task 5 — Gemini CLI's settings types
+
+Witnessed: 2026-11-22 22:14 EST, by a fresh agent (blind). Commit: 581e3279 + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Core tests, typecheck, lint pass | no | confirmed | 47 files, 521 passed; typecheck exit 0; `pnpm lint` exit 0 |
+| 2 | Goldens for hook, mcp-server and permission-policy in both scopes; no other renderer's goldens changed | no | confirmed | `git status … \| grep -v render/gemini/` → empty |
+| 3 | A hook is a `json-array-item` under `hooks.<Event>` in `.gemini/settings.json`, `{matcher, hooks:[{type, command, name, timeout}]}`, timeout in ms | yes | confirmed | golden `timeout: 30000`; real `loadSettings` loaded it under `AfterTool`; mutation (no ×1000) → 2 tests fail |
+| 4 | Seven events map; `permission.request` and `subagent.*` warn | no | confirmed | `EVENTS` = bundle `HookEventName`; test covers all |
+| 5 | Matchers anchored on the tool table's names; `mcp:<s>` → `mcp_<s>_.*`; a filter on another event warns | yes | confirmed | bundle `matchesToolName` unanchored; mutation (unanchored) → 2 tests fail |
+| 6 | A `run.script` runs as `$GEMINI_PROJECT_DIR/…` unquoted in a project, `"$HOME"/…` at home | yes | confirmed | `my fmt.sh` through the bundle's `escapeShellArg` and bash in `proj with 'q space` → `RAN`; mutation (quoted) → test fails |
+| 7 | mcp-server: stdio `command`, `args`, `env` with `${NAME}`; http `httpUrl`, `headers` | yes | confirmed | real `loadSettings` with `GITHUB_TOKEN=sekrit` → expanded in memory only |
+| 8 | A test shows no secret value is written | no | partly | mutation `process.env[name] ?? envRef(...)` still passes when the variables aren't set in the test |
+| 9 | permission-policy home only, `~/.gemini/policies/<n>.toml`; project warns; `supports` degraded | yes | confirmed | goldens; mutation → 2 tests fail |
+| 10 | Policy rules: `[[rule]]` each, prefix/MCP/decision/priority, `#` marker | yes | confirmed | real `loadPoliciesFromToml` → `errors: []`; `PolicyEngine.check` deny over ask; mutation → 2 tests fail |
+| 11 | statusline, output-style, lsp-server `none` and warn | no | confirmed | `supports`, `NO_PLACE`, goldens |
+| 12 | Unit tests cover every row of the Gemini mapping table | no | confirmed | events, matchers, policy rows |
+| 13 | An untrusted project's settings aren't loaded | yes | confirmed | `loadSettings` without trust → project hook and server gone |
+| 14 | A `settings.json` rmk can't parse is refused with a message | no | confirmed | `cli/src/apply.ts:141-148` |
+| 15 | The golden policy loads at user-tier priorities | yes | confirmed | tier 2 → 2.3/2.2/2.2, same order |
+
+**Overall:** not met (row 8). Also flagged: a shell pattern with no `*` became `commandPrefix`, widening an `allow` if the pattern means that command exactly.
+
+### Adversarial pass
+
+Witnessed: 2026-11-22 22:24 EST, by a fresh agent (adversarial). Commit: 581e3279 + working-tree diff (as of 22:21, after the `commandRegex` change below). Machine: macOS (Darwin 27.2), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Goldens in place; golden test passes | no | confirmed | 18 gemini tests passed |
+| 2 | Core tests and typecheck pass | no | confirmed | 521 passed; `tsc` clean |
+| 3 | Seven events map, prototype keys don't slip through | no | confirmed | `constructor`, `__proto__`, `permission.request` → no change, a warning |
+| 4 | Hook matchers anchored on the CLI's real names | no | confirmed | bundle constants; `formatMcpToolName`; `glob` doesn't match `glob_extra` |
+| 5 | MCP rules and matchers match the name Gemini CLI calls | no | partly | `generateValidName` cuts names over 63 chars to `first30...last30`: a deny for a 78-char name → `ask_user` for the cut name, with no warning |
+| 6 | Project script `$GEMINI_PROJECT_DIR/…` unquoted, user `"$HOME"/…` | no | partly | works for `proj with 'q" sp`; breaks for a script name with `$NAME` (settings load expands it inside single quotes) and when `GEMINI_PROJECT_DIR` is already set where Gemini starts |
+| 7 | mcp-server shapes load | no | confirmed | `loadSettings` expanded the header in memory only |
+| 8 | No secret value written, and a test shows it | no | confirmed | header `${X}` → `process.env[X]` mutation → "writes no value from the environment…" fails |
+| 9 | No secret value reaches any written file for any manifest the schema allows | no | not met | hook `run.command: "echo $GITHUB_TOKEN …"`: settings load expands it, and `checkProjectHooksTrust()` wrote `echo ghp_SECRETVALUE123 …` to `~/.gemini/trusted_hooks.json`; `'$HOME'` expanded too |
+| 10 | permission-policy home only | no | confirmed | project → warning |
+| 11 | Every policy file rmk writes is valid TOML Gemini CLI loads | no | not met | pattern `"git\x7f push*"` written raw by `tomlString` → `toml_parse` "Control characters … 0x7f are not allowed", rules 0, other rules in the file lost; a lone surrogate the same |
+| 12 | deny beats ask beats allow among rmk's rules | no | confirmed | `PolicyEngine.check`; rmk rules beat yolo.toml; mutation → 2 tests fail |
+| 13 | rmk's rules don't override the person's own policies or plan mode | no | not met | rmk `allow` at 100 beat the person's denies at 50 and 10; in plan mode rmk `allow` beat plan.toml's deny-all (1.04) |
+| 14 | Shell patterns: trailing `*` → `commandPrefix`, no `*` → exact `commandRegex`, `*` elsewhere warns | no | confirmed | `commandRegex = "git push\""` → `git push`, `git push; rm x`, `ls && git push` denied; `a*b` warns |
+| 15 | statusline, output-style, lsp-server `none` | no | confirmed | tests, goldens |
+| 16 | Unit tests cover every row of the mapping table | no | confirmed | |
+
+**Overall:** not met (rows 9, 11, 13; rows 5, 6 partly). Also: `read` maps only to `read_file`, so a deny on `read` misses `read_many_files`; the `format-on-edit` golden's `$RMK_FILE_PATHS` is empty under Gemini CLI (warned).
+
+Fixes after both passes:
+- Blind row 8: a test stubs `GITHUB_TOKEN` and `API_TOKEN` (`vi.stubEnv`) and checks no value reaches any output.
+- Blind's flag: a shell pattern with no `*` is an exact `commandRegex` (the escaped command and its closing quote); Gemini CLI's own `PolicyEngine` allowed `git status` and not `git statusx` or `git status; rm -rf x` (PLAN Notes). Antigravity has no exact rule (`command(regex:^echo hi$)` also denied `echo hi there`), so there a pattern with no `*` stays a prefix for `deny` and `ask` and is left out of `allow`, with a warning; tests pin both.
+- Adversarial row 9: a hook command that names a variable warns that Gemini CLI fills it in when it loads settings and may save it in `~/.gemini/trusted_hooks.json`, and says to use a script; rmk can't stop the CLI's own expansion.
+- Adversarial row 11: `tomlString` (shared with Codex) escapes DEL and turns a lone surrogate into U+FFFD, so what rmk writes is always valid TOML; a policy pattern with a control character or lone surrogate is left out with a warning. The trailing `*` is now trimmed without a regular expression (`docs/knowledge/codeql-regex.md`), in both renderers.
+- Adversarial row 13: priorities are deny 3, ask 2, allow 1, so a person's own rule at 4 or more wins (Gemini CLI's engine: the person's `allow git push` at 10 beat rmk's `deny git push --force` at 3); `allow` and `ask` carry `modes = ["default","autoEdit","yolo"]`, so plan mode's own rules hold.
+- Adversarial row 5: an MCP name over 63 characters, or a whole server whose `mcp_<s>_` runs past 30, can't be named (agent, matcher or policy), with a warning.
+- Adversarial row 6: a script whose name has `$` is left out with a warning. `GEMINI_PROJECT_DIR` already set where Gemini CLI starts is the CLI's own expansion, not rmk's output; not changed.
+- `read` is `read_file` and `read_many_files` in agents, matchers and policies.
+
+### Re-check 1
+
+Witnessed: 2026-11-22 22:37 EST, by a fresh agent (adversarial). Commit: 581e3279 + working-tree diff. Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Core tests and typecheck pass | no | confirmed | 527 passed; `tsc --noEmit` exit 0 |
+| 2 | `pnpm lint` passes | no | not met | 2 errors at `gemini/renderer.ts:351`: `noControlCharactersInRegex` on `/[\u0000-\u001f\u007f]/` |
+| 3 | Blind 8: a test shows no secret value is written | no | confirmed | mutation `process.env[name] ?? envRef(...)` → the stubbed-env test fails |
+| 4 | Adv 5: MCP names Gemini CLI would cut warn | no | confirmed | `generateValidName` limits = `mappings.ts`; 64-char name and 31-char prefix left out with warnings; the test pins both boundaries |
+| 5 | Adv 6: a `$` script left out; project/user script paths | no | partly | `run$HOME.sh` refused; a preset `GEMINI_PROJECT_DIR` is still expanded at settings load, and SPEC doesn't say so |
+| 6 | Adv 9: a hook command naming a variable warns about `trusted_hooks.json` | no | partly | `${SLACK_TOKEN}` warns, but `fmt $RMK_FILE_PATHS; curl -H "$SLACK_TOKEN"` gets only the `$RMK_` warning (`if / else if`) |
+| 7 | Adv 11: every policy file rmk writes is valid TOML Gemini CLI loads | no | confirmed | DEL and lone-surrogate patterns left out with warnings; the guard is linear |
+| 8 | `tomlString` escapes every control char and DEL, maps lone surrogates to U+FFFD, keeps pairs | no | confirmed | U+0000–U+001F, DEL, pairs, lone high/low, U+0085/U+2028/U+2029 round-trip through smol-toml; `loadPoliciesFromToml` → `errors: []` |
+| 9 | That escaping is covered by a test | no | not met | `tomlString = JSON.stringify(value)` → all 129 render tests still pass |
+| 10 | Codex's goldens and tests unchanged | no | confirmed | only `codex/toml.ts` changed; Codex tests pass |
+| 11 | Adv 13a: rmk allow/ask don't override plan mode | no | confirmed | `createPolicyEngineConfig({}, "plan", undefined)` with the bundle's `policies/` → `git push`, `git status`, `npm i`, `write_file`, `mcp_gh_list` deny (plan.toml 1.04/1.065); rmk denies still apply (4.003). Remark: rmk's `ask` on `read` doesn't apply in plan mode, and read-only.toml (1.05) lets `read_file` through |
+| 12 | Adv 13b: a person's own rule at priority ≥4 beats rmk's | no | confirmed | allow at 4 → 4.004 over rmk deny 4.003; deny `write_file` at 4 over rmk allow 4.001 |
+| 13 | Deny > ask > allow among rmk's rules | no | confirmed | default mode: deny 4.003, ask 4.002, allow 4.001; mutation dropping `modes` → 2 tests fail |
+| 14 | `read` is `read_file` and `read_many_files` | no | confirmed | both → rmk's `ask_user` |
+| 15 | Trailing `*` trim matches the old `/\s*\*$/` | no | confirmed | edge cases plus 20,000 random strings → 0 differences; no new polynomial regex |
+| 16 | Antigravity: a pattern without `*` left out of `allow`, a prefix for deny/ask | no | confirmed | mutation → 1 test fails |
+| 17 | SPEC permission bullets match the behaviour | no | confirmed | `SPEC.md:173-183`, `:234-246` |
+| 18 | SPEC hook and agent bullets match the behaviour | no | partly | the hook bullet's "a command that names a variable warns" is false beside `$RMK_` (row 6) |
+
+**Overall:** not met (rows 2, 9; rows 5, 6, 18 partly).
+
+Fixes after the re-check:
+- Row 2: the control-character check is a loop over code points, not a regular expression; `pnpm lint` exits 0.
+- Rows 6 and 18: the `$RMK_` and variable warnings are separate checks, and the variable one ignores `$RMK_…` itself; a test pins `fmt $RMK_FILE_PATHS; curl -H "$SLACK_TOKEN"` getting both.
+- Row 9: a test parses `tomlString`'s output with smol-toml for every control character and DEL, a surrogate pair, lone surrogates and quotes, and a Gemini command whose description holds DEL and a lone surrogate; reverting `tomlString` to `JSON.stringify` fails it (checked, then restored).
+- Row 5: SPEC says a `GEMINI_PROJECT_DIR` already set where Gemini CLI starts takes over a project script's path, which rmk can't prevent, and the Gemini CLI page says so.
+- Row 11's remark: SPEC says that in plan mode an item's `ask` on a read doesn't apply and plan mode lets reads through.
+
+### Re-check 2
+
+Witnessed: 2026-11-22 22:41 EST, by a fresh agent (adversarial). Commit: 581e3279 + working-tree diff. Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | `pnpm lint` passes; the control-character check is a loop over code points | no | confirmed | `pnpm lint` exit 0; U+0000–U+001F and DEL refused, U+0080/U+0085/U+00A0/U+2028/U+FEFF kept; ordinary text up to 100,000 chars parses with smol-toml; lone surrogates refused |
+| 5 | SPEC says a preset `GEMINI_PROJECT_DIR` takes over a project script's path | no | confirmed | `SPEC.md:227-229`. Remark: the Gemini CLI page is PLAN task 11's |
+| 6 | Both hook warnings beside `$RMK_`, separate checks, pinned by a test | no | partly | behaviour holds; reverting to `if / else if` → 1 test fails; but folding both texts into one warning → 131/131 pass: the test never counts the warnings |
+| 9 | `tomlString`'s escaping is covered by a test | no | confirmed | reverting it, dropping the DEL escape, or dropping `wellFormed` → 1 test fails each |
+| 18 | SPEC hook bullet matches the behaviour | no | confirmed | `SPEC.md:223-227` |
+| — | Core tests and typecheck pass; no new polynomial regex | no | confirmed | 529 passed; typecheck exit 0; `/\$RMK_[A-Z_]+/g` linear (≤1.3 ms on 1,000,000 chars) |
+
+**Overall:** not met (row 6: a test gap only).
+
+Fix after the re-check: the test expects exactly two warnings for `fmt $RMK_FILE_PATHS; curl -H "$SLACK_TOKEN"` (`toHaveLength(2)`); removing the variable warning now fails 2 tests (checked, then restored).
+
+### Re-check 3
+
+Witnessed: 2026-11-22 22:42 EST, by a fresh agent (adversarial). Commit: 581e3279 + working-tree diff. Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | Both hook warnings beside `$RMK_`, from two separate checks, pinned by a test | no | confirmed | `renderer.ts:278-292` two independent `if`s; `renderer.test.ts:460` `toHaveLength(2)`; folding both into one warning → 1 failed / 130 passed ("to have a length of 2 but got 1"); `else if` → the same; restored → 131/131 |
+| — | Core tests, typecheck and lint pass on the repo as it is | no | confirmed | 47 files / 529 passed; typecheck exit 0; `pnpm lint` exit 0 |
+
+**Overall:** met. With the blind and adversarial rows met through re-checks 1–3, every claim of task 5 is confirmed.
