@@ -35,6 +35,8 @@ export const MARKETPLACE_PATHS: Record<PluginTool, string> = {
   "claude-code": ".claude-plugin/marketplace.json",
   codex: ".agents/plugins/marketplace.json",
   cursor: ".cursor-plugin/marketplace.json",
+  // Copilot looks here first, so it doesn't pick up Claude Code's `.claude-plugin/` in the mirror.
+  copilot: ".github/plugin/marketplace.json",
 };
 
 /**
@@ -100,6 +102,19 @@ export const marketplaceFor = (
           version: entry.version,
           description: entry.description,
           source: pathOf(tool, entry.source),
+        })),
+      });
+    case "copilot":
+      // The CLI plugin reference's fields (2026-11-22); a folder `source` relative to the root.
+      return jsonFile(path, {
+        name: options.name,
+        owner: { name: options.owner },
+        metadata: { description: options.description },
+        plugins: sorted.map((entry) => ({
+          name: entry.name,
+          version: entry.version,
+          description: entry.description,
+          source: `./${pathOf(tool, entry.source)}`,
         })),
       });
   }

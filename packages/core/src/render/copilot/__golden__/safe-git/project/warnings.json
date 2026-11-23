@@ -1,0 +1,6 @@
+[
+  {
+    "code": "unsupported_type",
+    "message": "GitHub Copilot has no allow or deny list a project or the home folder can hold, so @examples/safe-git was skipped there."
+  }
+]

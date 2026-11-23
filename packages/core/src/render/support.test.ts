@@ -6,11 +6,17 @@ describe("supportOf", () => {
   it("gives every renderer's level for the type", () => {
     const support = supportOf({ name: "@a/b", type: "permission-policy" }, "permission-policy");
     expect(Object.keys(support)).toEqual(RENDERERS.map((r) => r.id));
-    expect(support).toEqual({ "claude-code": "native", codex: "degraded", cursor: "degraded" });
+    expect(support).toEqual({
+      "claude-code": "native",
+      codex: "degraded",
+      cursor: "degraded",
+      copilot: "none",
+    });
     expect(supportOf({}, "lsp-server")).toEqual({
       "claude-code": "degraded",
       codex: "none",
       cursor: "none",
+      copilot: "native",
     });
   });
 
@@ -27,16 +33,18 @@ describe("supportOf", () => {
       "claude-code": "native",
       codex: "native",
       cursor: "off",
+      copilot: "off",
     });
     expect(supportFor("output-style", ["codex", "claude-code"])).toEqual({
       "claude-code": "off",
       codex: "none",
       cursor: "none",
+      copilot: "none",
     });
   });
 
   it("says none for a type it doesn't know, and installs only where native or degraded", () => {
-    expect(Object.values(supportFor("widget", []))).toEqual(["none", "none", "none"]);
+    expect(Object.values(supportFor("widget", []))).toEqual(["none", "none", "none", "none"]);
     expect(
       (["native", "degraded", "off", "none", undefined] as const).map((level) => installsIn(level)),
     ).toEqual([true, true, false, false, false]);

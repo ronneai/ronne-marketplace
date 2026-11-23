@@ -254,12 +254,13 @@ describe("the catalogue", () => {
       "claude-code": "native",
       codex: "native",
       cursor: "off",
+      copilot: "native",
     });
     expect(page.entries.find((e) => e.name === "policy")?.support).toMatchObject({
       codex: "degraded",
     });
     // An unknown tool is dropped, not an error.
-    expect((await browse({ tool: "copilot" })).query.tool).toBeNull();
+    expect((await browse({ tool: "no-such-tool" })).query.tool).toBeNull();
   });
 
   it("sorts by name, and lists items with every version yanked last", async () => {

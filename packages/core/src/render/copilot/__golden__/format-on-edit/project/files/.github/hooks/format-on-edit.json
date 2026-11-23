@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "hooks": {
+    "postToolUse": [
+      {
+        "type": "command",
+        "bash": "npx --no-install biome format --write $RMK_FILE_PATHS",
+        "cwd": ".",
+        "timeoutSec": 30,
+        "matcher": "edit"
+      }
+    ]
+  }
+}

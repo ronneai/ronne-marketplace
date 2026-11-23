@@ -1,0 +1,10 @@
+[
+  {
+    "kind": "json-key",
+    "path": ".github/lsp.json",
+    "key": [
+      "lspServers",
+      "typescript-lsp"
+    ]
+  }
+]

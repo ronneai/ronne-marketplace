@@ -71,9 +71,9 @@ describe("marketplaces", () => {
     });
   });
 
-  it("don't point Codex or Cursor at archives", () => {
+  it("don't point Codex, Cursor or Copilot at archives", () => {
     const archive = { kind: "archive", url: "https://r.example/x.zip", sha256: "a" } as const;
-    for (const tool of ["codex", "cursor"] as const)
+    for (const tool of ["codex", "cursor", "copilot"] as const)
       expect(() =>
         marketplaceFor(
           tool,

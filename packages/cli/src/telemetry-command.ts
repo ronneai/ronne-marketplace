@@ -71,10 +71,10 @@ export const telemetryCommand = async (
   args: { positionals: string[]; values?: Record<string, string | boolean | string[] | undefined> },
   out: Output,
 ): Promise<void> => {
-  const [sub = "status", tool = ""] = args.positionals;
+  const [sub = "status", tool = "", event] = args.positionals;
   if (sub === "hook") {
     // Run by an AI tool: prints nothing, whatever happens.
-    await runHook(io, tool);
+    await runHook(io, tool, event);
     return;
   }
   if (sub === "status") {

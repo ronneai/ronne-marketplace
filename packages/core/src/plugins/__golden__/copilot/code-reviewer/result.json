@@ -1,0 +1,15 @@
+{
+  "name": "examples.code-reviewer",
+  "empty": false,
+  "executables": [],
+  "warnings": [
+    {
+      "code": "unsupported_field",
+      "message": "Copilot names models differently in the CLI and VS Code, so @examples/code-reviewer's `strong` hint was left out; set targets.copilot.overrides.model to choose one."
+    },
+    {
+      "code": "unsupported_field",
+      "message": "Copilot's agents can't preload skills in both the CLI and VS Code, so @examples/code-reviewer's skills are installed but not preloaded; the agent finds them as any other skill."
+    }
+  ]
+}

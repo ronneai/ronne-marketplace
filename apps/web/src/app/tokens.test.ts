@@ -47,6 +47,12 @@ const PAIRS: [string, string, number][] = [
   ["fg", "inline-code", 4.5],
   ["focus", "canvas", 3],
   ["focus", "surface", 3],
+  // The usage charts' per-tool bars (047; Copilot's, 028): chart marks, 3:1 on both surfaces.
+  ["chart-claude-code", "surface", 3],
+  ["chart-codex", "surface", 3],
+  ["chart-cursor", "surface", 3],
+  ["chart-copilot", "canvas", 3],
+  ["chart-copilot", "surface", 3],
   // Code previews (the New item page's starter files).
   ["code-fg", "code-bg", 4.5],
   ["code-muted", "code-bg", 4.5],

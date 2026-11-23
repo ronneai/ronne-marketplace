@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "examples.typescript-lsp",
+  "version": "1.0.0",
+  "description": "TypeScript and JavaScript code intelligence through typescript-language-server.",
+  "author": {
+    "name": "examples"
+  }
+}

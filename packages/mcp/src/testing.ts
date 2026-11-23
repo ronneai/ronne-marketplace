@@ -33,7 +33,7 @@ const summary = (name: string, type = "skill") => ({
   installable: true,
   risky: false,
   downloads: 0,
-  support: { "claude-code": "native", codex: "native", cursor: "native" },
+  support: { "claude-code": "native", codex: "native", cursor: "native", copilot: "native" },
 });
 
 const versionDetail = (
@@ -52,7 +52,7 @@ const versionDetail = (
     readme: null,
     notes: null,
     riskFlags,
-    support: { "claude-code": "native", codex: "native", cursor: "native" },
+    support: { "claude-code": "native", codex: "native", cursor: "native", copilot: "native" },
   },
 });
 

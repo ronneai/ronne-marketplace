@@ -1,0 +1,10 @@
+[
+  {
+    "kind": "json-key",
+    "path": ".copilot/lsp-config.json",
+    "key": [
+      "lspServers",
+      "typescript-lsp"
+    ]
+  }
+]

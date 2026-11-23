@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "examples.code-reviewer",
+  "version": "1.0.0",
+  "description": "Reviews diffs for correctness and security issues. Use after finishing a change and before opening a pull request.",
+  "author": {
+    "name": "examples"
+  }
+}

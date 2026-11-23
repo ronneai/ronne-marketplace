@@ -46,7 +46,7 @@ export const USAGE = `Usage: rmk <command> [options]
          [--dry-run] [--yes] [--force] [--new] [--new-draft]
   submit [<item|id>...] [--all] [--no-deps] [--dry-run] [--yes]
   telemetry [on | off | status | preview | flush]
-  feed build --out <dir> [--tools claude-code,codex,cursor] [--workspace <name>]... [--force]
+  feed build --out <dir> [--tools claude-code,codex,cursor,copilot] [--workspace <name>]... [--force]
   feed build --print-workflow github|gitlab [--workspace <name>]...
 
 An <item> is its full name: @scope/name in global, @workspace/scope/name in any other workspace.

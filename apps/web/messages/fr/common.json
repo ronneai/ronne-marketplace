@@ -152,7 +152,7 @@
   "authShell": {
     "eyebrow": "Registre et marketplace",
     "headline": "Les capacités d'IA de votre équipe, organisées au même endroit",
-    "lead": "Skills, agents, règles, commandes, hooks et serveurs MCP, révisés avant leur publication et livrés à Claude Code, Codex et Cursor.",
+    "lead": "Skills, agents, règles, commandes, hooks et serveurs MCP, révisés avant leur publication et livrés à Claude Code, Codex, Cursor et GitHub Copilot.",
     "reviewedTitle": "Révisé avant publication",
     "reviewedBody": "Chaque élément et chaque changement demande une approbation.",
     "installTitle": "Une commande pour installer",

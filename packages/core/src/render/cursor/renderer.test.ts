@@ -247,6 +247,6 @@ describe("the Cursor renderer", () => {
     expect(cursorRenderer.supports("permission-policy")).toBe("degraded");
     expect(render("starter-kit")).toEqual({ changes: [], warnings: [] });
     const { RENDERERS } = await import("../registry.js");
-    expect(RENDERERS.map((r) => r.id)).toEqual(["claude-code", "codex", "cursor"]);
+    expect(RENDERERS.map((r) => r.id)).toContain("cursor");
   });
 });

@@ -11,7 +11,8 @@
     "mcp",
     "claude-code",
     "codex",
-    "cursor"
+    "cursor",
+    "copilot"
   ],
   "license": "MIT",
   "homepage": "https://www.ronne.ai/en/marketplace",

@@ -3,14 +3,14 @@ import type { RenderInput, RenderWarningCode } from "../render/types.js";
 
 /**
  * Native plugins (feature 076, contract `docs/spec/plugin-feeds.md`): a released item, with its
- * dependencies or a bundle's members, as a Claude Code, Codex or Cursor plugin. Pure, like the
+ * dependencies or a bundle's members, as a Claude Code, Codex, Cursor or GitHub Copilot plugin. Pure, like the
  * renderers it's built on: no file system, network or clock.
  */
 
 /** The tools a plugin is built for, by renderer id. */
-export type PluginTool = "claude-code" | "codex" | "cursor";
+export type PluginTool = "claude-code" | "codex" | "cursor" | "copilot";
 
-export const PLUGIN_TOOLS: readonly PluginTool[] = ["claude-code", "codex", "cursor"];
+export const PLUGIN_TOOLS: readonly PluginTool[] = ["claude-code", "codex", "cursor", "copilot"];
 
 export const isPluginTool = (value: string): value is PluginTool =>
   (PLUGIN_TOOLS as readonly string[]).includes(value);

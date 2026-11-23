@@ -41,6 +41,8 @@ const CLAUDE_RESERVED = ["claude-", "anthropic-", "anthropics-", "cc-plugin-"];
 export const pluginNameProblem = (tool: PluginTool, name: string): PluginNameProblem | null => {
   switch (tool) {
     case "codex":
+    case "copilot":
+      // Both read Agent Plugins, whose names are at most 64 characters without `--`.
       if (name.length > 64) return "too_long";
       return name.includes("--") ? "double_hyphen" : null;
     case "claude-code":

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "examples.house-style",
+  "version": "1.0.0",
+  "description": "TypeScript conventions for this codebase.",
+  "author": {
+    "name": "examples"
+  }
+}

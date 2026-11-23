@@ -1,9 +1,10 @@
 # 029 — Antigravity CLI and Gemini CLI renderers
 
-> Milestone: M5b · Depends on: 021, 022, 025 · Design: [MVP §3.1](../../../MVP/MVP.md#31-item-types), [§3.3](../../../MVP/MVP.md#33-platform-renderers) · Contracts: [`docs/spec/manifest.md`](../../../spec/manifest.md), [`docs/spec/cli-files.md`](../../../spec/cli-files.md)
+> Milestone: M5b · Depends on: 021, 022, 025, 028 · Design: [MVP §3.1](../../../MVP/MVP.md#31-item-types), [§3.3](../../../MVP/MVP.md#33-platform-renderers) · Contracts: [`docs/spec/manifest.md`](../../../spec/manifest.md), [`docs/spec/cli-files.md`](../../../spec/cli-files.md)
 
-> **On hold** since 2026-09-30 (owner): not implemented now. Before work starts, re-check this spec
-> against what was built since and against the vendor's current docs.
+> **Off hold** since 2026-11-22 (owner), at full parity with the tier-1 tools: when work starts, the
+> spec is re-checked against the vendor's current docs and against what was built since (as 028 was),
+> and gains a reader, run counting, plugins and plugin feeds. Until then it is the 2026-09-28 version.
 
 ## Goal
 

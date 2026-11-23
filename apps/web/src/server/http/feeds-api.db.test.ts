@@ -189,7 +189,7 @@ describe("GET /api/v1/feeds/claude-code/marketplace.json (077)", () => {
   });
 
   it("answers 404 for a tool it has no feed for", async () => {
-    for (const tool of ["copilot", "nope"]) {
+    for (const tool of ["devin", "nope"]) {
       const response = await getMarketplace(get(`/${tool}/marketplace.json`), { tool }, deps);
       expect(response.status, tool).toBe(404);
       expect((await response.json()).error.code).toBe("feed_not_found");
@@ -350,6 +350,7 @@ describe("the Codex and Cursor feeds (078)", () => {
     expect(await names("claude-code")).toEqual(["team.no-cursor", "team.reviewer", "team.style"]);
     expect(await names("codex")).toEqual(["team.no-cursor", "team.style"]);
     expect(await names("cursor")).toEqual(["team.reviewer", "team.style"]);
+    expect(await names("copilot")).toEqual(["team.no-cursor", "team.reviewer", "team.style"]);
   });
 
   it("serve each tool's plugin layout, and 404 for an item left out of that tool's feed", async () => {
@@ -372,6 +373,15 @@ describe("the Codex and Cursor feeds (078)", () => {
       ".cursor-plugin/plugin.json",
       "skills/style/SKILL.md",
       "skills/style/ronne.yaml",
+    ]);
+    expect(await zip("copilot", "style")).toEqual([
+      "plugin.json",
+      "skills/style/SKILL.md",
+      "skills/style/ronne.yaml",
+    ]);
+    expect(await zip("copilot", "reviewer")).toEqual([
+      "com.github.copilot/agents/reviewer.agent.md",
+      "plugin.json",
     ]);
     expect(await zip("codex", "reviewer")).toBe(404);
     expect(await zip("cursor", "no-cursor")).toBe(404);

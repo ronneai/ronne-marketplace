@@ -36,7 +36,7 @@ import type { Output } from "./output.js";
 import { writeFileAtomic } from "./project.js";
 
 /**
- * `rmk feed build --out <dir> [--tools claude-code,codex,cursor] [--workspace <name>]... [--force]`
+ * `rmk feed build --out <dir> [--tools claude-code,codex,cursor,copilot] [--workspace <name>]... [--force]`
  * (feature 078, contract `docs/spec/plugin-feeds.md`, The git mirror): writes the registry's plugin
  * feeds as a repository tree that Codex, Cursor and Claude Code add as a marketplace. It holds the
  * public workspaces' items, and a private workspace's only when `--workspace` names it (093). For each tool it reads the
@@ -415,7 +415,7 @@ export const feedCommand = async (io: Io, args: Args, out: Output, api: () => Ap
   const [action, ...rest] = args.positionals;
   if (action !== "build" || rest.length)
     throw usage(
-      "Usage: rmk feed build --out <dir> [--tools claude-code,codex,cursor] [--workspace <name>]... [--force]\n       rmk feed build --print-workflow github|gitlab [--workspace <name>]...",
+      "Usage: rmk feed build --out <dir> [--tools claude-code,codex,cursor,copilot] [--workspace <name>]... [--force]\n       rmk feed build --print-workflow github|gitlab [--workspace <name>]...",
     );
   const workspaces = workspacesOf(args.values.workspace);
   const host = args.values["print-workflow"];

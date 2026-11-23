@@ -27,7 +27,10 @@ export const PLUGIN_SETUP_ITEM = "rmk plugin-setup";
 export const PLUGIN_SETUP_USAGE =
   "rmk plugin-setup claude-code [--scope user|project] [--remove] [--static-headers] [--command <rmk>]";
 
-/** The tools whose marketplace the registry serves itself (077); Codex and Cursor come with 078. */
+/**
+ * The tools whose marketplace the registry serves itself (077); Codex, Cursor and GitHub Copilot
+ * read theirs from the git mirror (078, 028).
+ */
 const TOOLS = ["claude-code"];
 
 const SETTINGS = ".claude/settings.json";
@@ -66,7 +69,7 @@ export const pluginSetupCommand = async (io: Io, args: Args, out: Output) => {
   if (!tool || rest.length) throw usage(`Usage: ${PLUGIN_SETUP_USAGE}`);
   if (!TOOLS.includes(tool))
     throw usage(
-      `rmk plugin-setup only sets up claude-code: Codex and Cursor read plugins from a git mirror instead.`,
+      `rmk plugin-setup only sets up claude-code: Codex, Cursor and GitHub Copilot read plugins from a git mirror instead (rmk feed build).`,
     );
   const scope = scopeOf(args.values.scope);
   const remove = args.values.remove === true;

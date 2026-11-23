@@ -1,5 +1,6 @@
 import { type ItemType, isItemType } from "../../item-types.js";
 import { commandSkill, skillFolder } from "../agents-skills.js";
+import { alsoTarget, covered } from "../covered.js";
 import {
   disabledWarning,
   envRef,
@@ -40,18 +41,10 @@ const unsupported = (message: string): RenderWarning => ({ code: "unsupported_fi
  * default), is written in the same install: then Cursor's own would be a second one.
  */
 const claudeCodeCovers = (item: RenderInput, context: RenderContext) =>
-  (context.targets ?? []).includes("claude-code") &&
-  targetsFor(item.manifest, "claude-code").enabled;
+  alsoTarget(item, context, "claude-code");
 
-const covered = (item: RenderInput, where: string): Rendered => ({
-  changes: [],
-  warnings: [
-    {
-      code: "covered_by_target",
-      message: `Cursor reads Claude Code's copy of ${item.name} (${where}), so no second one was written.`,
-    },
-  ],
-});
+const coveredByClaudeCode = (item: RenderInput, where: string): Rendered =>
+  covered(item, RENDERER_NAME, "Claude Code", where);
 
 /** Skills and commands: `.agents/skills/`, unless only Claude Code's copy is written with it. */
 const skillOrCommand = (
@@ -62,7 +55,7 @@ const skillOrCommand = (
 ): Rendered =>
   // With Codex also a target, `.agents/skills/` is written anyway: the same bytes, one entry.
   claudeCodeCovers(item, context) && !(context.targets ?? []).includes("codex")
-    ? covered(item, `.claude/skills/${n}/`)
+    ? coveredByClaudeCode(item, `.claude/skills/${n}/`)
     : render();
 
 const renderAgent = (
@@ -168,7 +161,8 @@ const renderHook = (
   block: Record<string, unknown>,
   context: RenderContext,
 ): Rendered => {
-  if (claudeCodeCovers(item, context)) return covered(item, "hooks in .claude/settings.json");
+  if (claudeCodeCovers(item, context))
+    return coveredByClaudeCode(item, "hooks in .claude/settings.json");
   const event = EVENTS[String(block.event)];
   if (!event)
     return {

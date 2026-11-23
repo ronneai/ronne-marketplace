@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { type PackageFile, parseManifest } from "@ronneai/core";
 import { packItem } from "@ronneai/core/pack";
-import { claudeCodeRenderer, codexRenderer } from "@ronneai/core/render";
+import { claudeCodeRenderer, codexRenderer, copilotRenderer } from "@ronneai/core/render";
 import { stringify as stringifyToml } from "smol-toml";
 import { afterEach, describe, expect, it } from "vitest";
 import { apiClient } from "./api.js";
@@ -169,6 +169,23 @@ describe("readChange", () => {
       args: ["--cloud"],
       env: [{ name: "JIRA_TOKEN", description: "A Jira API token." }],
     });
+  });
+
+  it("reads a server rmk wrote to .mcp.json for Copilot alone as Copilot's (028)", async () => {
+    const { routes } = await registry([SERVER]);
+    io = fakeIo(routes);
+    await install(SERVER, copilotRenderer as typeof claudeCodeRenderer, ["copilot"]);
+    const place = placeOf("jira");
+    expect(place.tool).toBe("copilot");
+    const api = apiClient(io.fetch, REGISTRY, "t");
+    const base = { item: SERVER.name, version: SERVER.version };
+    expect((await readChange(io, api, place, base)).merged.unchanged).toBe(true);
+    const json = JSON.parse(readFileSync(join(io.cwd, ".mcp.json"), "utf8"));
+    json.mcpServers.jira.args = ["--cloud"];
+    write(".mcp.json", JSON.stringify(json));
+    const change = await readChange(io, api, placeOf("jira"), base);
+    expect(change.merged.changes.fields.map((f) => f.field)).toEqual(["mcp-server.args"]);
+    expect(change.merged.manifest["mcp-server"]).toMatchObject({ args: ["--cloud"] });
   });
 
   it("says unchanged when nothing the item carries was edited", async () => {

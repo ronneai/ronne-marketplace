@@ -13,8 +13,8 @@ export type WorkflowHost = (typeof WORKFLOW_HOSTS)[number];
 const github = (
   version: string,
   build: string,
-) => `# Keeps this repository a mirror of a Ronne registry's plugin feeds, for Codex, Cursor and
-# Claude Code. Printed by \`rmk feed build --print-workflow github\` (rmk ${version}).
+) => `# Keeps this repository a mirror of a Ronne registry's plugin feeds, for Codex, Cursor,
+# GitHub Copilot and Claude Code. Printed by \`rmk feed build --print-workflow github\` (rmk ${version}).
 #
 # Set two repository secrets (Settings > Secrets and variables > Actions):
 #   RMK_REGISTRY  the registry's address, such as https://ronne.example
@@ -65,8 +65,8 @@ jobs:
 const gitlab = (
   version: string,
   build: string,
-) => `# Keeps this repository a mirror of a Ronne registry's plugin feeds, for Codex, Cursor and
-# Claude Code. Printed by \`rmk feed build --print-workflow gitlab\` (rmk ${version}).
+) => `# Keeps this repository a mirror of a Ronne registry's plugin feeds, for Codex, Cursor,
+# GitHub Copilot and Claude Code. Printed by \`rmk feed build --print-workflow gitlab\` (rmk ${version}).
 #
 # Set three CI/CD variables (Settings > CI/CD > Variables), masked:
 #   RMK_REGISTRY    the registry's address, such as https://ronne.example

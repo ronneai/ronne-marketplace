@@ -280,6 +280,100 @@ test("rmk installs for Cursor, alone and with Claude Code, and removes cleanly",
 });
 
 /**
+ * GitHub Copilot (028): its own files alone, then with Claude Code, where Copilot reads Claude
+ * Code's `.mcp.json` key and runs its hooks, so each is written once; skills, the agent and the rule
+ * are still Copilot's own.
+ */
+test("rmk installs for GitHub Copilot, alone and with Claude Code, and removes cleanly", async ({
+  request,
+}) => {
+  const home = mkdtempSync(join(tmpdir(), "rmk-e2e-home-"));
+  const project = mkdtempSync(join(tmpdir(), "rmk-e2e-project-"));
+  mkdirSync(join(project, ".github"));
+  writeFileSync(join(project, ".github/copilot-instructions.md"), "Be brief.\n");
+  writeFileSync(join(project, ".mcp.json"), '{ "mcpServers": { "mine": { "url": "x" } } }\n');
+  const token = await request.post("/api/v1/auth/token", {
+    data: { email: E2E_USERS.installer, password: E2E_PASSWORD, name: "e2e rmk copilot" },
+  });
+  expect(token.status()).toBe(201);
+  const env = {
+    ...process.env,
+    HOME: home,
+    RMK_TOKEN: (await token.json()).token,
+    RMK_REGISTRY: baseURL,
+  };
+  const rmk = (...args: string[]) => {
+    try {
+      return {
+        code: 0,
+        out: execFileSync("node", [BIN, ...args], {
+          cwd: project,
+          env,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+        }),
+      };
+    } catch (error) {
+      const failed = error as { status: number; stdout: string; stderr: string };
+      return { code: failed.status, out: `${failed.stdout}${failed.stderr}` };
+    }
+  };
+  const read = (path: string) => readFileSync(join(project, path), "utf8");
+  const name = (item: string) => `@${E2E_SCOPE}/${item}`;
+  const items = [name(E2E_RMK_ITEMS.agent), name(E2E_RMK_ITEMS.hook), name(E2E_RMK_ITEMS.rule)];
+
+  try {
+    // Only Copilot's .github/copilot-instructions.md is here, so rmk picks Copilot on its own.
+    const install = rmk("install", ...items);
+    expect(install.code, install.out).toBe(0);
+    expect(install.out).toContain("for copilot.");
+    expect(install.out).toContain("GitHub Copilot loads a project's MCP servers");
+    expect(read(`.github/agents/${E2E_RMK_ITEMS.agent}.agent.md`)).toContain(
+      `name: ${E2E_RMK_ITEMS.agent}`,
+    );
+    expect(read(`.github/skills/${E2E_PROPOSAL_ITEM}/SKILL.md`)).toContain("Write the why");
+    // The always rule is a section of the repository-wide instructions, after the person's own text.
+    const instructions = read(".github/copilot-instructions.md");
+    expect(instructions.startsWith("Be brief.\n")).toBe(true);
+    expect(instructions).toContain(`<!-- rmk:begin ${name(E2E_RMK_ITEMS.rule)} -->`);
+    const mcp = JSON.parse(read(".mcp.json")).mcpServers;
+    expect(mcp.mine).toEqual({ url: "x" });
+    expect(mcp[E2E_RMK_ITEMS.mcp]).toMatchObject({
+      type: "stdio",
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: Copilot's own reference syntax
+      env: { KIT_TOKEN: "${KIT_TOKEN}" },
+      tools: ["*"],
+    });
+    expect(JSON.parse(read(`.github/hooks/${E2E_RMK_ITEMS.hook}.json`))).toEqual({
+      version: 1,
+      hooks: {
+        postToolUse: [{ type: "command", bash: "echo kit 1.1.0", cwd: ".", matcher: "edit" }],
+      },
+    });
+
+    // With Claude Code too, Copilot leaves the MCP server and the hook to Claude Code's copies.
+    const both = rmk("install", "--target", "claude-code,copilot");
+    expect(both.code, both.out).toBe(0);
+    expect(both.out).toContain("GitHub Copilot reads Claude Code's copy");
+    expect(existsSync(join(project, `.github/hooks/${E2E_RMK_ITEMS.hook}.json`))).toBe(false);
+    expect(JSON.parse(read(".mcp.json")).mcpServers[E2E_RMK_ITEMS.mcp].tools).toBeUndefined();
+    expect(read(`.github/skills/${E2E_PROPOSAL_ITEM}/SKILL.md`)).toContain("Write the why");
+    expect(read(`.claude/skills/${E2E_PROPOSAL_ITEM}/SKILL.md`)).toContain("Write the why");
+
+    const remove = rmk("remove", ...items, "--target", "claude-code,copilot");
+    expect(remove.code, remove.out).toBe(0);
+    expect(JSON.parse(read(".mcp.json"))).toEqual({ mcpServers: { mine: { url: "x" } } });
+    expect(read(".github/copilot-instructions.md")).toBe("Be brief.\n");
+    expect(existsSync(join(project, `.github/agents/${E2E_RMK_ITEMS.agent}.agent.md`))).toBe(false);
+    expect(existsSync(join(project, `.github/skills/${E2E_PROPOSAL_ITEM}`))).toBe(false);
+    expect(JSON.parse(read(".rmk/state.json")).entries).toEqual([]);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+/**
  * `rmk export` (038): a skill the person wrote in `.claude/skills/`, uploaded with the built `rmk`
  * as a draft, which its author opens in the web editor with the same files. The folder on disk
  * isn't changed, and what's never uploaded stays behind.

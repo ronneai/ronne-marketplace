@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "examples.secure-coding",
+  "version": "1.0.0",
+  "description": "Checks code for common security mistakes such as injection, unsafe deserialisation and leaked secrets. Use when writing or reviewing code that handles input, auth or secrets.",
+  "author": {
+    "name": "examples"
+  }
+}

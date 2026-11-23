@@ -93,7 +93,7 @@ was planned:
 - [M3 — Review & release](./milestones/M03-review-release.md)
 - [M4 — `rmk` + Claude Code](./milestones/M04-rmk-claude-code.md)
 - [M5 — Codex, Cursor, MCP](./milestones/M05-codex-cursor-mcp.md)
-- [M5b — Tier-2 platforms (on hold)](./milestones/M05b-tier-2-platforms.md)
+- [M5b — Tier-2 platforms](./milestones/M05b-tier-2-platforms.md)
 - [M6 — Visual composer and npm](./milestones/M06-visual-composer-and-npm.md)
 - [M7 — Export from your tools](./milestones/M07-export-from-your-tools.md)
 - [M8 — Catalogue improvements](./milestones/M08-catalogue-improvements.md)
@@ -156,9 +156,9 @@ was planned:
 | [025](renderers/025-cursor-renderer/SPEC.md) | Cursor renderer | renderers | M5 | done |
 | [026](renderers/026-support-matrix/SPEC.md) | Per-item support matrix | renderers | M5 | done |
 | [027](cli-api/027-registry-mcp-server/SPEC.md) | Registry MCP server and `rmk mcp-setup` | cli-api | M5 | done |
-| [028](renderers/028-copilot-renderer/SPEC.md) | GitHub Copilot renderer | renderers | M5b | on hold |
-| [029](renderers/029-gemini-antigravity-renderers/SPEC.md) | Antigravity CLI and Gemini CLI renderers | renderers | M5b | on hold |
-| [030](renderers/030-devin-renderer/SPEC.md) | Devin renderer | renderers | M5b | on hold |
+| [028](renderers/028-copilot-renderer/SPEC.md) | GitHub Copilot renderer | renderers | M5b | done |
+| [029](renderers/029-gemini-antigravity-renderers/SPEC.md) | Antigravity CLI and Gemini CLI renderers | renderers | M5b | specified |
+| [030](renderers/030-devin-renderer/SPEC.md) | Devin renderer | renderers | M5b | specified |
 | [031](items/031-visual-composer/SPEC.md) | Visual composer | items | M6 | done |
 | [032](web-ui/032-design-system/SPEC.md) | Design system and app shell | web-ui | M1 | done |
 | [033](web-ui/033-in-app-help/SPEC.md) | In-app help | web-ui | M3 | done |

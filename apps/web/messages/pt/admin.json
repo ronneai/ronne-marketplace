@@ -1246,7 +1246,7 @@
     },
     "feeds": {
       "title": "Feeds de plugins",
-      "intro": "O marketplace de cada ferramenta como foi gerado por completo da última vez: o Claude Code lê o dele neste site; o rmk feed build lê os do Codex e do Cursor para o espelho git.",
+      "intro": "O marketplace de cada ferramenta como foi gerado por completo da última vez: o Claude Code lê o dele neste site; o rmk feed build lê os do Codex, do Cursor e do GitHub Copilot para o espelho git.",
       "nearTitle": "O marketplace de {tool} está perto {what, select, both {dos seus limites} size {do seu limite de tamanho} other {do seu limite de tempo}}.",
       "sizeBody": "O Claude Code lê de um endereço um marketplace de no máximo 5 MiB. Acima disso, o marketplace deixa de carregar; adicione no Claude Code o espelho git (rmk feed build), que não tem esse limite.",
       "timeBody": "O Claude Code espera 10 segundos por um marketplace. Ele é gerado uma vez por alteração e depois servido a partir da memória, então só a primeira requisição depois de um lançamento espera tanto.",

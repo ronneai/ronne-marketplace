@@ -1,0 +1,11 @@
+{
+  "name": "examples.git-branch",
+  "empty": true,
+  "executables": [],
+  "warnings": [
+    {
+      "code": "unsupported_type",
+      "message": "GitHub Copilot's status line is a setting in the home folder only, so @examples/git-branch was skipped; install it with --scope user."
+    }
+  ]
+}

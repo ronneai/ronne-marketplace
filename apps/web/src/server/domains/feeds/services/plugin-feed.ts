@@ -104,6 +104,7 @@ const TOOL_NAMES: Record<PluginTool, string> = {
   "claude-code": "Claude Code",
   codex: "Codex",
   cursor: "Cursor",
+  copilot: "GitHub Copilot",
 };
 
 const itemName = (ref: { workspace?: string; scope: string; name: string }) => formatItemName(ref);

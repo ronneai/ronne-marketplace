@@ -143,6 +143,95 @@ describe("runOf: each tool's events", () => {
   });
 });
 
+/**
+ * The Copilot CLI 1.0.114's payloads, captured from a real run on 2026-11-22 (028 task 6), with
+ * ids and paths replaced. They don't name their event: rmk's hook command does.
+ */
+const COPILOT = {
+  skill: {
+    sessionId: "<id>",
+    timestamp: 1795385272114,
+    cwd: "/work/project",
+    toolCallId: "<id>",
+    toolName: "skill",
+    toolArgs: { skill: "secure" },
+    toolResult: { resultType: "success", textResultForLlm: 'Skill "secure" loaded successfully.' },
+  },
+  mcp: {
+    sessionId: "<id>",
+    timestamp: 1795385275749,
+    cwd: "/work/project",
+    toolCallId: "<id>",
+    toolName: "github-mcp-create_issue",
+    toolArgs: {},
+    toolResult: { resultType: "success", textResultForLlm: "pong" },
+  },
+  /** A subagent's own tool call (captured 2026-11-22): it carries the subagent's `agentId`. */
+  delegated: {
+    sessionId: "<sub>",
+    timestamp: 1795386726787,
+    cwd: "/work/project",
+    toolCallId: "<id>",
+    toolName: "view",
+    toolArgs: { path: "/work/project/notes.txt" },
+    toolResult: { resultType: "success", textResultForLlm: "remember me" },
+    agentId: "<sub>",
+    agentType: "greeter",
+    parentAgentId: "<id>",
+  },
+  agent: {
+    sessionId: "<id>",
+    timestamp: 1795385277007,
+    cwd: "/work/project",
+    agentName: "reviewer",
+    agentDisplayName: "reviewer",
+    agentDescription: "Reviews.",
+    agentId: "<sub>",
+    agentType: "reviewer",
+    parentAgentId: "<id>",
+  },
+};
+
+describe("runOf: Copilot's events", () => {
+  it("skills, MCP servers by every name the tool's could come from, and agents", () => {
+    expect(runOf("copilot", COPILOT.skill, "postToolUse")).toEqual({
+      names: ["secure"],
+      types: ["skill"],
+      trigger: "model",
+      outcome: "success",
+    });
+    expect(runOf("copilot", COPILOT.mcp, "postToolUse")).toEqual({
+      names: ["github", "github-mcp"],
+      types: ["mcp-server"],
+      trigger: "model",
+      outcome: "success",
+    });
+    expect(runOf("copilot", COPILOT.agent, "subagentStart")).toEqual({
+      names: ["reviewer"],
+      types: ["agent"],
+      trigger: "model",
+      outcome: "unknown",
+    });
+  });
+
+  it("says who started it and how it ended, and ignores what isn't a run", () => {
+    // The captured subagent call, as a skill: the same fields with the skill tool's name and args.
+    const fromSubagent = { ...COPILOT.delegated, toolName: "skill", toolArgs: { skill: "secure" } };
+    expect(runOf("copilot", fromSubagent, "postToolUse")?.trigger).toBe("agent");
+    expect(runOf("copilot", COPILOT.delegated, "postToolUse")).toBeNull();
+    expect(runOf("copilot", COPILOT.mcp, "postToolUseFailure")?.outcome).toBe("error");
+    const failed = { ...COPILOT.skill, toolResult: { resultType: "failure" } };
+    expect(runOf("copilot", failed, "postToolUse")?.outcome).toBe("error");
+    expect(runOf("copilot", { ...COPILOT.skill, toolResult: {} }, "postToolUse")?.outcome).toBe(
+      "unknown",
+    );
+    expect(runOf("copilot", { ...COPILOT.mcp, toolName: "bash" }, "postToolUse")).toBeNull();
+    expect(runOf("copilot", COPILOT.skill, "preToolUse")).toBeNull();
+    expect(runOf("copilot", COPILOT.skill)).toBeNull();
+    expect(runOf("copilot", { ...COPILOT.agent, agentName: "" }, "subagentStart")).toBeNull();
+  });
+});
+
 /** A registry with a policy, rmk logged in to it, and a project with installed items. */
 const setUp = async (
   policy: UsagePolicy,
@@ -181,6 +270,20 @@ const hook = async (tool: string, payload: unknown) => {
 };
 
 describe("rmk telemetry hook", () => {
+  it("queues Copilot's run of an installed MCP server, and leaves Claude Code's hook alone under Copilot", async () => {
+    await setUp("choice", { "@team/github-mcp": { version: "1.0.0", type: "mcp-server" } });
+    io.readStdin = async () => JSON.stringify({ ...COPILOT.mcp, cwd: io.cwd });
+    const result = await run(["telemetry", "hook", "copilot", "postToolUse"], io);
+    expect(result).toEqual({ exitCode: 0, stdout: "", stderr: "" });
+    expect(queuedUsage(io)[0]?.events).toMatchObject([
+      { item: "@team/github-mcp", tool: "copilot", trigger: "model", outcome: "success" },
+    ]);
+    await setUp("choice", { "@team/secure": { version: "1.1.0", type: "skill" } });
+    io.env.COPILOT_CLI = "1";
+    await hook("claude-code", { ...CLAUDE.skill, cwd: io.cwd });
+    expect(queuedUsage(io)).toEqual([]);
+  });
+
   it("queues a run of an item rmk installed, in a subfolder too, and starts a send", async () => {
     const sent = await setUp("choice", { "@team/secure": { version: "1.1.0", type: "skill" } });
     mkdirSync(join(io.cwd, "src"));
@@ -283,6 +386,20 @@ describe("adding and removing the hooks", () => {
       hooks: {
         afterMCPExecution: [{ command: "rmk telemetry hook cursor" }],
         subagentStop: [{ command: "rmk telemetry hook cursor" }],
+      },
+    });
+    expect(await addUsageHooks(io, { registry: REGISTRY, targets: ["copilot"] })).toEqual([
+      "Added rmk's usage hook to ~/.copilot/hooks/rmk-telemetry.json, to count runs of the items rmk installed.",
+    ]);
+    const entry = (event: string) => [
+      { type: "command", bash: `rmk telemetry hook copilot ${event}`, timeoutSec: 10 },
+    ];
+    expect(JSON.parse(readFileSync(join(io.home, HOOK_FILES.copilot), "utf8"))).toEqual({
+      version: 1,
+      hooks: {
+        postToolUse: entry("postToolUse"),
+        postToolUseFailure: entry("postToolUseFailure"),
+        subagentStart: entry("subagentStart"),
       },
     });
   });
