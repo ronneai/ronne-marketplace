@@ -102,7 +102,15 @@ sessions and other codes ended, and a notice sent afterwards.
   request page.
 - **Same time**: each request does the same work whether or not an email goes out: it looks up the
   address, computes an HMAC and writes a flow row. The email is queued in the outbox (189), so
-  sending is never on the request's path.
+  sending is never on the request's path. A real account's request still writes more (its code,
+  its email, its audit row), so every answer, a refusal included, waits until 400 ms after the
+  request began (OWASP: responses in a consistent amount of time). It is a floor, not a fixed
+  time: the extra writes take tens of milliseconds, and only a database stalled for longer than
+  the floor on that one request would show.
+  - The per-address limit is taken before the transaction, as 190's is: a request whose
+    transaction then fails still counts, which errs towards fewer emails.
+  - The 60-second wait between emails is the address's, whichever flow asks.
+  - Requests at once for one account hold its row in turn, so only the newest code works.
 - **Signed in already**: `/sign-in/forgot` sends a signed-in person to Account › Change password.
 - **Screen text and emails** in English, Brazilian Portuguese and Canadian French (129). The email
   is in the language of the page it was asked from.

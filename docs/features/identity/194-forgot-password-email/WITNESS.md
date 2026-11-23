@@ -164,3 +164,105 @@ Witnessed: 2026-11-23 17:35 EST, by a fresh agent (blind). Commit: fcc99194 + wo
 | 5d | Each of the outbox's three result branches (`sent`, `retry` whose last try fails, terminal `failed`), changed alone to read the fingerprint at write time, fails a test; unchanged, the file passes on SQLite and PostgreSQL | no | confirmed | `mutate5.sh 1` (outbox.ts:204, sent) → "… ends sent …" fails; `2` (:215, retry) → "… ends retry …" fails; `4` (:224, failed) → "… ends failed …" fails; `0` → 28 passed; the `retry` case sets `attempts` to `MAX_ATTEMPTS - 1` (outbox.db.test.ts:541-549); repository SQLite 28 passed, postgres 28 passed |
 
 **Overall:** met.
+
+## Task 3 — The request
+
+Witnessed: 2026-11-23 17:47 EST, by a fresh agent (blind). Commit: f1f987cc + working tree (11 modified tracked files, 7 untracked password-reset files). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass on all four dialects | no | confirmed | `services/password-reset.db.test.ts` 17 passed on sqlite, postgres, mysql, mariadb; `models/password-reset.test.ts` 7 passed |
+| 2 | The address is normalised as at sign-in | no | confirmed | `signUpEmail`; probe P6 (`\r\n`, upper case → a code mail; `123`, `null`, 5000 characters → `invalid_email`); mutation M9 fails the test |
+| 3 | Active account with a password: a code, tied to the flow; no session | no | confirmed | first db test |
+| 4 | Root: no code, the email names `reset-root-password` | no | confirmed | test; probe P4 (pt mail) |
+| 5 | No password, or *Root only*: "You sign in with {providers}" | no | confirmed | two tests |
+| 6 | Disabled, waiting for approval, no account, erased: nothing sent | no | confirmed | db tests; no audit for erased or unknown |
+| 7 | The same screen state on every row | no | confirmed | test over 5 rows; probe P2b |
+| 8 | A flow row on every path, no address or IP | no | confirmed | mutation M6 → 5 tests fail |
+| 9 | Queued in the outbox, in the page's language | no | confirmed | probe P4 (fr, xx → en, pt); mutation M4 fails the first test |
+| 10 | Per-IP 10/hour through 109's database limiter | no | confirmed | probe P3 with the DB store on all 4 → 10 true, then false; mutation M3 fails the test. Remark: the db test uses the memory store |
+| 11 | Per-address limits (3 an hour, resend after 60 s) | no | partly | 3 an hour holds (test, P3, P7 for root and providers); the 60 s wait is keyed on a new flow id each request (P1: two requests 1 s apart → 2 mails); mutation M8 (`send.ok` dropped) passes every test |
+| 12 | Honeypot, fill time, challenge | no | confirmed | tests; mutation M5 fails the bot test |
+| 13 | Audit only for a real account; registered in 3 languages | no | confirmed | `audit-event.ts:115`, `summary.ts:275`; P2b on mysql/mariadb → 0 audits. Remark: mutation M7 (guard reduced to `account &&`) passes every test |
+| 14 | MySQL/MariaDB accents: only the exact address gets the code | no | confirmed | P2b → 0 mails, 0 codes on mysql and mariadb; mutation M1 fails the model test |
+| 15 | Two requests in a row: the second code ends the first | no | confirmed | test (61 s apart) |
+| 16 | Email or the setting off: closed, no flow | no | confirmed | test |
+| 17 | A test checks the found and not-found paths make the same repository calls | no | confirmed | Proxy test; mutation M2 fails it |
+| 18 | Same time: response times a test can't tell apart | no | not met | P5, median of 6: postgres found 16.7 ms vs missing 11.1; mysql 16.1 vs 11.7; mariadb 15.1 vs 10.6 |
+
+**Overall:** not met: the found path does measurably more work, and the 60-second wait is bypassed by a new request.
+
+### Adversarial pass
+
+Witnessed: 2026-11-23 17:47 EST, by a fresh agent (adversarial). Commit: f1f987cc + working tree. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tests pass on all four dialects | no | confirmed | 17 passed on each |
+| 2 | Normalised as at sign-in | no | confirmed | non-ASCII refused before any lookup |
+| 3 | A code for an active password account, tied to the flow, no sign-in | no | confirmed | test 1 |
+| 4 | A root never gets a code | no | confirmed | probe P3 (root under *Root only*, root with no credential row) → `reset_root` ×2, 0 codes; mutation M1 fails the root test |
+| 5 | No password or *Root only* → providers | no | confirmed | tests; P2 (null password, no provider on) → nothing, same answer; P7 odd provider name renders |
+| 6 | Disabled or waiting: nothing | no | confirmed | tests |
+| 7 | No account or erased: nothing, no audit | no | confirmed | P1 (stored `kåte@`, typed `kate@`) on pg, mysql, mariadb → 0 mails, audits, codes |
+| 8 | Flow row on every path, hash of a 32-byte token, user only when a code went | no | confirmed | P8 columns; limited and bot paths → `user_id` null |
+| 9 | A new code ends the account's earlier ones | no | partly | sequential holds (mutation M3 fails 2 tests); P5: 3 requests at once → 3 live codes on pg, mysql, mariadb |
+| 10 | Queued, never sent on the request's path | no | confirmed | `queueMail` in the transaction, `mailQueued` after commit |
+| 11 | The same answer for every address | no | confirmed | P4: code, unknown, limited, bot → same keys, expiry, token length on all 4 |
+| 12 | Same time | no | not met | P6, 80 rounds: postgres p50 code account 15.3 ms vs unknown 11.8 (root 14.2, disabled 13.0); mysql 15.7 vs 11.9; mariadb 14.4 vs 11.5. P9: with the address's 3 sends spent a real account is still 1–2 ms slower (its audit row), with no per-address cap |
+| 13 | Per-IP 10/hour | no | confirmed | test |
+| 14 | Per-address 3/hour, same page after | no | confirmed | test; P4 |
+| 15 | Honeypot, fill time, challenge, no replay | no | confirmed | tests; mutation M2 fails the bot test |
+| 16 | Audit only for a real account, no code or address in it | no | confirmed | P8 `{"sent":"code"}`; mutation M4 fails 4 tests |
+| 17 | The page's language | no | confirmed | test 1; model test |
+
+**Overall:** not met: response time shows whether an address has an account, and concurrent requests leave several live codes. Remark: the `reset_code` subject carries the code, as 190's sign-up subject does.
+
+### Re-check 1
+
+Witnessed: 2026-11-23 18:01 EST, by a fresh agent (blind). Commit: f1f987cc + working tree. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's tests pass on all four dialects | no | confirmed | 31 passed on postgres, mysql, mariadb (23 own + 8 probe); sqlite 37 passed, 1 skipped (server-only) |
+| 11 | Per-address limits (3 an hour, resend after 60 s) | no | confirmed | resend keyed on `address:<emailHmac>` (`password-reset.ts:142-147`); P1 (1 s apart) → 1 mail, 1 code on all 4; mutations M8 → 2 fail, MA (key back to `flowId`) → 1 fails |
+| 13 | Audit only for a real account | no | confirmed | M7 (guard `if (account)`) fails the accent test on mysql and mariadb. Remark: nothing reaches the `!account.erased` half |
+| 17 | The same-calls test | no | confirmed | expects `lockAccount, endCodesOf, issueCode, recordAudit` as the found path's extras; mutation MC fails it |
+| 18 | Same time | no | confirmed | `finally` waits until 400 ms (`password-reset.ts:94-101`); the action leaves the default; P5 medians found vs missing: sqlite 401.8/402.0, postgres 401.8/401.3, mysql 400.7/401.2, mariadb 400.9/401.8; mutation MB fails both timing tests |
+
+**Overall:** met. Remark: the floor hides the difference only while a request finishes within 400 ms.
+
+### Adversarial re-check 1
+
+Witnessed: 2026-11-23 18:10 EST, by a fresh agent (adversarial). Commit: f1f987cc + working tree. Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | With the default floor, time doesn't show whether an address has an account | no | confirmed | R1, 6 runs per path: every path 398.8–404.4 ms on sqlite, postgres, mysql (one mariadb outlier 424.3 for a disabled account); raw gap with floor 0 (R4): at most ~43 ms; mutation without the `finally` wait fails both timing tests |
+| 2 | Every answer waits, refusals and exceptions included | no | confirmed | R2: `transaction`, `openness`, `mail`, `limits.consume` throwing → rejected at 400.4–403.3 ms on all 4 |
+| 3 | A path slower than the floor is hidden | no | partly | R3: `lockAccount` slowed by 600 ms → 615–662 ms vs 401–403: by design a floor, not a fixed time |
+| 4 | The floor doesn't leak through the result | no | confirmed | R1 shapes identical; no page or cookie in this task yet |
+| 5 | The 60 s resend wait is the address's, across flows | no | confirmed | R5; mutation `subjectId: flowId` fails the test |
+| 6 | Requests at once leave one live code | no | confirmed | repository test on pg, mysql, mariadb; mutation without `lockAccount` fails on pg and mysql; R6 5 at once → 1 live |
+| 7 | The lock doesn't deadlock with other accounts or sign-ins | no | confirmed | R6 mixed (3 accounts, 4 sign-ins, a second reset) on all 4 → all fulfilled, 3 live codes |
+| 8 | The per-address limit covers root and providers emails | no | confirmed | test; mutation fails it |
+| 9 | The audit guard covers an accent-equal address | no | confirmed | test on mysql; mutation fails it |
+
+**Overall:** not met on row 3 alone (by design of a floor). Remark: the per-address limit is taken before the transaction, so a failed transaction still spends the minute.
+
+Fixes after the two passes: SPEC.md "Same time" says the floor is a floor (only a database stalled past it on that one request would show) and that the per-address limit is taken before the transaction, as 190's is; a test for an account marked erased whose address is still its own (no mail, no audit), which fails when `!account.erased` is dropped.
+
+### Adversarial re-check 2
+
+Witnessed: 2026-11-23 18:07 EST, by a fresh agent (adversarial). Commit: f1f987cc + working tree (13 tracked files modified, 7 untracked). Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | Every answer, refusals included, waits at least 400 ms after the request began | no | confirmed | `services/password-reset.ts:94-101`; probe `probe-rc2.db.test.ts` R7 with the floor on: account vs missing 400.0–405.9 ms on all 4 |
+| 3' | A real account's extra work takes tens of ms; no unstalled path passes the floor | no | confirmed | R7, floor 0, 3000 flows and codes for the account and 20 000 anonymous flows, 15 runs: account max 7.3 (sqlite), 71.4 (pg), 57.1 (mysql), 45.2 (mariadb) ms; missing 4.5/26.0/33.6/45.7; root 2.0/23.8/22.3/24.4; `password_reset_flows_user_idx` keeps `endCodesOf` indexed; only the request that passes the 60 s limit takes the lock |
+| 3'' | The new SPEC text matches the code | no | confirmed | limit before the transaction (`:142` before `:149`); `subjectId: address:<hmac>`; `lockAccount` |
+| 3''' | The new erased-account test | no | confirmed | passes on all 4; dropping `!account.erased` from the audit guard, or `\|\| account.erased` from `resetEmailFor`, fails it |
+
+**Overall:** met. Outside this row, in task 2's `settings/services/password-reset.db.test.ts`: the server-only "first ever" test ran (and failed) on SQLite when `TEST_DATABASE_URL` was set but empty, and deadlocked on MariaDB about 1 run in 4.
+
+Fix after the pass: both reset transactions (`setPasswordResetPolicy`, `requestPasswordReset`) run in `retryOnDeadlock`; the server-only tests skip on `!process.env.TEST_DATABASE_URL`. Both files: 36 passed, 3 skipped with the URL empty and on SQLite; 39 passed on postgres, mysql and mariadb; the MariaDB file 15/15 six times running.

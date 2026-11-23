@@ -234,7 +234,8 @@ describe("the reset by email setting against the email setup (194)", () => {
   });
 
   // Two connections at once: the database servers only (SQLite has one connection here).
-  it.skipIf(process.env.TEST_DATABASE_URL === undefined)(
+  // The database servers only: each in-memory SQLite connection is its own database.
+  it.skipIf(!process.env.TEST_DATABASE_URL)(
     "a contact cleared while it's being turned on ends with it off, or the turn-on refused",
     async () => {
       if (t.dialect === "sqlite") return;
@@ -288,7 +289,8 @@ describe("the reset by email setting against the email setup (194)", () => {
     },
   );
 
-  it.skipIf(process.env.TEST_DATABASE_URL === undefined)(
+  // The database servers only: each in-memory SQLite connection is its own database.
+  it.skipIf(!process.env.TEST_DATABASE_URL)(
     "of several turn-ons at once, the first ever, one changes it and is audited, none fails",
     async () => {
       // Each on its own connection, all past their readiness check before any writes.

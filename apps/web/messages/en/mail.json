@@ -69,5 +69,22 @@
       "body": "{how, select, provider {The account made on {host} when you signed in with {provider} wasn't approved, so it was deleted. You can ask your administrator why.} other {The account you created on {host} wasn't approved, so it was deleted, with what you typed. You can ask your administrator why.}}",
       "notYou": "If you didn't create an account there, ignore this email: nothing is left of it."
     }
+  },
+  "reset": {
+    "reset_code": {
+      "subject": "Your password reset code for {host}: {code}",
+      "body": "Your code to reset your password on {host} is {code}. It works for {minutes} minutes. Type it in the window where you asked for it. It doesn't sign you in: next you choose a new password.",
+      "notYou": "If you didn't ask for this, ignore this email: your password hasn't changed."
+    },
+    "reset_root": {
+      "subject": "Resetting your password on {host}",
+      "body": "Someone asked to reset the password of this root account on {host}. Root accounts don't reset by email: ask another root, or run {command} where Ronne is installed.",
+      "notYou": "If you didn't ask for this, ignore this email: your password hasn't changed."
+    },
+    "reset_providers": {
+      "subject": "Signing in to {host}",
+      "body": "Someone asked to reset the password of your account on {host}, but your account doesn't sign in with a password. You sign in with {providers}: use it on the sign-in page.",
+      "notYou": "If you didn't ask for this, ignore this email: nothing about your account changed."
+    }
   }
 }

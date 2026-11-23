@@ -789,6 +789,15 @@
           "bot": "it looked like a bot, so nothing was sent",
           "unknown": "not recorded"
         },
+        "resetRequestOutcomes": {
+          "code": "a code was sent",
+          "root": "it's a root account, so it was told to reset on the server",
+          "providers": "it signs in another way, which the email named",
+          "none": "nothing was sent (the account is disabled or waits for approval)",
+          "bot": "it looked like a bot, so nothing was sent",
+          "limited": "too many emails to the address, so nothing was sent",
+          "unknown": "not recorded"
+        },
         "signUpCodeReasons": {
           "wrong": "wrong code",
           "spent": "too many wrong codes",
@@ -857,7 +866,8 @@
           "backup_codes_regenerated": "Made new backup codes; the old ones stopped working",
           "two_factor_failed": "A two-factor code was refused at sign-in ({reason})",
           "sign_up_requested": "Asked to create an account for <name>{email}</name>: {outcome}",
-          "sign_up_code_failed": "A sign-up code for <name>{email}</name> was refused: {reason}"
+          "sign_up_code_failed": "A sign-up code for <name>{email}</name> was refused: {reason}",
+          "password_reset_requested": "A password reset by email was asked for <name>{email}</name>: {outcome}"
         },
         "access_token": {
           "created": "Created token <name>{label}</name> ({expiry}{how, select, cli {, from rmk login} device {, by browser approval} other {}})",

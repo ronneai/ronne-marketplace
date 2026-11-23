@@ -439,6 +439,10 @@
     "empty": "A sign-up code for an unknown email was refused: not recorded",
     "rich": "A sign-up code for ana@example.com was refused: invalid"
   },
+  "auth.password_reset_requested": {
+    "empty": "A password reset by email was asked for sam@example.com: not recorded",
+    "rich": "A password reset by email was asked for sam@example.com: not recorded"
+  },
   "user.signed_up": {
     "empty": "sam@example.com created their own account",
     "rich": "sam@example.com created their own account"

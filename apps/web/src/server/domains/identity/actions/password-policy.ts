@@ -1,4 +1,6 @@
+import type { Db } from "../../../db/create-db";
 import { toDbBoolean } from "../../../db/dates";
+import type { DatabaseDialect } from "../../../db/url";
 import type { PasswordSignInPolicy } from "../../settings/models/password-sign-in-policy";
 import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
 import { passwordSignInPolicy } from "../../settings/services/settings";
@@ -10,15 +12,20 @@ import type { AppAuth } from "../repositories/auth-instance";
  * password back. Read on every sign-in, so a change takes effect at once. Reads the settings
  * service directly, not its actions (which import this domain's session).
  */
-export const effectivePasswordPolicy = async (app: AppAuth): Promise<PasswordSignInPolicy> => {
-  const stored = await passwordSignInPolicy({
-    repo: kyselySettingsRepository(app.db, app.dialect),
-  });
+export const effectivePasswordPolicy = (app: AppAuth): Promise<PasswordSignInPolicy> =>
+  effectivePasswordPolicyIn(app.db, app.dialect);
+
+/** The same, read through `db`, which may be a transaction (194's reset reads it in one). */
+export const effectivePasswordPolicyIn = async (
+  db: Db,
+  dialect: DatabaseDialect,
+): Promise<PasswordSignInPolicy> => {
+  const stored = await passwordSignInPolicy({ repo: kyselySettingsRepository(db, dialect) });
   if (stored === "everyone") return stored;
-  const enabled = await app.db
+  const enabled = await db
     .selectFrom("identity_providers")
     .select("id")
-    .where("enabled", "=", toDbBoolean(true, app.dialect))
+    .where("enabled", "=", toDbBoolean(true, dialect))
     .limit(1)
     .executeTakeFirst();
   return enabled ? "root_only" : "everyone";

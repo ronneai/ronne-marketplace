@@ -24,7 +24,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     test covers on, off, the refusals without working email or a contact, and the setting turned off
     when the contact is cleared.
 
-- [ ] **3. The request.** [risky]
+- [x] **3. The request.** [risky]
   - The identity service `requestPasswordReset`: normalise the address; decide the email from the
     spec's table; write the flow row on every path; create the code (190) only for a password
     account; queue the email (189); the limits; the honeypot and the challenge (190's helpers);
@@ -91,3 +91,10 @@ goes into `SPEC.md` instead.
   the same, or a late result of an old setup counts for the new one.
 - `compareAndSet`'s first insert is `ON CONFLICT DO NOTHING` on PostgreSQL and SQLite: a failed
   statement aborts PostgreSQL's whole transaction, so a caught unique violation isn't enough there.
+- Task 3: every answer to a reset request waits until `RESET_ANSWER_MS` (400 ms) after it began,
+  since a real account's request writes more. Tests pass `minimumMs: 0`; the time floor has its
+  own tests. The code's resend limit is keyed on the address (`address:<HMAC>`), not the flow.
+- The reset emails' texts landed with task 3 (`messages/*/mail.json` "reset"), since the request
+  queues them; task 6 adds only the pages' words.
+- Run several test files in zsh by writing the paths out: an unquoted `$F` holding two paths is
+  one argument, and vitest then finds no files.

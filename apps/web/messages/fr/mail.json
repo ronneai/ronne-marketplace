@@ -69,5 +69,22 @@
       "body": "{how, select, provider {Le compte créé sur {host} quand vous vous êtes connecté avec {provider} n’a pas été approuvé, il a donc été supprimé. Vous pouvez demander pourquoi à votre administrateur.} other {Le compte que vous avez créé sur {host} n’a pas été approuvé, il a donc été supprimé, avec ce que vous avez tapé. Vous pouvez demander pourquoi à votre administrateur.}}",
       "notYou": "Si vous n’avez pas créé de compte là-bas, ignorez ce courriel : il n’en reste rien."
     }
+  },
+  "reset": {
+    "reset_code": {
+      "subject": "Votre code pour réinitialiser votre mot de passe sur {host} : {code}",
+      "body": "Votre code pour réinitialiser votre mot de passe sur {host} est {code}. Il est valide pendant {minutes} minutes. Tapez-le dans la fenêtre où vous l’avez demandé. Il ne vous connecte pas : vous choisissez ensuite un nouveau mot de passe.",
+      "notYou": "Si vous n’avez rien demandé, ignorez ce courriel : votre mot de passe n’a pas changé."
+    },
+    "reset_root": {
+      "subject": "Réinitialiser votre mot de passe sur {host}",
+      "body": "Quelqu’un a demandé à réinitialiser le mot de passe de ce compte root sur {host}. Les comptes root ne se réinitialisent pas par courriel : demandez à un autre root, ou exécutez {command} là où Ronne est installé.",
+      "notYou": "Si vous n’avez rien demandé, ignorez ce courriel : votre mot de passe n’a pas changé."
+    },
+    "reset_providers": {
+      "subject": "Vous connecter à {host}",
+      "body": "Quelqu’un a demandé à réinitialiser le mot de passe de votre compte sur {host}, mais votre compte ne se connecte pas avec un mot de passe. Vous vous connectez avec {providers} : utilisez cette option sur la page de connexion.",
+      "notYou": "Si vous n’avez rien demandé, ignorez ce courriel : rien n’a changé dans votre compte."
+    }
   }
 }

@@ -272,6 +272,11 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     email: text(m.email) || h.part("fallback.unknownEmail"),
     reason: h.word("signUpCodeReasons", text(m.reason) || "unknown"),
   }),
+  "auth.password_reset_requested": (m, e, h) => ({
+    // `{ sent }` (194): what the request emailed the account, never the code.
+    email: e.targetEmail || h.part("fallback.unknownEmail"),
+    outcome: h.word("resetRequestOutcomes", text(m.sent) || "unknown"),
+  }),
   "auth.signed_out": () => ({}),
   "auth.two_factor_enabled": () => ({}),
   "auth.two_factor_disabled": () => ({}),

@@ -1,3 +1,4 @@
+import { retryOnDeadlock } from "../../../db/locks";
 import { requirePermission } from "../../identity/models/permissions";
 import { PasswordResetUnavailableError } from "../exceptions/errors";
 import {
@@ -41,30 +42,33 @@ export const setPasswordResetPolicy = async (
   requirePermission(actor.user, "settings.manage");
   const enabled = input.enabled === true || input.enabled === "on";
   const at = (deps.now ?? (() => new Date()))();
-  return deps.repo.transaction(async (repo) => {
-    const stored = (await repo.get(PASSWORD_RESET_KEYS.enabled))?.value ?? null;
-    const from = passwordResetPolicyFromRow(stored);
-    if (from.enabled === enabled) return { changed: false };
-    if (enabled) {
-      const [blocker] = passwordResetBlockers(await readiness(repo));
-      if (blocker) throw new PasswordResetUnavailableError(blocker);
-    }
-    const by = actor.user?.id ?? null;
-    const value = enabled ? "on" : "off";
-    if (!(await repo.compareAndSet(PASSWORD_RESET_KEYS.enabled, stored, value, by, at)))
-      return { changed: false };
-    await repo.recordAudit(
-      {
-        actorId: by,
-        action: "settings.password_reset_changed",
-        target: { type: "instance" },
-        metadata: { from: from.enabled, to: enabled },
-        ipAddress: actor.ip,
-      },
-      at,
-    );
-    return { changed: true };
-  });
+  // Saves at once may still deadlock on MySQL and MariaDB (the first insert's key): tried again.
+  return retryOnDeadlock(() =>
+    deps.repo.transaction(async (repo) => {
+      const stored = (await repo.get(PASSWORD_RESET_KEYS.enabled))?.value ?? null;
+      const from = passwordResetPolicyFromRow(stored);
+      if (from.enabled === enabled) return { changed: false };
+      if (enabled) {
+        const [blocker] = passwordResetBlockers(await readiness(repo));
+        if (blocker) throw new PasswordResetUnavailableError(blocker);
+      }
+      const by = actor.user?.id ?? null;
+      const value = enabled ? "on" : "off";
+      if (!(await repo.compareAndSet(PASSWORD_RESET_KEYS.enabled, stored, value, by, at)))
+        return { changed: false };
+      await repo.recordAudit(
+        {
+          actorId: by,
+          action: "settings.password_reset_changed",
+          target: { type: "instance" },
+          metadata: { from: from.enabled, to: enabled },
+          ipAddress: actor.ip,
+        },
+        at,
+      );
+      return { changed: true };
+    }),
+  );
 };
 
 /**
