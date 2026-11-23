@@ -754,3 +754,40 @@ Witnessed: 2026-11-23 11:07 EST, by a fresh agent (blind, scoped to the Antigrav
 | 14 | (Antigravity) A script hook in a plugin built by `antigravity.ts` runs on a real run, from the installed plugin's folder | no | confirmed | `buildPlugin("antigravity", …)` on a `run.script` hook → `hooks.json` `./hooks/format-on-edit/log.sh`, the script 0755; `agy plugin install <folder>` → hooks: 1 installed; a real `agy -p` run that used `run_command` → the script logged `pwd=…/.gemini/config/plugins/examples-format-on-edit`; uninstalled, and `diff -r` of the config backup → no difference |
 
 **Overall:** met. With the owner's waiver of the Gemini half of row 14 and of row 15 (re-check 1), every claim of task 9 is confirmed.
+
+## Task 10 — Every tool list
+
+Witnessed: 2026-11-23 11:13 EST, by a fresh agent (blind). Commit: a1f2793f + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The MCP server's enum and descriptions name both | no | confirmed | `server.ts:215`, `:85`, `:148`, `:218`, `:259`; mcp 53 passed |
+| 2 | `testing.ts` fixtures give support for both | no | confirmed | `testing.ts:36-43,62-69` |
+| 3 | `TOOL_PLACES` matches what the renderers write, in project scope | no | confirmed | probe against the goldens' `changes.json`, every type |
+| 4 | Home-folder-only types point at the home folder; unsupported types have no place | no | confirmed | probe output against `safe-git/user`, `git-branch/user` goldens |
+| 5 | `placeFor` names Antigravity's hook key after the item, tested | no | confirmed | `tool-paths.ts:128-130`; mutation → `"key":"<name>"`, which the test rejects |
+| 6 | The messages name both, in en, pt and fr | no | confirmed | `common.authShell.lead`, `help.export.answer`; `admin.json` already; web 6976 passed |
+| 7 | The CLI's plugin-setup message, the feed workflow and goldens, and the usage name both | no | confirmed | `plugin-setup.ts:73`, `feed-workflow.ts:17,69`, goldens, `cli.ts:49`, `feed-build.ts:39,422`. Remark: `plugin-setup.test.ts:160` tries only `codex`, `copilot` |
+| 8 | A search for `"copilot"` finds no tool list without `antigravity` and `gemini` | no | not met | `keywords` in `packages/{cli,core,mcp,server}/package.json`; `admin-settings.test.tsx:111`; `private-feeds-api.db.test.ts:216`; `plugin-setup.test.ts:160`; `plugin-feeds.md:4`. Older lists naming neither Copilot nor the new tools: READMEs, `packages/cli/package.json`'s description, `install.md:302`, `MVP.md:18,115,477,494`, `feed-build.ts:41,172` |
+| 9 | Moving `TOOL_PAGES` to task 11 is recorded consistently | no | confirmed | PLAN tasks 10 and 11 |
+| 10 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | no | confirmed | all exit 0 |
+
+**Overall:** not met (row 8).
+
+Fixes after the pass:
+- Row 8: the four packages' `keywords` add `antigravity` and `gemini`; `private-feeds-api.db.test.ts` and `admin-settings.test.tsx` (`notBuilt`, and its count of six rows) cover the six served tools; `plugin-setup.test.ts` checks `antigravity` and `gemini` are refused with the new wording; `plugin-feeds.md`'s opening names Antigravity's and Gemini CLI's folders and 029.
+- The older lists: `README.md`, `packages/cli/README.md`, `packages/core/README.md`, `packages/cli/package.json`'s description, `install.md`, `MVP.md` (the platforms line, the status line row, `rmk feed build`'s row and `--tools`, the MCP server line), and `feed-build.ts`'s two comments name the six tools (or "their AI tool").
+
+### Re-check 1
+
+Witnessed: 2026-11-23 11:23 EST, by a fresh agent (blind). Commit: a1f2793f + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | (remark) `plugin-setup.test.ts` checks `antigravity` and `gemini` are refused with the new wording | no | confirmed | `plugin-setup.test.ts:160` loops over four tools and expects exit 2 and the new wording; 8 tests pass |
+| 8 | A search for `"copilot"` finds no tool list without `antigravity` and `gemini` | no | confirmed | every hit in packages, apps/web, docs/spec, docs/runbooks and docs/MVP is a list naming both, a one-tool fact, a test fixture about marketplace files, or `topics.ts` (task 11) |
+| 8a | The package.json edits are valid JSON and the lockfile matches | no | confirmed | `JSON.parse` on all six; `pnpm install --frozen-lockfile` → up to date |
+| 8b | The older three-tool lists name the six tools and read correctly | no | confirmed | READMEs, CLI description, `install.md`, `MVP.md` (status line row matches §3.3's table and `tool-paths.ts`), `feed-build.ts` |
+| 10 | `pnpm lint`, `pnpm typecheck` and `pnpm test` pass | no | confirmed | each exit 0 |
+
+**Overall:** met. Left for task 11: `topics.ts:109,387,392`, `MVP.md:271` (§3.3's plugin feeds bullets), `plugin-feeds.md:78`, `MVP.md:916` (§14.6's usage line).

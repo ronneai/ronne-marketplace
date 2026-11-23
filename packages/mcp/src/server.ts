@@ -82,7 +82,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
           .string()
           .optional()
           .describe(
-            "An AI tool id (claude-code, codex, cursor, copilot): only items that install in it",
+            "An AI tool id (claude-code, codex, cursor, copilot, antigravity, gemini): only items that install in it",
           ),
         limit: z.number().int().min(1).max(100).optional(),
       },
@@ -145,7 +145,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     .array(z.string())
     .optional()
     .describe(
-      "AI tool ids, such as claude-code, codex, cursor or copilot; left out, the project's config or what the folder looks like decides",
+      "AI tool ids, such as claude-code, codex, cursor, copilot, antigravity or gemini; left out, the project's config or what the folder looks like decides",
     );
   // Planning writes nothing to the project; only apply_plan does.
   const planning = { readOnlyHint: true, openWorldHint: true };

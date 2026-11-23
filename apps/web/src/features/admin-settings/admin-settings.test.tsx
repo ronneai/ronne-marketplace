@@ -108,7 +108,9 @@ const form = (policy: string) => {
   return data;
 };
 
-const notBuilt = (["claude-code", "codex", "cursor", "copilot"] as const).map((tool) => ({
+const notBuilt = (
+  ["claude-code", "codex", "cursor", "copilot", "antigravity", "gemini"] as const
+).map((tool) => ({
   tool,
   stats: null,
   warnings: [],
@@ -326,7 +328,7 @@ describe("Admin › Settings › Plugin feeds (079)", () => {
     expect(html).toContain(">Plugin feeds</h2>");
     expect(html).toContain("What do these numbers mean?");
     expect(html).toContain('href="https://www.ronne.ai/en/marketplace/docs/plugins#large"');
-    expect(html.match(/Not built yet/g)).toHaveLength(4);
+    expect(html.match(/Not built yet/g)).toHaveLength(6);
     expect(html).not.toContain('role="status"');
   });
 

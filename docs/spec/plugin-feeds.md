@@ -1,9 +1,10 @@
 # Plugin feeds
 
 The contract for **native plugin feeds**: how a Ronne instance offers its released items as plugin
-marketplaces that Claude Code, Codex, Cursor and GitHub Copilot can add as a source (M11:
+marketplaces that Claude Code, Codex, Cursor and GitHub Copilot can add as a source, and as plugin
+folders that Antigravity and Gemini CLI install from a clone of the git mirror (M11:
 [076](../features/plugin-feeds/076-plugin-builders/SPEC.md), [077](../features/plugin-feeds/077-claude-code-marketplace/SPEC.md),
-[078](../features/plugin-feeds/078-plugin-feed-mirror/SPEC.md); Copilot's in [028](../features/renderers/028-copilot-renderer/SPEC.md); design in [MVP §3.3](../MVP/MVP.md#33-platform-renderers)).
+[078](../features/plugin-feeds/078-plugin-feed-mirror/SPEC.md); Copilot's in [028](../features/renderers/028-copilot-renderer/SPEC.md), Antigravity's and Gemini CLI's in [029](../features/renderers/029-gemini-antigravity-renderers/SPEC.md); design in [MVP §3.3](../MVP/MVP.md#33-platform-renderers)).
 
 Vendor formats were checked on 2026-10-03, again for 076 the same day, Claude Code again for 077,
 and Codex and Cursor again for 078, both the same day (sources:

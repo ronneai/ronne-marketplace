@@ -41,6 +41,24 @@ describe("the Works in tab's places", () => {
     });
   });
 
+  it("places Antigravity's and Gemini CLI's types, a hook's key named for the item (029)", () => {
+    expect(placeFor("antigravity", "hook", "fmt")).toEqual({
+      kind: "key",
+      key: "fmt",
+      path: ".agents/hooks.json",
+    });
+    expect(placeFor("antigravity", "rule", "style")).toEqual({
+      kind: "path",
+      path: ".agents/rules/style.md",
+    });
+    expect(placeFor("gemini", "rule")).toEqual({ kind: "section", path: "GEMINI.md" });
+    expect(placeFor("gemini", "command", "review")).toEqual({
+      kind: "path",
+      path: ".gemini/commands/review.toml",
+    });
+    expect(placeFor("gemini", "statusline")).toBeNull();
+  });
+
   it("says a bundle installs its items, in a sentence of its own", () => {
     expect(panel("en", "bundle")).toContain("Installs its items one by one.");
     expect(panel("pt", "bundle")).toContain("Instala seus itens um por um.");

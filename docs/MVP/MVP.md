@@ -15,7 +15,7 @@ on its own infrastructure. Humans decide what their AI tools are allowed to do: 
 proposed, reviewed, approved and released through an explicit process before anyone can install it.
 
 Items are written once in a canonical format and delivered to the major AI coding platforms
-(Claude Code, Codex, Cursor, and more later) through the `rmk` CLI and a registry MCP server.
+(Claude Code, Codex, Cursor, GitHub Copilot, Antigravity, Gemini CLI, and more later) through the `rmk` CLI and a registry MCP server.
 
 **MVP goals**
 
@@ -112,7 +112,7 @@ it to each tool, and platforms without an equivalent are skipped with a warning.
 | `mcp-server` | Connection config for an MCP server (stdio command or HTTP URL, args, env var **names** only) | `mcp.yaml` | MCP config files (all platforms) |
 | `permission-policy` | Allow / ask / deny rules for tools and shell commands | `policy.yaml`: `{ tool, pattern, decision }` list | Claude `permissions`, Codex `.rules` (Starlark) + approval profiles, Gemini CLI policies and Antigravity `permissions`, both in the home folder only (Copilot has none a repository can commit) |
 | `output-style` | A system-prompt style that changes how the agent responds | Markdown | Claude Code only |
-| `statusline` | A status-line script / config | Script + `statusline.yaml` | Claude Code, Codex |
+| `statusline` | A status-line script / config | Script + `statusline.yaml` | Claude Code, Copilot CLI, Antigravity CLI |
 | `lsp-server` | A language-server config that gives the agent code intelligence | `lsp.yaml` | Claude Code (via plugin), Copilot CLI |
 | `bundle` | A named set of items installed together; the unit the visual composer edits (§8) | `ronne.yaml` with `dependencies` only | Plugins / extensions / powers (see *native plugin feeds* in §3.3) |
 
@@ -474,7 +474,7 @@ written `pnpm run setup`. Full behaviour, including a non-interactive mode for D
 | `rmk logout` / `rmk whoami` | Revoke the token locally and on the server / show the current user and registry, and where the registry came from. |
 | `rmk plugin-setup claude-code [--scope user\|project] [--remove] [--static-headers]` | Add the registry's plugin marketplace to Claude Code's settings (`extraKnownMarketplaces`, with `rmk auth headers` as its `headersHelper`), through the applier, so it's never overwritten and `--remove` takes it out ([077](../features/plugin-feeds/077-claude-code-marketplace/SPEC.md)). |
 | `rmk auth headers [--registry <url>]` | Print `{"Authorization":"Bearer <token>"}` for the registry's saved token (or `RMK_TOKEN`) and nothing else: Claude Code's `headersHelper` for the plugin marketplace ([077](../features/plugin-feeds/077-claude-code-marketplace/SPEC.md)). Exits 1 without a token. |
-| `rmk feed build --out <dir> [--tools claude-code,codex,cursor] [--force]` | Write the registry's plugin feeds as a git repository tree that Codex, Cursor and Claude Code add as a marketplace: the plugins, each tool's marketplace file and `.rmk-feed.json`. Touches only what it wrote, and a second run with nothing new changes nothing ([078](../features/plugin-feeds/078-plugin-feed-mirror/SPEC.md)). |
+| `rmk feed build --out <dir> [--tools claude-code,codex,cursor,copilot,antigravity,gemini] [--force]` | Write the registry's plugin feeds as a git repository tree that Codex, Cursor, Copilot and Claude Code add as a marketplace, with Antigravity's plugins and Gemini CLI's extensions as folders: the plugins, each tool's marketplace file and `.rmk-feed.json`. Touches only what it wrote, and a second run with nothing new changes nothing ([078](../features/plugin-feeds/078-plugin-feed-mirror/SPEC.md)). |
 | `rmk search <query> [--workspace <name>]` · `rmk list [--installed]` | Browse the catalogue, or one workspace's items ([095](../features/cli-api/095-workspaces-cli-api/SPEC.md)) / show installed items. |
 | `rmk info <item>[@version]` | Show metadata, the item's workspace (and whether it's private), versions, dist-tags and dependencies. |
 | `rmk workspaces` | The workspaces you see, with your role in each, and the address to ask to join where you aren't a member (M13, 095). Asking is done in the web app. |
@@ -491,7 +491,7 @@ written `pnpm run setup`. Full behaviour, including a non-interactive mode for D
 
 ## 7. Registry MCP server
 
-`packages/mcp` exposes the registry to AI tools, so users can manage items without leaving Claude Code, Codex or Cursor.
+`packages/mcp` exposes the registry to AI tools, so users can manage items without leaving their AI tool.
 
 - **Read tools:** `search_items` (by workspace too, each result naming its workspace), `list_workspaces` (the workspaces you see, your role, and where to ask to join: [095](../features/cli-api/095-workspaces-cli-api/SPEC.md)), `get_item`, `list_installed`, `check_outdated`.
 - **Plan tools:** `plan_install`, `plan_update`, `plan_remove`. They write nothing. Each returns a

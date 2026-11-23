@@ -38,7 +38,8 @@ import { writeFileAtomic } from "./project.js";
 /**
  * `rmk feed build --out <dir> [--tools claude-code,codex,cursor,copilot,antigravity,gemini] [--workspace <name>]... [--force]`
  * (feature 078, contract `docs/spec/plugin-feeds.md`, The git mirror): writes the registry's plugin
- * feeds as a repository tree that Codex, Cursor and Claude Code add as a marketplace. It holds the
+ * feeds as a repository tree that Codex, Cursor, Copilot and Claude Code add as a marketplace, with
+ * Antigravity's and Gemini CLI's plugins as folders (029). It holds the
  * public workspaces' items, and a private workspace's only when `--workspace` names it (093). For each tool it reads the
  * instance's marketplace, downloads the zips it doesn't have yet, checks each sha256, unpacks them
  * to `plugins/<tool>/<plugin>/`, and writes the tool's marketplace file with folder sources.
@@ -169,7 +170,7 @@ const readState = (out: string): FeedState | null => {
 
 export type FeedConflict = { path: string; reason: "unmanaged" | "edited" };
 
-/** The tools to build: `--tools`, or all three. */
+/** The tools to build: `--tools`, or all of them. */
 const toolsOf = (value: string | undefined): PluginTool[] => {
   if (value === undefined) return [...PLUGIN_TOOLS];
   const tools = value

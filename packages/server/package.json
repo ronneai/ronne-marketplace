@@ -12,7 +12,9 @@
     "claude-code",
     "codex",
     "cursor",
-    "copilot"
+    "copilot",
+    "antigravity",
+    "gemini"
   ],
   "license": "MIT",
   "homepage": "https://www.ronne.ai/en/marketplace",

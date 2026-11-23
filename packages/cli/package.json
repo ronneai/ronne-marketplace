@@ -1,7 +1,7 @@
 {
   "name": "@ronneai/rmk",
   "version": "0.8.0",
-  "description": "rmk: install and manage items from a Ronne AI Marketplace in your AI coding tools (Claude Code, Codex, Cursor).",
+  "description": "rmk: install and manage items from a Ronne AI Marketplace in your AI coding tools (Claude Code, Codex, Cursor, GitHub Copilot, Antigravity, Gemini CLI).",
   "keywords": [
     "ronne",
     "rmk",
@@ -12,7 +12,9 @@
     "claude-code",
     "codex",
     "cursor",
-    "copilot"
+    "copilot",
+    "antigravity",
+    "gemini"
   ],
   "license": "MIT",
   "homepage": "https://www.ronne.ai/en/marketplace",

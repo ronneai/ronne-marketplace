@@ -85,9 +85,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* plugin goldens are committed, the feed tests include both, and each real CLI loaded
     a built plugin (Notes).
 
-- [ ] **10. Every tool list.**
-  - The MCP server's enum, descriptions and `testing.ts`; `TOOL_PLACES` and `TOOL_PAGES`; and the
-    messages that name the tools, in en, pt and fr.
+- [x] **10. Every tool list.**
+  - The MCP server's enum, descriptions and `testing.ts`; `TOOL_PLACES`; and the messages that
+    name the tools, in en, pt and fr. (`TOOL_PAGES` moved to task 11: its values are help topics,
+    which come with the Documentation pages and ronne-web's `topics.ts`.)
   - *Done when:* a search for `"copilot"` finds no tool list without `antigravity` and `gemini`.
 
 - [ ] **11. End to end and the Documentation.**
@@ -96,7 +97,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     skill, an agent, a hook, an MCP server and a rule, then removes everything cleanly.
   - In ronne-web, in English, Portuguese and French: the Antigravity and Gemini CLI pages, the Your
     AI tools rows, and the export, usage and plugin feed sections.
-  - The app's helpers; `topics.ts` on both sides; MVP §3.3 and §15 as built.
+  - The app's helpers; `topics.ts` on both sides and `TOOL_PAGES`; MVP §3.3 and §15 as built.
   - *Done when:* the e2e tests pass (run alone with Playwright), the docs render tests cover the new
     pages, and `pnpm docs:check` passes with ronne-web's branch.
 

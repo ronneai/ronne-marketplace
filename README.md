@@ -2,7 +2,7 @@
 
 An open-source, self-hosted, curated registry of AI capabilities: skills, agents, rules, commands,
 hooks, MCP servers and more. A team installs it on its own infrastructure, proposes items, reviews
-and releases them, and installs them into AI coding tools such as Claude Code, Codex and Cursor with
+and releases them, and installs them into AI coding tools such as Claude Code, Codex, Cursor, GitHub Copilot, Antigravity and Gemini CLI with
 the `rmk` CLI or from inside those tools through an MCP server.
 
 > **Status:** in active development, released as 0.x versions. What's done and what's next is in
@@ -285,9 +285,9 @@ image under its own name, `ronne-web:local`, so a later `docker compose pull` ne
 
 `rmk` installs approved items into your AI coding tools, and keeps them current: `login`, `search`,
 `info`, `install`, `update`, `outdated`, `remove`, `list`, `platforms` and `mcp-setup`, with a
-lockfile so a team gets the same files. Claude Code, Codex and Cursor are supported. `rmk export`
-goes the other way: it sends a skill, agent, command, rule or MCP server you wrote for Claude Code,
-Codex or Cursor to the registry as a private draft, after showing you everything it would upload (and never an MCP
+lockfile so a team gets the same files. Claude Code, Codex, Cursor, GitHub Copilot, Antigravity and
+Gemini CLI are supported. `rmk export` goes the other way: it sends a skill, agent, command, rule or
+MCP server you wrote for any of them to the registry as a private draft, after showing you everything it would upload (and never an MCP
 server's credentials).
 
 The registry MCP server, `rmk-mcp` (`packages/mcp`), does the same from inside those tools: the

@@ -69,12 +69,44 @@ const COPILOT: Record<string, ToolPlace> = {
   "lsp-server": key("lspServers", ".github/lsp.json"),
 };
 
+/**
+ * Antigravity (renderer 029, checked against its docs and its CLI 1.5.14 on 2026-11-22). A hook is
+ * a key of its own, named for the item, in `.agents/hooks.json`; permissions and the status line
+ * are the CLI's settings in the home folder.
+ */
+const ANTIGRAVITY: Record<string, ToolPlace> = {
+  skill: path(".agents/skills/<name>/"),
+  agent: path(".agents/agents/<name>.md"),
+  rule: path(".agents/rules/<name>.md"),
+  command: path(".agents/skills/<name>/"),
+  hook: key("<name>", ".agents/hooks.json"),
+  "mcp-server": key("mcpServers", ".agents/mcp_config.json"),
+  "permission-policy": key("permissions", "~/.gemini/antigravity-cli/settings.json"),
+  statusline: key("statusLine", "~/.gemini/antigravity-cli/settings.json"),
+};
+
+/**
+ * Gemini CLI (renderer 029, checked against its docs and its 0.70.0 source on 2026-11-22). Rules
+ * are sections of `GEMINI.md`; permission policies are files in the home folder.
+ */
+const GEMINI: Record<string, ToolPlace> = {
+  skill: path(".agents/skills/<name>/"),
+  agent: path(".gemini/agents/<name>.md"),
+  rule: { kind: "section", path: "GEMINI.md" },
+  command: path(".gemini/commands/<name>.toml"),
+  hook: key("hooks", ".gemini/settings.json"),
+  "mcp-server": key("mcpServers", ".gemini/settings.json"),
+  "permission-policy": path("~/.gemini/policies/<name>.toml"),
+};
+
 /** Each tool's places, by renderer id. */
 export const TOOL_PLACES: Record<string, Record<string, ToolPlace>> = {
   "claude-code": CLAUDE_CODE,
   codex: CODEX,
   cursor: CURSOR,
   copilot: COPILOT,
+  antigravity: ANTIGRAVITY,
+  gemini: GEMINI,
 };
 
 /** Each tool's page in the Documentation, by renderer id. */
@@ -93,5 +125,7 @@ export const TOOL_PAGES: Record<string, TopicSlug> = {
 export const placeFor = (toolId: string, type: string, name?: string): ToolPlace | null => {
   const place = TOOL_PLACES[toolId]?.[type];
   if (!place || !name) return place ?? null;
-  return { ...place, path: place.path.replaceAll("<name>", name) };
+  const named = { ...place, path: place.path.replaceAll("<name>", name) };
+  // Antigravity's hook is a key named for the item.
+  return named.kind === "key" ? { ...named, key: named.key.replaceAll("<name>", name) } : named;
 };
