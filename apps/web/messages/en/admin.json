@@ -942,7 +942,8 @@
           "languages": "Changed the languages: {changes}",
           "mail": "Changed outgoing email: {changes}",
           "sign_up_changed": "Changed self-registration: {changes}",
-          "account_rules_changed": "Changed who may create accounts: {changes}"
+          "account_rules_changed": "Changed who may create accounts: {changes}",
+          "password_reset_changed": "{state, select, on {Turned on password reset by email} off {Turned off password reset by email} other {Changed password reset by email}}{reason, select, contact_cleared {, as the instance contact was cleared} other {}}"
         },
         "mail": {
           "test_sent": "Sent a test email{result, select, sent {, which the provider took} retry {, which didn't go yet ({reason})} failed {, which failed ({reason})} other {}}"

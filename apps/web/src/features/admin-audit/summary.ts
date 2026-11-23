@@ -684,6 +684,11 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     ].filter((c) => c !== null);
     return { changes: changes.join(", ") || h.part("accountRules.nothing") };
   },
+  "settings.password_reset_changed": (m) => ({
+    // `{ from, to, reason? }` (194): on or off, and why when the contact was cleared.
+    state: m.to === true ? "on" : m.to === false ? "off" : "changed",
+    reason: m.reason === "contact_cleared" ? "contact_cleared" : "none",
+  }),
   "settings.notice": (m, _e, h) => {
     // `{ from: { tone, shown }, to: { tone, shown }, revision }`: never the text (124).
     const from = record(m.from);

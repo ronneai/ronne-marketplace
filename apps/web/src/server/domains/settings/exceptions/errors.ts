@@ -1,5 +1,6 @@
 import { MESSAGE_FOR_PEOPLE } from "../../../log/message-for-people";
 import type { NoticeField, NoticeProblem } from "../models/notice-policy";
+import type { PasswordResetBlocker } from "../models/password-reset-policy";
 /** Errors the settings domain raises. Pages turn them into `ERR:` lines. */
 export class SettingsError extends Error {
   override readonly name: string = "SettingsError";
@@ -329,6 +330,20 @@ export class StaleAccountRulesError extends SettingsError {
   constructor() {
     super(
       "Someone saved these rules since you opened them. Reload to see theirs, then save again.",
+    );
+  }
+}
+
+/** What turning on reset by email needs first (194): email set up and working, and a contact. */
+export class PasswordResetUnavailableError extends SettingsError {
+  override readonly name: string = "PasswordResetUnavailableError";
+  constructor(readonly reason: PasswordResetBlocker) {
+    super(
+      reason === "mail"
+        ? "Set up email first: the reset code is sent by email."
+        : reason === "working"
+          ? "Send a test email that works first: the last test or send failed."
+          : "Set the instance contact on the Email tab first: every notice names whom to tell.",
     );
   }
 }

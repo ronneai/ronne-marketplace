@@ -24,7 +24,8 @@ import {
   recipientHmac,
 } from "../models/outbox";
 import { kyselyOutboxRepository } from "../repositories/kysely-outbox-repository";
-import { type MailSetupContext, saveMailSetup } from "./mail-setup";
+import { mailReadiness } from "./mail-admin";
+import { type MailSetupContext, mailSetup, saveMailSetup } from "./mail-setup";
 import { deliverDue, dropWaitingMail, type QueuedMail, queueMail } from "./outbox";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
@@ -525,4 +526,60 @@ describe("the outbox and personal data (189)", () => {
     ).toBe(1);
     expect(await rows()).toHaveLength(1);
   });
+});
+
+describe("the outbox's result is about the setup it sent through (194)", () => {
+  const tab = async () =>
+    (
+      await mailSetup(
+        { repo: kyselySettingsRepository(t.db, t.dialect) },
+        { user: root, ip: null },
+        context,
+      )
+    ).status;
+
+  // `retry` on the last allowed try ends it failed through the retry branch.
+  for (const ending of ["sent", "failed", "retry"] as const)
+    it(`doesn't count a delivery through the old key that ends ${ending} after root saves a new one`, async () => {
+      await queue();
+      if (ending === "retry")
+        await t.db
+          .updateTable("mail_outbox")
+          .set({ attempts: MAX_ATTEMPTS - 1 })
+          .execute();
+      let finish!: () => void;
+      const held = new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      const delivering = deliver(async (): Promise<SendResult> => {
+        await held;
+        return ending === "sent"
+          ? { status: "sent" }
+          : ending === "failed"
+            ? { status: "failed", reason: "auth" }
+            : { status: "retry", reason: "server" };
+      });
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      await saveMailSetup(
+        { repo: kyselySettingsRepository(t.db, t.dialect), now: () => clock },
+        { user: root, ip: null },
+        {
+          transport: "resend",
+          fromAddress: "marketplace@acme.example",
+          fromName: "Acme Marketplace",
+          replyTo: "it-help@acme.example",
+          secret: "re_other_key",
+        },
+        context,
+      );
+      finish();
+      expect(await delivering).toMatchObject(ending === "sent" ? { sent: 1 } : { failed: 1 });
+      if (ending !== "sent") expect(await status()).toMatchObject({ status: "failing" });
+      expect(await tab()).toBe("untested");
+      expect((await mailReadiness(t.db, t.dialect)).working).toBe(false);
+      // The next delivery, through the new key, counts.
+      await queue();
+      await deliver(provider().send);
+      expect((await mailReadiness(t.db, t.dialect)).working).toBe(true);
+    });
 });

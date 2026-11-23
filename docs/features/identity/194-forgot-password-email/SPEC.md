@@ -24,6 +24,14 @@ sessions and other codes ended, and a notice sent afterwards.
   **Instance contact** is set. Every security notice prints that contact, so a person who didn't ask
   for a reset knows whom to tell (NIST SP 800-63B-4 §4.6). Clearing the contact turns the setting
   off, and the audit row says why.
+  - "Its last test passed" is about the setup as it is: a change to how email is sent (the
+    transport, the sender's address, the server, the region or domain, a credential, even one
+    typed again) clears the last test's result, so the Email tab says untested until a new test.
+    The contact, the sender's name and the reply-to address keep it. A success names the setup it
+    went through, so a test or send of the old setup that ends after the change doesn't count for
+    the new one.
+  - Turning it on reads email's readiness in its own transaction and holds the contact's row, so
+    a contact cleared at the same moment leaves it off.
   When it's off, or email stops working, "Forgot?" shows today's note unchanged.
 - **The request page**, `/sign-in/forgot`: one field, the email address. The reply is always the
   same page and words: "If an account can reset its password with this address, we've sent it a

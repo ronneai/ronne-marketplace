@@ -427,6 +427,10 @@
     "empty": "Changed who may create accounts: nothing",
     "rich": "Changed who may create accounts: nothing"
   },
+  "settings.password_reset_changed": {
+    "empty": "Changed password reset by email",
+    "rich": "Changed password reset by email"
+  },
   "auth.sign_up_requested": {
     "empty": "Asked to create an account for an unknown email: not recorded",
     "rich": "Asked to create an account for ana@example.com: not recorded"

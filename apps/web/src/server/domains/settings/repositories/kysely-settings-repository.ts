@@ -36,6 +36,17 @@ export const kyselySettingsRepository = (
   async compareAndSet(key, expected, value, updatedBy, at) {
     const row = { value, updated_by: updatedBy, updated_at: toDbDate(at, dialect) };
     if (expected === null) {
+      // Another save made the row first: this one is stale. PostgreSQL and SQLite skip the row
+      // instead of failing, as a failed statement would end PostgreSQL's whole transaction (194).
+      if (dialect !== "mysql") {
+        const inserted = await db
+          .insertInto("instance_settings")
+          .values({ key, ...row })
+          .onConflict((oc) => oc.column("key").doNothing())
+          .returning("key")
+          .executeTakeFirst();
+        return inserted !== undefined;
+      }
       try {
         await db
           .insertInto("instance_settings")
@@ -43,7 +54,6 @@ export const kyselySettingsRepository = (
           .execute();
         return true;
       } catch (error) {
-        // Another save made the row first: this one is stale.
         if (isUniqueViolation(error)) return false;
         throw error;
       }

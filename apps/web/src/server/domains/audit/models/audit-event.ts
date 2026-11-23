@@ -111,6 +111,7 @@ export const AUDIT_ACTIONS = [
   "settings.mail",
   "settings.sign_up_changed",
   "settings.account_rules_changed",
+  "settings.password_reset_changed",
   "scan.finding_dismissed",
   "scan.finding_restored",
   "pin.added",

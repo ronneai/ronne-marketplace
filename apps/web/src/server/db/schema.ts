@@ -557,6 +557,21 @@ export interface EmailCodeTable {
   consumed_at: Timestamp | null;
 }
 
+/**
+ * A forgotten-password reset in progress (migration 0048, 194): one per request, even for an
+ * address that gets no code. Only the SHA-256 of the browser's cookie is kept; no address, no IP.
+ */
+export interface PasswordResetFlowTable {
+  id: string;
+  token_hash: string;
+  /** Null for an address that gets no code. */
+  user_id: string | null;
+  /** `code`, `two_factor` or `new_password`. */
+  step: string;
+  expires_at: Timestamp;
+  created_at: Timestamp;
+}
+
 /** A proof-of-work answer already taken (migration 0046, 190), kept until it would expire. */
 export interface ChallengeUsedTable {
   challenge_hmac: string;
@@ -815,6 +830,7 @@ export interface Database {
   mail_outbox: MailOutboxTable;
   pending_sign_ups: PendingSignUpTable;
   email_codes: EmailCodeTable;
+  password_reset_flows: PasswordResetFlowTable;
   challenges_used: ChallengeUsedTable;
   terms_acceptances: TermsAcceptanceTable;
   workspaces: WorkspaceTable;

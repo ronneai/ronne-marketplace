@@ -942,7 +942,8 @@
           "languages": "A modifié les langues : {changes}",
           "mail": "A modifié l’envoi de courriels : {changes}",
           "sign_up_changed": "A modifié l’inscription : {changes}",
-          "account_rules_changed": "A modifié qui peut créer des comptes : {changes}"
+          "account_rules_changed": "A modifié qui peut créer des comptes : {changes}",
+          "password_reset_changed": "{state, select, on {A activé la réinitialisation du mot de passe par courriel} off {A désactivé la réinitialisation du mot de passe par courriel} other {A modifié la réinitialisation du mot de passe par courriel}}{reason, select, contact_cleared {, car le contact de l’instance a été effacé} other {}}"
         },
         "mail": {
           "test_sent": "A envoyé un courriel d’essai{result, select, sent {, accepté par le fournisseur} retry {, pas encore parti ({reason})} failed {, qui a échoué ({reason})} other {}}"

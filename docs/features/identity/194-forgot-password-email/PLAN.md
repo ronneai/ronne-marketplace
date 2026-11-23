@@ -15,7 +15,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     says "there's no email in the MVP" for passwords. `docs/features/README.md` lists 194 in M32.
   - *Done when:* both say what this spec says, and `pnpm witness:check` passes.
 
-- [ ] **2. The table and the setting.** [risky]
+- [x] **2. The table and the setting.** [risky]
   - Migration: `password_reset_flows` (spec's Data), on all three dialects.
   - The setting *People can reset a forgotten password by email* in the settings domain, off by
     default, refused while email isn't set up, its last test failed, or 189's Instance contact is
@@ -80,3 +80,14 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- Task 2 built the setting's server side (`settings/services/password-reset.ts`, the action
+  `adminSetPasswordResetPolicy`); its switch on the Authentication tab lands with the pages (task 6).
+- The switch's readiness is a function the service reads inside its own transaction
+  (`readinessIn`, holding the contact's row through `lockedMailReadiness`). Pass it, never a
+  readiness read before the save: the witnesses showed a contact cleared in between leaves it on.
+- "Its last test passed" is decided by `setupFingerprint`: every result records the setup it went
+  through (`sender.setup`, read before the send). Anything new that records a mail status must do
+  the same, or a late result of an old setup counts for the new one.
+- `compareAndSet`'s first insert is `ON CONFLICT DO NOTHING` on PostgreSQL and SQLite: a failed
+  statement aborts PostgreSQL's whole transaction, so a caught unique violation isn't enough there.

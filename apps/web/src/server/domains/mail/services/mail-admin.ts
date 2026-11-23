@@ -3,13 +3,14 @@ import { newId } from "../../../db/ids";
 import type { DatabaseDialect } from "../../../db/url";
 import { requirePermission } from "../../identity/models/permissions";
 import { kyselySettingsRepository } from "../../settings/repositories/kysely-settings-repository";
+import type { SettingsRepository } from "../../settings/repositories/settings-repository";
 import { languagePolicy, type SettingsActor } from "../../settings/services/settings";
 import {
   MailCredentialsUnreadableError,
   MailNotSetUpError,
   MailTestLimitError,
 } from "../exceptions/errors";
-import { MAIL_KEYS } from "../models/mail-settings";
+import { MAIL_KEYS, parseLastStatus, setupFingerprint } from "../models/mail-settings";
 import type { MailFailureReason, MailTransport, SendResult } from "../models/message";
 import { recipientHmac } from "../models/outbox";
 import { kyselyOutboxRepository } from "../repositories/kysely-outbox-repository";
@@ -114,8 +115,8 @@ export const sendTestEmail = async (
     await recordMailStatus(
       repo,
       sent.status === "sent"
-        ? { status: "working", at: done.toISOString() }
-        : { status: "failing", at: done.toISOString(), reason: sent.reason },
+        ? { status: "working", at: done.toISOString(), setup: sender.setup }
+        : { status: "failing", at: done.toISOString(), reason: sent.reason, setup: sender.setup },
       done,
     );
     await repo.recordAudit(
@@ -172,14 +173,55 @@ export const stopSending = async (
   });
 };
 
+/** What `mailReadiness` says, from one settings repository. */
+const readinessFrom = async (
+  repo: SettingsRepository,
+): Promise<{ sending: boolean; working: boolean; contact: string }> => {
+  const setup = await storedMailSetup(repo);
+  // The last test or send (189): `working` only when it worked through the setup as it is now
+  // (194); none yet, a failure, or a success through a setup root has since changed, isn't.
+  const last = parseLastStatus((await repo.get(MAIL_KEYS.lastStatus))?.value);
+  return {
+    sending: setup.transport !== "",
+    working:
+      setup.transport !== "" &&
+      last?.status === "working" &&
+      last.setup === setupFingerprint(setup),
+    contact: setup.contact,
+  };
+};
+
 /**
- * Whether email can go out, and the instance contact (189): what 190 and 194 check before their
- * switches turn on. No permission check: it says only whether a feature may use email.
+ * Whether email can go out, whether its last test or send worked, and the instance contact (189):
+ * what 190 and 194 check before their switches turn on. No permission check: it says only whether
+ * a feature may use email.
  */
 export const mailReadiness = async (
   db: Db,
   dialect: DatabaseDialect,
-): Promise<{ sending: boolean; contact: string }> => {
-  const setup = await storedMailSetup(kyselySettingsRepository(db, dialect));
-  return { sending: setup.transport !== "", contact: setup.contact };
+): Promise<{ sending: boolean; working: boolean; contact: string }> =>
+  readinessFrom(kyselySettingsRepository(db, dialect));
+
+/**
+ * The same, read inside a caller's transaction (194's switch), holding the contact's row: it is
+ * written again with the value just read, a compare-and-set, so an email save that changes the
+ * contact at the same moment waits for the caller's transaction, or, having changed it first,
+ * makes this read no contact. The row keeps its value, author and time.
+ */
+export const lockedMailReadiness = async (
+  repo: SettingsRepository,
+): Promise<{ sending: boolean; working: boolean; contact: string }> => {
+  const ready = await readinessFrom(repo);
+  if (ready.contact === "") return ready;
+  const row = await repo.get(MAIL_KEYS.contact);
+  const held =
+    row !== null &&
+    (await repo.compareAndSet(
+      MAIL_KEYS.contact,
+      row.value,
+      row.value,
+      row.updatedBy,
+      row.updatedAt,
+    ));
+  return held ? ready : { ...ready, contact: "" };
 };

@@ -45,6 +45,7 @@ import { rateLimits } from "./0044_rate_limits";
 import { mailOutbox } from "./0045_mail_outbox";
 import { selfRegistration } from "./0046_self_registration";
 import { accountRules } from "./0047_account_rules";
+import { passwordResetFlows } from "./0048_password_reset_flows";
 import type { AppMigration } from "./types";
 
 /**
@@ -99,4 +100,5 @@ export const migrations: Record<string, AppMigration> = {
   "0045_mail_outbox": mailOutbox,
   "0046_self_registration": selfRegistration,
   "0047_account_rules": accountRules,
+  "0048_password_reset_flows": passwordResetFlows,
 };

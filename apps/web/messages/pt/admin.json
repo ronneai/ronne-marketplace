@@ -942,7 +942,8 @@
           "languages": "Alterou os idiomas: {changes}",
           "mail": "Alterou o envio de e-mail: {changes}",
           "sign_up_changed": "Alterou o cadastro de contas: {changes}",
-          "account_rules_changed": "Alterou quem pode criar contas: {changes}"
+          "account_rules_changed": "Alterou quem pode criar contas: {changes}",
+          "password_reset_changed": "{state, select, on {Ativou a redefinição de senha por e-mail} off {Desativou a redefinição de senha por e-mail} other {Alterou a redefinição de senha por e-mail}}{reason, select, contact_cleared {, porque o contato da instância foi apagado} other {}}"
         },
         "mail": {
           "test_sent": "Enviou um e-mail de teste{result, select, sent {, aceito pelo provedor} retry {, que ainda não foi ({reason})} failed {, que falhou ({reason})} other {}}"

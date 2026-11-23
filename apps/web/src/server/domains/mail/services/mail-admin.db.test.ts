@@ -9,7 +9,7 @@ import {
   MailNotSetUpError,
   MailTestLimitError,
 } from "../exceptions/errors";
-import { MAIL_KEYS, parseLastStatus } from "../models/mail-settings";
+import { MAIL_KEYS, parseLastStatus, setupFingerprint } from "../models/mail-settings";
 import type { MailMessage, SendResult } from "../models/message";
 import {
   type MailAdminContext,
@@ -18,7 +18,7 @@ import {
   stopSending,
   TESTS_PER_WINDOW,
 } from "./mail-admin";
-import { mailSetup, saveMailSetup } from "./mail-setup";
+import { mailSetup, recordMailStatus, saveMailSetup, storedMailSetup } from "./mail-setup";
 import { queueMail } from "./outbox";
 
 let t: TestDb;
@@ -202,17 +202,109 @@ describe("Stop sending (189)", () => {
 });
 
 describe("mailReadiness (189)", () => {
-  it("says whether email can go out and what the contact is, for 190 and 194", async () => {
+  it("says whether email can go out, whether it last worked, and the contact, for 190 and 194", async () => {
+    const settings = kyselySettingsRepository(t.db, t.dialect);
+    const stored = await storedMailSetup(settings);
+    const setupOf = () => setupFingerprint(stored);
+    // Set up, never tested or used: it can go out, but hasn't worked yet.
+    await settings.set(MAIL_KEYS.lastStatus, "", null, clock);
     expect(await mailReadiness(t.db, t.dialect)).toEqual({
       sending: true,
+      working: false,
       contact: "it-help@acme.example",
     });
+    await recordMailStatus(
+      settings,
+      { status: "working", at: clock.toISOString(), setup: setupOf() },
+      clock,
+    );
+    expect((await mailReadiness(t.db, t.dialect)).working).toBe(true);
+    // A success through another setup (one root has since changed), or naming none, isn't.
+    await recordMailStatus(
+      settings,
+      { status: "working", at: clock.toISOString(), setup: "0".repeat(64) },
+      clock,
+    );
+    expect((await mailReadiness(t.db, t.dialect)).working).toBe(false);
+    await recordMailStatus(settings, { status: "working", at: clock.toISOString() }, clock);
+    expect((await mailReadiness(t.db, t.dialect)).working).toBe(false);
+    await recordMailStatus(
+      settings,
+      { status: "failing", at: clock.toISOString(), reason: "auth" },
+      clock,
+    );
+    expect((await mailReadiness(t.db, t.dialect)).working).toBe(false);
+    await recordMailStatus(
+      settings,
+      { status: "working", at: clock.toISOString(), setup: setupOf() },
+      clock,
+    );
     await stopSending(deps(), asRoot());
     expect(await mailReadiness(t.db, t.dialect)).toEqual({
       sending: false,
+      working: false,
       contact: "it-help@acme.example",
     });
     await t.db.deleteFrom("instance_settings").execute();
-    expect(await mailReadiness(t.db, t.dialect)).toEqual({ sending: false, contact: "" });
+    expect(await mailReadiness(t.db, t.dialect)).toEqual({
+      sending: false,
+      working: false,
+      contact: "",
+    });
   });
+});
+
+describe("the last result is about the setup as it is (194)", () => {
+  const newKey = () =>
+    saveMailSetup(
+      { repo: repo(), now: () => clock },
+      asRoot(),
+      {
+        transport: "resend",
+        fromAddress: "marketplace@acme.example",
+        fromName: "Acme Marketplace",
+        replyTo: "it-help@acme.example",
+        contact: "it-help@acme.example",
+        secret: "re_other_key",
+      },
+      context,
+    );
+  const tab = async () => (await mailSetup({ repo: repo() }, asRoot(), context)).status;
+
+  it("shows a working test on the tab, without its setup, and readiness agrees", async () => {
+    await sendTestEmail(deps(), asRoot(), context);
+    expect(await tab()).toEqual({ status: "working", at: clock.toISOString() });
+    expect((await mailReadiness(t.db, t.dialect)).working).toBe(true);
+  });
+
+  it("shows a success recorded before 194, which names no setup, as untested, as readiness does", async () => {
+    await recordMailStatus(repo(), { status: "working", at: clock.toISOString() }, clock);
+    expect(await tab()).toBe("untested");
+    expect((await mailReadiness(t.db, t.dialect)).working).toBe(false);
+  });
+
+  for (const ending of ["sent", "failed"] as const)
+    it(`doesn't count a test of the old key that ends ${ending} after root saves a new one`, async () => {
+      let finish!: () => void;
+      const held = new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      const test = sendTestEmail(deps(), asRoot(), {
+        ...context,
+        send: async () => {
+          await held;
+          return ending === "sent" ? { status: "sent" } : { status: "failed", reason: "auth" };
+        },
+      });
+      // The test is on its way through the old key when root saves another.
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      await newKey();
+      finish();
+      await test;
+      expect(await tab()).toBe("untested");
+      expect((await mailReadiness(t.db, t.dialect)).working).toBe(false);
+      // A test of the new key counts.
+      await sendTestEmail(deps(), asRoot(), context);
+      expect((await mailReadiness(t.db, t.dialect)).working).toBe(true);
+    });
 });
