@@ -35,7 +35,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* golden files are committed, unit tests cover every row of the mapping table for
     Antigravity, and a test shows no secret value is written.
 
-- [ ] **4. Gemini CLI's file types.**
+- [x] **4. Gemini CLI's file types.**
   - `packages/core/src/render/gemini/{renderer.ts,mappings.ts,renderer.test.ts}`, with `skill`,
     `command` (TOML, `{{args}}`), `agent` and `rule` (`GEMINI.md` sections, `model` and `manual`
     as skills), and `detect()`.
@@ -149,4 +149,20 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     the session JSON it got on stdin (`"version": "1.5.14"`, `cwd`, `workspace`, `model`, …), and the
     owner saw its output, `STATUS-OK`, in the status line. So a shell runs it: `"$HOME"` expands and a
     quoted path with a space works.
+- **What Gemini CLI 0.70.0 showed (task 4, 2026-11-22)**, without a model (the owner's Google
+  account can't sign in: "This client is no longer supported for Gemini Code Assist for
+  individuals"; owner, 2026-11-22: source and offline runs):
+  - Its source's `*_TOOL_NAME` constants are the spec's names (`read_file`, `replace`,
+    `write_file`, `grep_search`, `glob`, `run_shell_command`, `web_fetch`, `google_web_search`), plus
+    `activate_skill` and `invoke_agent`.
+  - `localAgentSchema` is `.strict()` with `kind`, `name` (`^[a-z0-9-_]+$`), `description`,
+    `display_name`, `tools` (each `isValidToolName`), `mcp_servers`, `model`, `temperature`,
+    `max_turns`, `timeout_mins`; `parseMcpToolName` splits `mcp_<server>_<tool>` at the first `_`.
+  - Its own `loadAgentsFromDirectory` (imported from the installed bundle) loaded the golden
+    `code-reviewer.md` with tools `read_file, grep_search, glob, run_shell_command,
+    mcp_github-mcp_*`, and refused a control agent with the tool `teleport`.
+  - Its own `FileCommandLoader` loaded the golden `review-diff.toml` (a `workspace-file` command)
+    and skipped a control file whose `prompt` is a number; running it with `src/a.ts` gave the
+    prompt with `src/a.ts` where `{{args}}` was. `TomlCommandDefSchema` is `prompt` (required) and
+    `description`; `!{` and `@{` are its shell and file injection triggers.
 

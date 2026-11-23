@@ -199,3 +199,44 @@ Witnessed: 2026-11-22 21:57 EST, by a fresh agent (adversarial). Commit: 476d064
 Owner's decision on row 8 (2026-11-22): re-scope the claim. rmk writes the prefix rule (confirmed, adversarial row 13) and discloses the open question (row 9); whether Antigravity's prefix `allow` covers a compound command is Antigravity's matching, which rmk doesn't decide, and the Antigravity page says so. With that scope, every claim of task 3 is confirmed, and the task is ticked.
 
 Also after this re-check (its risk note, not tested): the `cd .. || exit 1` line is POSIX shell, and Antigravity runs commands through `cmd /c` on Windows (status line docs), so SPEC now says a project hook wouldn't run there, like every hook command rmk writes.
+
+## Task 4 — Gemini CLI's file types
+
+Witnessed: 2026-11-22 22:03 EST, by a fresh agent (blind). Commit: ed4a66fd + working-tree diff (untracked `packages/core/src/render/gemini/`, 029 SPEC.md and PLAN.md). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Gemini CLI 0.70.0 is installed with a scratch home and was used to check the output | no | confirmed | imported `core-HYVGBZPP.js` and `chunk-FHK4RNCX.js` with a scratch `HOME`; `CLI_VERSION = "0.70.0"` |
+| 2 | A skill goes to `.agents/skills/<n>/` (`~/.agents/skills/<n>/`), byte for byte what Codex writes, and Gemini CLI reads it | no | confirmed | `renderer.ts:39,239`; test against `codexRenderer`; CLI `getUserAgentSkillsDir`/`getProjectAgentSkillsDir`; its `loadSkillsFromDir` loaded `secure-coding` |
+| 3 | A command goes to `.gemini/commands/<n>.toml` in both scopes, `#` marker, `description`, multi-line `prompt`, one argument as `{{args}}` | yes | confirmed | goldens; `FileCommandLoader` → `user-file` and `workspace-file` `review-diff`; run with `src/x.ts` substituted; mutation → 2 tests fail |
+| 4 | Several arguments keep their placeholders with a note and a warning; `!{`/`@{` warns; a `'''` prompt becomes a basic string; CRLF and Unicode survive | no | confirmed | all loaded and ran in `FileCommandLoader`; mutation → 1 test fails |
+| 5 | An agent goes to `.gemini/agents/<n>.md` in both scopes, with only keys the strict schema accepts | yes | confirmed | `localAgentSchema` `.strict()`; all 10 rendered agents loaded with no errors |
+| 6 | Agent `model` only from the override; a hint warns, other overrides `invalid_override`, skill dependencies warn | no | confirmed | `renderer.ts:73-95`; `cr-override` loaded with `gemini-3-pro` |
+| 7 | Tool names match the Mappings table and the CLI's own; an MCP name the CLI can't parse warns | yes | confirmed | bundle `*_TOOL_NAME` = `mappings.ts:6-15`; agents with all 8 tools and odd MCP names loaded |
+| 8 | The tests pin the tool names | no | partly | mutation `edit: "replace"`→`"edit"` → 11/11 still pass: the test compared `toolOf` with `TOOLS` itself |
+| 9 | `always` and `glob` rules are `GEMINI.md` sections (`~/.gemini/GEMINI.md`), `glob` with its files' line, as Codex's | no | confirmed | `renderer.ts:188-202` = `codex/renderer.ts:110-124`; goldens; mutations → 2 tests fail each |
+| 10 | `model` and `manual` rules become the shared skills, the same as Codex's | no | confirmed | test against `codexRenderer`; CLI loaded both. Remark: 0.70.0 has no `disable-model-invocation`, so the model can still pick a `manual` rule's skill |
+| 11 | `detect()` is true for `.gemini` or `GEMINI.md`, false for `.agents`, `.agents/rules`, `AGENTS.md` | no | confirmed | test; mutation → 1 test fails |
+| 12 | Golden files for those example items are present in both scopes | no | confirmed | `git status --short --untracked-files=all packages/core/src/render/*/__golden__` |
+| 13 | The other renderers' goldens are unchanged | no | confirmed | same, without `render/gemini/` → no lines |
+| 14 | Core tests, typecheck and lint pass | no | confirmed | 47 files, 516 passed; typecheck exit 0; `pnpm lint` exit 0 |
+| 15 | (note) The CLI refuses an agent with an unknown tool | yes | confirmed | `teleport` → "Failed to load agent"; an extra key (`color: red`) refused too |
+| 16 | (note) The CLI skips a command whose `prompt` isn't a string | yes | confirmed | `prompt = 5` → not loaded |
+
+**Overall:** not met (row 8).
+
+Fixes after the pass:
+- Row 8: the test writes the eight expected names out and checks `TOOLS` against them; `edit: "edit"` in `mappings.ts` now fails it (checked, then restored).
+- Row 10's remark: SPEC says Gemini CLI 0.70.0 ignores `disable-model-invocation`, so the model can still pick a `manual` rule's skill, which the Gemini CLI page will say.
+
+### Re-check 1
+
+Witnessed: 2026-11-22 22:10 EST, by a fresh agent (blind, scoped to row 8 and the fixes). Commit: ed4a66fd + working-tree diff. Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | The tests pin the tool names | yes | confirmed | `renderer.test.ts:121-133`; each of the eight values mutated in a scratch copy (`<name>` → `<name>_x`) → 1 to 3 of 11 tests fail each; restored → 11 of 11 pass |
+| 10 (remark) | SPEC says Gemini CLI 0.70.0 ignores `disable-model-invocation`, so the model can still pick a `manual` rule's skill | yes | confirmed | SPEC.md:205-208; the website page can't be checked here |
+| 14 | Core tests, typecheck and lint pass | no | confirmed | 47 files, 516 passed; typecheck exit 0; `pnpm lint` exit 0 |
+
+**Overall:** met.

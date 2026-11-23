@@ -191,13 +191,21 @@ leaves `always` and `glob` rules out with Gemini CLI as a target, and writes its
 - **`command`** — `.gemini/commands/<n>.toml` with `description` and `prompt` (a TOML multi-line
   string, as 024's agents). Gemini CLI passes what the person typed as `{{args}}`: with one
   argument, `{{name}}` becomes `{{args}}`; with more, they stay with 024's note and a warning.
+  Gemini CLI runs `!{…}` in a prompt as a shell command and inlines `@{…}` as a file, so text that
+  holds either warns.
 - **`agent`** — `name` (Gemini CLI allows lowercase, digits, `-` and `_`, as item names already
   are), `description`, `tools` (Gemini CLI's names, below; without `tools` the agent inherits all of
   its parent's), `model` only from `targets.gemini.overrides.model` (the hints warn), and the prompt
-  as the body. Subagents are on by default. Skill dependencies (097) warn: Gemini CLI's agents
+  as the body. Subagents are on by default. The CLI 0.70.0 checks an agent's frontmatter strictly
+  (`kind`, `name`, `description`, `display_name`, `tools`, `mcp_servers`, `model`, `temperature`,
+  `max_turns`, `timeout_mins`; an unknown key or a tool name it can't parse, and the agent doesn't
+  load), so only names from the table are written. It splits an MCP tool name at the first `_`
+  after `mcp_`, so a server whose name has `_` can't be named, and warns. Skill dependencies (097) warn: Gemini CLI's agents
   can't preload skills.
 - **`rule`** — as Codex's (024) with `GEMINI.md` for `AGENTS.md`: `always` and `glob` as a fenced
-  section, `glob` opening with the files it's for; `model` and `manual` as skills.
+  section, `glob` opening with the files it's for; `model` and `manual` as skills. Gemini CLI 0.70.0
+  ignores `disable-model-invocation`, so the model can still pick a `manual` rule's skill, which the
+  Gemini CLI page says.
 - **`hook`** — a `json-array-item` under `hooks.<Event>` in `settings.json`: `{ "matcher":
   "<tool>", "hooks": [{ "type": "command", "command": "…", "name": "<n>", "timeout": 30000 }] }`
   (timeout in milliseconds: the manifest's seconds × 1000). Events below. A matcher is a regular
