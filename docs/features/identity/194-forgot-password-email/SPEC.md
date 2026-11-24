@@ -104,9 +104,10 @@ sessions and other codes ended, and a notice sent afterwards.
 - **The reset flow's state**: a `password_reset_flows` row and a cookie.
   - The cookie holds 32 random bytes and the row only their SHA-256, so a database read can't
     continue a flow.
-  - The cookie is HttpOnly, SameSite=Strict, Path `/sign-in/forgot`. It has the `__Host-` prefix
-    and Secure when the public URL is https, as the session cookie's prefix follows it
-    (`identity/models/session-cookie.ts`).
+  - The cookie is HttpOnly, SameSite=Strict, Path `/sign-in/forgot`. It has the `__Secure-` prefix
+    and Secure when the public URL is https, as the session cookie does
+    (`identity/models/session-cookie.ts`); a `__Host-` name would need Path `/`, and this one stays
+    on the reset's pages.
   - The value is replaced at every step (code checked, two-factor passed), so a cookie copied
     early can't skip a step.
   - The row has: the hash; the user, or null for an address that gets no code; the step; the
@@ -123,7 +124,8 @@ sessions and other codes ended, and a notice sent afterwards.
     That's well under NIST's 100 failures, and it never locks the account's sign-in (OWASP: no
     lockout from forgotten-password attacks).
 - **Bots**: 190's honeypot field, minimum fill time and the optional proof-of-work challenge, on the
-  request page.
+  request page. The pages work without JavaScript, except the request page while the challenge is
+  on (it's solved in the browser), as sign-up's form.
 - **Same time**: each request does the same work whether or not an email goes out: it looks up the
   address, computes an HMAC and writes a flow row. The email is queued in the outbox (189), so
   sending is never on the request's path. A real account's request still writes more (its code,

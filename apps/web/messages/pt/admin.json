@@ -1665,6 +1665,29 @@
         "saved": "Cadastro de contas salvo.",
         "unchanged": "Nada mudou."
       }
+    },
+    "passwordReset": {
+      "title": "Redefinir a senha esquecida por e-mail",
+      "intro": "Se as pessoas podem redefinir uma senha esquecida elas mesmas, com um código de 6 dígitos enviado para o endereço delas, depois a autenticação de dois fatores, depois uma nova senha. Isso nunca faz ninguém entrar, e contas root sempre redefinem no servidor. Fica desativado até você ativar.",
+      "blockedTitle": "A redefinição por e-mail pode ser ativada quando isto estiver feito:",
+      "closedTitle": "A redefinição por e-mail está ativada, mas fechada até isto ser feito de novo:",
+      "blockers": {
+        "mail": "O e-mail está configurado, para que o código possa ser enviado.",
+        "working": "Um e-mail de teste da configuração atual funcionou.",
+        "contact": "O contato da instância está definido, para que todo aviso diga a quem avisar."
+      },
+      "fix": {
+        "mail": "Configurar o e-mail",
+        "working": "Enviar um e-mail de teste",
+        "contact": "Definir o contato"
+      },
+      "enabled": "As pessoas podem redefinir uma senha esquecida por e-mail",
+      "enabledHint": "Esqueceu? na página de entrada abre a redefinição. Todas as sessões terminam quando uma senha é redefinida, e a pessoa recebe um e-mail avisando.",
+      "save": "Salvar",
+      "done": {
+        "saved": "Redefinição por e-mail salva.",
+        "unchanged": "Nada mudou."
+      }
     }
   },
   "setup": {

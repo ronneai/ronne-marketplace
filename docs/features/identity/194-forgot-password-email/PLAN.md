@@ -53,12 +53,15 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   - *Done when:* db tests show each effect, the grant refused after 10 minutes and on a second use,
     no session created, tokens kept only when unchecked, and the notice queued after the commit.
 
-- [ ] **6. The pages.**
+- [x] **6. The pages.**
   - `/sign-in/forgot`, `/sign-in/forgot/code`, `/sign-in/forgot/two-factor`,
     `/sign-in/forgot/new-password`, in the auth shell (157), with `CodeInput` and the two-factor
-    step's component. They work without JavaScript. A signed-in person is sent to Account.
+    step's parts (`TwoFactorStep` is bound to sign-in's action and words, so the reset has its own
+    form of the same parts). They work without JavaScript, except the request page while 190's
+    challenge is on, as sign-up's form. A signed-in person is sent to Account.
   - "Forgot?" opens the request page when the setting is on and email works, else today's note.
-  - The cookie: HttpOnly, SameSite=Strict, Path `/sign-in/forgot`, `__Host-` and Secure under https.
+  - The cookie: HttpOnly, SameSite=Strict, Path `/sign-in/forgot`, `__Secure-` and Secure under
+    https (a `__Host-` cookie needs Path `/`; SPEC "The reset flow's state").
   - Messages in `auth.json` in all three languages; the emails' texts in `mail.json` (189).
   - *Done when:* component tests cover each page's states; the translation tests pass; an end-to-end
     test resets a password with a code read from the test mail transport (189), then with
@@ -119,4 +122,8 @@ goes into `SPEC.md` instead.
 - For 200: a sign-in whose session the reset's cleanup deletes between Better Auth's insert and
   its own lookup throws "Better Auth signed in but its session can't be found" rather than
   refusing (seen on SQLite, nothing left open).
+- Task 6: the reset pages await `resetShell` (an async function), not a nested async component,
+  which static rendering in tests can't wait for. The flow's cookie is cleared by setting it empty
+  and expired with its own options: `cookies().delete` sends no `Secure`, and a `__Secure-`
+  cookie isn't replaced without it. Rebuild (`pnpm build`) before the e2e: it serves the build.
 

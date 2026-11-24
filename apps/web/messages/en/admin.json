@@ -1665,6 +1665,29 @@
         "saved": "Self-registration saved.",
         "unchanged": "Nothing changed."
       }
+    },
+    "passwordReset": {
+      "title": "Forgot password by email",
+      "intro": "Whether people can reset a forgotten password themselves, with a 6-digit code sent to their address, then their two-factor, then a new password. It never signs anyone in, and root accounts always reset on the server. It's off until you turn it on.",
+      "blockedTitle": "Reset by email can be turned on once these are done:",
+      "closedTitle": "Reset by email is on, but closed until these are done again:",
+      "blockers": {
+        "mail": "Email is set up, so the code can be sent.",
+        "working": "A test email of the setup as it is now worked.",
+        "contact": "The instance contact is set, so every notice says whom to tell."
+      },
+      "fix": {
+        "mail": "Set up email",
+        "working": "Send a test email",
+        "contact": "Set the contact"
+      },
+      "enabled": "People can reset a forgotten password by email",
+      "enabledHint": "Forgot? on the sign-in page opens the reset. Every session ends when a password is reset, and the person gets an email saying so.",
+      "save": "Save",
+      "done": {
+        "saved": "Forgot password by email saved.",
+        "unchanged": "Nothing changed."
+      }
     }
   },
   "setup": {

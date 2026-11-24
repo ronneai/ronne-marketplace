@@ -1665,6 +1665,29 @@
         "saved": "Inscription enregistrée.",
         "unchanged": "Rien n’a changé."
       }
+    },
+    "passwordReset": {
+      "title": "Mot de passe oublié par courriel",
+      "intro": "Si les gens peuvent réinitialiser eux-mêmes un mot de passe oublié, avec un code à 6 chiffres envoyé à leur adresse, puis leur double authentification, puis un nouveau mot de passe. Cela ne connecte jamais personne, et les comptes root se réinitialisent toujours sur le serveur. C’est désactivé jusqu’à ce que vous l’activiez.",
+      "blockedTitle": "La réinitialisation par courriel peut être activée une fois ceci fait :",
+      "closedTitle": "La réinitialisation par courriel est activée, mais fermée jusqu’à ce que ceci soit fait de nouveau :",
+      "blockers": {
+        "mail": "Le courriel est configuré, pour que le code puisse être envoyé.",
+        "working": "Un courriel de test de la configuration actuelle a fonctionné.",
+        "contact": "Le contact de l’instance est défini, pour que chaque avis dise à qui s’adresser."
+      },
+      "fix": {
+        "mail": "Configurer le courriel",
+        "working": "Envoyer un courriel de test",
+        "contact": "Définir le contact"
+      },
+      "enabled": "Les gens peuvent réinitialiser un mot de passe oublié par courriel",
+      "enabledHint": "Oublié? sur la page de connexion ouvre la réinitialisation. Toutes les sessions se ferment quand un mot de passe est réinitialisé, et la personne reçoit un courriel qui le dit.",
+      "save": "Enregistrer",
+      "done": {
+        "saved": "Mot de passe oublié par courriel enregistré.",
+        "unchanged": "Rien n’a changé."
+      }
     }
   },
   "setup": {

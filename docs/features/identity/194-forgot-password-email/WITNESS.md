@@ -555,3 +555,45 @@ Witnessed: 2026-11-23 20:29 EST, by a fresh agent (adversarial). Commit: 2579c9b
 | 9 | Row 200 planned in the index and M32, saying what it closes | no | confirmed | README.md:329; M32:25; `check-docs-index.js` exit 0 |
 
 **Overall:** met. Remark: on SQLite a sign-in racing the reset can throw "Better Auth signed in but its session can't be found" instead of refusing (no session left); for 200.
+
+## Task 6 — The pages
+
+Witnessed: 2026-11-23 20:48 EST, by a fresh agent (blind). Commit: dd1e3795 + working tree (tracked diff and untracked files). Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The four pages exist and render in the auth shell | no | confirmed | `src/app/sign-in/forgot/**/page.tsx` render the shell over `AuthShell`; the e2e went through all four |
+| 2 | The code page uses `CodeInput`, with *Send a new code* and *Use another address* | no | confirmed | `CodeForm.tsx:28`; both post `startAgainFromForm`; component test |
+| 3 | The two-factor step uses the two-factor step's component | no | partly | its own `TwoFactorForm.tsx` of the same parts; `TwoFactorStep.tsx` is bound to sign-in's action |
+| 4 | The pages work without JavaScript | no | partly | forms post server actions; the switch has an `href`; but the request page needs JavaScript while 190's challenge is on, the default |
+| 5 | A signed-in person goes to Account › Change password | no | confirmed | `page-guard.ts:16` (read only; untested) |
+| 6 | *Forgot?* opens the request page when it's on, else today's note | no | confirmed | `password-reset.ts:45` openness; mutation of the `resetByEmail` branch fails a test |
+| 7 | The cookie: HttpOnly, SameSite=Strict, Path `/sign-in/forgot`, `__Secure-` and Secure under https | no | confirmed | probe with Next's ResponseCookies; `__Host-` needs `Path=/` (RFC 6265bis), as SPEC says; PLAN.md still said `__Host-` |
+| 8 | The cookie is cleared when the flow ends | no | not met | under https: `clearToken` used `cookies().delete` with no `Secure`: browsers ignore that for a `__Secure-` cookie |
+| 9 | Missing cookie: start again here | no | confirmed | read only; no test of the pages' own states |
+| 10 | Email off mid-flow: a code already sent still works | no | confirmed | read only |
+| 11 | Component tests cover each page's states | no | partly | the forms' states are covered; the pages' own (missing cookie, closed, signed in) aren't |
+| 12 | Messages in all three languages | no | confirmed | 25 files, 505 tests (parity, placeholders, no English in pt and fr) |
+| 13 | E2e: reset with the mailed code, then with two-factor, new password signs in, old session ended | no | confirmed | after `pnpm build`, `e2e/forgot-password.e2e.ts` → 2 passed |
+| 14 | The setting's panel on the Authentication tab | no | partly | in PANELS with blockers and the disabled switch; nothing asserts its states |
+
+**Overall:** not met: under https the cookie wasn't cleared, the request page needs JavaScript by default, the two-factor form is its own, and the pages' and the panel's states had no tests.
+
+Fixes after the pass: `clearToken` sets the cookie empty and expired with the options it was set with (Secure under https); PLAN task 6 and SPEC "Bots" state the JavaScript exception (the request page while 190's challenge is on, as sign-up's form) and that the reset's two-factor form is its own, of `TwoFactorStep`'s parts (that component is bound to sign-in's action and words); PLAN's cookie line says `__Secure-` and why. New tests: `src/app/sign-in/forgot/pages.test.tsx` (signed in → Account on all four; the request page closed → sign-in; no cookie → start again; the code page's words and lifetime; a code already sent works with the reset off), `features/admin-settings/authentication/password-reset-form.test.tsx` (ready, blocked and disabled, on and closed, the order of blockers, no English in pt and fr), and `features/forgot-password/actions.test.ts` (the cookie set as SPEC says; cleared with `secure: true` and `maxAge: 0`, never `delete`; the token box posted). The pages now await the shell (`resetShell`) rather than nest an async component.
+
+### Re-check 1
+
+Witnessed: 2026-11-23 20:54 EST, by a fresh agent (blind). Commit: dd1e3795 + working tree (tracked diff and untracked files). Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The four pages exist and render in the auth shell | no | confirmed | `await resetShell({...})`; `pages.test.tsx` renders all four |
+| 3 | The two-factor step: `TwoFactorStep`'s parts in its own form (reworded PLAN) | no | confirmed | PLAN.md:58-60; `TwoFactorForm.tsx` uses `CodeInput`, a backup `TextField`, the switch link with a no-JS `href`; posts `resetTwoFactorFromForm` |
+| 4 | Without JavaScript, except the request page while 190's challenge is on | no | confirmed | PLAN.md:60-61, SPEC.md:126-128; `<noscript>` only with the challenge; its test passes |
+| 7 | The cookie as SPEC says | no | confirmed | `actions.test.ts` "set as SPEC says"; PLAN.md:63-64 says `__Secure-` and why |
+| 8 | The cookie is cleared when the flow ends, under https too | no | confirmed | `clearToken` (`actions.ts:33-40`); probe `cookie-clear-probe.cjs` → `Max-Age=0; Secure; HttpOnly; SameSite=strict`; mutation back to `cookies().delete` fails the test; restored |
+| 11 | Component tests cover each page's states | no | confirmed | `pages.test.tsx` 5 states; mutation `if (!hasFlow)` → `if (false)` fails one; restored |
+| 13 | E2e: the mailed code, then two-factor, new password signs in, old session ended | no | confirmed | 2 passed (17.3s) on a build newer than the sources |
+| 14 | The panel on the Authentication tab, with its states | no | confirmed | `password-reset-form.test.tsx` 5 tests; mutation `disabled={false}` fails one; restored |
+
+**Overall:** met. Remark: SPEC.md:64 names `TwoFactorStep.tsx` for what the step accepts ("as at sign-in"), which holds.

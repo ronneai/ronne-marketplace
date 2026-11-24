@@ -63,6 +63,32 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
     urls: () => ["/sign-up/code"],
     skip: "Only with a sign-up in this browser: sign-up.e2e.ts covers it",
   },
+  // Forgot password by email (194): open only while root has it on, which the sweep's instance
+  // hasn't; the next pages need a flow in this browser.
+  {
+    route: "/sign-in/forgot",
+    roles: "signedOut",
+    urls: () => ["/sign-in/forgot"],
+    skip: "Only while reset by email is on: forgot-password.e2e.ts turns it on and covers the form",
+  },
+  {
+    route: "/sign-in/forgot/code",
+    roles: "signedOut",
+    urls: () => ["/sign-in/forgot/code"],
+    skip: "Only with a reset in this browser: forgot-password.e2e.ts covers it",
+  },
+  {
+    route: "/sign-in/forgot/two-factor",
+    roles: "signedOut",
+    urls: () => ["/sign-in/forgot/two-factor"],
+    skip: "Only with a reset past its code in this browser: forgot-password.e2e.ts covers it",
+  },
+  {
+    route: "/sign-in/forgot/new-password",
+    roles: "signedOut",
+    urls: () => ["/sign-in/forgot/new-password"],
+    skip: "Only with a reset past its last step in this browser: forgot-password.e2e.ts covers it",
+  },
   {
     route: "/setup",
     roles: "signedOut",
