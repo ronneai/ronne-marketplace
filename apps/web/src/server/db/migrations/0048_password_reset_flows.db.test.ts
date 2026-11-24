@@ -61,6 +61,7 @@ const flow = (userId: string | null, tokenHash = "a".repeat(64)) => ({
   user_id: userId,
   step: "code",
   expires_at: now(),
+  two_factor_at: null,
   created_at: now(),
 });
 
@@ -90,7 +91,7 @@ describe("migration 0048_password_reset_flows (194)", () => {
     await t.db.insertInto("password_reset_flows").values(flow(null)).execute();
     const row = await t.db.selectFrom("password_reset_flows").selectAll().executeTakeFirstOrThrow();
     expect(Object.keys(row).sort()).toEqual(
-      ["created_at", "expires_at", "id", "step", "token_hash", "user_id"].sort(),
+      ["created_at", "expires_at", "id", "step", "token_hash", "two_factor_at", "user_id"].sort(),
     );
   });
 

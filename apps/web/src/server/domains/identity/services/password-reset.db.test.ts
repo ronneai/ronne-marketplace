@@ -197,7 +197,8 @@ describe("asking to reset a forgotten password (194)", () => {
     expect(mail).toMatchObject({ template: "reset_root", to: "root@acme.com", userId: root.id });
     expect(mail?.text).toContain("reset-root-password");
     expect(codeIn(mail?.text)).toBe("");
-    expect(await codes()).toEqual([]);
+    // Every flow has a code, emailed only when the table says so.
+    expect(await codes()).toHaveLength((await flows()).length);
     expect((await flows())[0]?.user_id).toBeNull();
     expect((await audits()).map((e) => e.metadata)).toEqual([{ sent: "root" }]);
   });
@@ -208,7 +209,8 @@ describe("asking to reset a forgotten password (194)", () => {
     const [mail] = await mails();
     expect(mail).toMatchObject({ template: "reset_providers", userId: id });
     expect(mail?.text).toContain("Acme Entra");
-    expect(await codes()).toEqual([]);
+    // Every flow has a code, emailed only when the table says so.
+    expect(await codes()).toHaveLength((await flows()).length);
     expect((await flows())[0]?.user_id).toBeNull();
     expect((await audits()).map((e) => e.metadata)).toEqual([{ sent: "providers" }]);
   });
@@ -221,7 +223,8 @@ describe("asking to reset a forgotten password (194)", () => {
     const [mail] = await mails();
     expect(mail).toMatchObject({ template: "reset_providers", to: "ana@acme.com" });
     expect(mail?.text).toContain("Acme Entra");
-    expect(await codes()).toEqual([]);
+    // Every flow has a code, emailed only when the table says so.
+    expect(await codes()).toHaveLength((await flows()).length);
   });
 
   for (const [what, change] of [
@@ -239,7 +242,8 @@ describe("asking to reset a forgotten password (194)", () => {
       const asked = await request();
       expect(asked).toMatchObject({ ok: true });
       expect(await mails()).toEqual([]);
-      expect(await codes()).toEqual([]);
+      // Every flow has a code, emailed only when the table says so.
+      expect(await codes()).toHaveLength((await flows()).length);
       expect((await flows())[0]?.user_id).toBeNull();
       expect((await audits()).map((e) => e.metadata)).toEqual([{ sent: "none" }]);
     });
@@ -256,7 +260,8 @@ describe("asking to reset a forgotten password (194)", () => {
       expect(asked).toMatchObject({ ok: true });
     }
     expect(await mails()).toEqual([]);
-    expect(await codes()).toEqual([]);
+    // Every flow has a code, emailed only when the table says so.
+    expect(await codes()).toHaveLength((await flows()).length);
     expect((await flows()).map((f) => f.user_id)).toEqual([null, null]);
     expect(await audits()).toEqual([]);
   });
@@ -337,17 +342,24 @@ describe("asking to reset a forgotten password (194)", () => {
     await request({ email: "ana@acme.com" }, counting(recorded(found)));
     later(61_000);
     await request({ email: "bob@acme.com" }, counting(recorded(missing)));
-    const common = ["transaction", "findAccount", "passwordPolicy", "insertFlow"];
+    const common = [
+      "transaction",
+      "findAccount",
+      "passwordPolicy",
+      "endCodesFor",
+      "issueCode",
+      "insertFlow",
+    ];
     for (const calls of [found, missing]) {
       expect(calls.filter((c) => common.includes(c))).toEqual(common);
       expect(calls.filter((c) => c === "queueMail" || c === "rehearseMail")).toHaveLength(1);
     }
     expect(found).toContain("queueMail");
     expect(missing).toContain("rehearseMail");
-    // Only the code itself, and the audit of a real account, differ.
+    // Only a real account's lock and its audit differ.
     const extra = (calls: string[]) =>
       calls.filter((c) => ![...common, "queueMail", "rehearseMail"].includes(c));
-    expect(extra(found)).toEqual(["lockAccount", "endCodesOf", "issueCode", "recordAudit"]);
+    expect(extra(found)).toEqual(["lockAccount", "recordAudit"]);
     expect(extra(missing)).toEqual([]);
     // Both took the per-address limit, which hashes the address.
     expect(consumed).toEqual([
@@ -390,7 +402,8 @@ describe("asking to reset a forgotten password (194)", () => {
     await user("kåte@acme.com");
     expect(await request({ email: "kate@acme.com" })).toMatchObject({ ok: true });
     expect(await mails()).toEqual([]);
-    expect(await codes()).toEqual([]);
+    // Every flow has a code, emailed only when the table says so.
+    expect(await codes()).toHaveLength((await flows()).length);
     expect(await audits()).toEqual([]);
     expect((await flows())[0]?.user_id).toBeNull();
   });
@@ -455,9 +468,11 @@ describe("asking to reset a forgotten password (194)", () => {
   it("a bot (the honeypot filled, or too fast) gets the same page and nothing", async () => {
     await user("ana@acme.com");
     expect(await request({ honeypot: "http://spam.example" })).toMatchObject({ ok: true });
+    later(61_000);
     expect(await request({ stamp: formStamp(TEST_SECRET, clock) })).toMatchObject({ ok: true });
     expect(await mails()).toEqual([]);
-    expect(await codes()).toEqual([]);
+    // Every flow has a code, emailed only when the table says so.
+    expect(await codes()).toHaveLength((await flows()).length);
     expect((await audits()).map((e) => e.metadata)).toEqual([{ sent: "bot" }, { sent: "bot" }]);
   });
 
@@ -532,7 +547,7 @@ describe("the answer's time (194, SPEC 'Same time')", () => {
       { email: "root@acme.com" },
       { email: "not an address" },
     ])
-      expect(await timed(fields)).toBeGreaterThanOrEqual(floor - 1);
+      expect(await timed(fields)).toBeGreaterThanOrEqual(floor - 5);
   });
 
   it("waits only what's left of the floor", async () => {

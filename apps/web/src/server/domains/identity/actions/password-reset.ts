@@ -7,6 +7,7 @@ import { passwordResetPolicy } from "../../settings/services/password-reset";
 import { signUpPolicy } from "../../settings/services/sign-up";
 import { clientIp } from "../models/client-ip";
 import { type AppAuth, getAppAuth } from "../repositories/auth-instance";
+import { betterAuthTwoFactorStore } from "../repositories/better-auth-two-factor-store";
 import { kyselyPasswordResetRepository } from "../repositories/kysely-password-reset-repository";
 import * as service from "../services/password-reset";
 
@@ -27,6 +28,7 @@ export const passwordResetDeps = (
   const settings = kyselySettingsRepository(app.db, app.dialect);
   return {
     repo: kyselyPasswordResetRepository(app.db, app.dialect, context.authSecret),
+    twoFactor: betterAuthTwoFactorStore(app.auth, app.db, app.dialect),
     limits: app.rateLimits,
     authSecret: context.authSecret,
     // Open while root's setting is on, email is set up and the contact is set: when email stops
@@ -66,6 +68,30 @@ export const requestPasswordReset = (
   context?: PasswordResetContext,
 ) =>
   service.requestPasswordReset(passwordResetDeps(app, context), {
+    ...input,
+    ip: clientIp(headers, app.trustProxy),
+  });
+
+/** The code page, posted. `token` is the flow's cookie. */
+export const checkResetCode = (
+  headers: Headers,
+  input: { token: string | null; code: unknown },
+  app: AppAuth = getAppAuth(),
+  context?: PasswordResetContext,
+) =>
+  service.checkResetCode(passwordResetDeps(app, context), {
+    ...input,
+    ip: clientIp(headers, app.trustProxy),
+  });
+
+/** The two-factor page, posted. */
+export const checkResetTwoFactor = (
+  headers: Headers,
+  input: { token: string | null; code: unknown },
+  app: AppAuth = getAppAuth(),
+  context?: PasswordResetContext,
+) =>
+  service.checkResetTwoFactor(passwordResetDeps(app, context), {
     ...input,
     ip: clientIp(headers, app.trustProxy),
   });

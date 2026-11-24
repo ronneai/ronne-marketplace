@@ -1,10 +1,11 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { isAPIError } from "better-auth/api";
-import { symmetricDecrypt } from "better-auth/crypto";
+import { symmetricDecrypt, symmetricEncrypt } from "better-auth/crypto";
 import type { Db } from "../../../db/create-db";
-import { toDbDate } from "../../../db/dates";
-import { isUniqueViolation } from "../../../db/locks";
+import { fromDbDate, toDbDate } from "../../../db/dates";
+import { isUniqueViolation, writeTransaction } from "../../../db/locks";
 import type { DatabaseDialect } from "../../../db/url";
+import { totpKey, totpMatches } from "../models/totp";
 import type { Auth } from "./better-auth";
 import type { ChallengeRefusal, TwoFactorStore } from "./two-factor-store";
 
@@ -118,6 +119,71 @@ const CHALLENGE_REFUSALS: Record<string, ChallengeRefusal> = {
  * another): the cipher's own error, not a Better Auth refusal.
  */
 const undecryptable = (error: unknown) => error instanceof Error && error.message === "invalid tag";
+
+/** Better Auth's account lockout, as its defaults have it (we set no `accountLockout`). */
+const LOCK_AFTER = 10;
+const LOCK_MS = 15 * 60_000;
+
+/** The key Better Auth encrypts two-factor secrets with: its secret config, else its secret. */
+const secretOf = (ctx: { secret: string }) =>
+  ((ctx as { secretConfig?: unknown }).secretConfig ?? ctx.secret) as string;
+
+/** The backup codes, decrypted (a JSON list); none when it isn't one. */
+const backupCodesOf = (stored: string): string[] => {
+  try {
+    const parsed: unknown = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed.filter((c): c is string => typeof c === "string") : [];
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Records a TOTP code as accepted for the user, through `conn` (which may be a transaction); false
+ * when it already was. The row's id is derived from the user and the code, so two at once can't
+ * both land. PostgreSQL and SQLite skip a conflict instead of failing: a failed statement would
+ * end PostgreSQL's whole transaction.
+ */
+const spendIn = async (
+  conn: Db,
+  dialect: DatabaseDialect,
+  secret: string,
+  userId: string,
+  code: string,
+  now: Date,
+): Promise<boolean> => {
+  const id = usedCodeId(secret, userId, code);
+  // The same code can come round again much later: forget an old record of it first.
+  await conn
+    .deleteFrom("verification")
+    .where("id", "=", id)
+    .where("expires_at", "<", toDbDate(now, dialect))
+    .execute();
+  const values = {
+    id,
+    identifier: `two-factor-used:${userId}`,
+    value: "",
+    expires_at: toDbDate(new Date(now.getTime() + USED_CODE_KEPT_MS), dialect),
+    created_at: toDbDate(now, dialect),
+    updated_at: toDbDate(now, dialect),
+  };
+  if (dialect !== "mysql") {
+    const inserted = await conn
+      .insertInto("verification")
+      .values(values)
+      .onConflict((oc) => oc.column("id").doNothing())
+      .returning("id")
+      .executeTakeFirst();
+    return inserted !== undefined;
+  }
+  try {
+    await conn.insertInto("verification").values(values).execute();
+    return true;
+  } catch (error) {
+    if (isUniqueViolation(error)) return false;
+    throw error;
+  }
+};
 
 export const betterAuthTwoFactorStore = (
   auth: Auth,
@@ -344,6 +410,93 @@ export const betterAuthTwoFactorStore = (
       }
     },
 
+    async checkCodeOf(userId, code) {
+      const ctx = await auth.$context;
+      const key = secretOf(ctx);
+      // One transaction holding the account's two-factor row: checks at once for one account run
+      // one after another, so a burst can't all pass the lock before any of them counts.
+      // On SQLite, BEGIN IMMEDIATE: it reads, then writes, which a deferred transaction can't do
+      // safely while another process writes the file (db/locks.ts).
+      return writeTransaction(db, dialect, async (trx) => {
+        const query = trx
+          .selectFrom("two_factor")
+          .select(["id", "secret", "backup_codes", "verified", "lock_expires_at"])
+          .where("user_id", "=", userId);
+        const row = await (dialect === "sqlite" ? query : query.forUpdate()).executeTakeFirst();
+        if (!row?.verified) return false;
+        const now = new Date();
+        // Better Auth's lockout, as it keeps it (verify-two-factor.ts): its count and its end.
+        if (row.lock_expires_at) {
+          if (fromDbDate(row.lock_expires_at).getTime() > now.getTime()) return "locked";
+          await trx
+            .updateTable("two_factor")
+            .set({ failed_verification_count: 0, lock_expires_at: null })
+            .where("id", "=", row.id)
+            .execute();
+        }
+        let right: "totp" | "backup_code" | false = false;
+        let used = false;
+        if (/^\d{6}$/.test(code)) {
+          let secret: string;
+          try {
+            secret = await symmetricDecrypt({ key, data: row.secret });
+          } catch (error) {
+            if (undecryptable(error)) return "unreadable";
+            throw error;
+          }
+          const totp = totpKey(secret);
+          if (totp && totpMatches(totp, code, now.getTime())) {
+            // Recorded as accepted here, in this transaction: a code accepted already (at sign-in,
+            // or another reset) is a replay, and counts as a failure.
+            if (await spendIn(trx, dialect, ctx.secret, userId, code, now)) right = "totp";
+            else used = true;
+          }
+        } else if (code.length > 0 && code.length <= 32) {
+          // Encrypted, Better Auth's default (`storeBackupCodes: "encrypted"`), with the same key.
+          let codes: string[];
+          try {
+            codes = backupCodesOf(await symmetricDecrypt({ key, data: row.backup_codes }));
+          } catch (error) {
+            if (undecryptable(error)) return "unreadable";
+            throw error;
+          }
+          if (codes.includes(code)) {
+            const rest = await symmetricEncrypt({
+              key,
+              data: JSON.stringify(codes.filter((c) => c !== code)),
+            });
+            await trx
+              .updateTable("two_factor")
+              .set({ backup_codes: rest })
+              .where("id", "=", row.id)
+              .execute();
+            right = "backup_code";
+          }
+        }
+        if (right) {
+          await trx
+            .updateTable("two_factor")
+            .set({ failed_verification_count: 0, lock_expires_at: null })
+            .where("id", "=", row.id)
+            .execute();
+          return right;
+        }
+        // One more failure; the tenth in a row locks it for 15 minutes.
+        await trx
+          .updateTable("two_factor")
+          .set((eb) => ({ failed_verification_count: eb("failed_verification_count", "+", 1) }))
+          .where("id", "=", row.id)
+          .execute();
+        await trx
+          .updateTable("two_factor")
+          .set({ lock_expires_at: toDbDate(new Date(now.getTime() + LOCK_MS), dialect) })
+          .where("id", "=", row.id)
+          .where("failed_verification_count", ">=", LOCK_AFTER)
+          .execute();
+        return used ? "used" : false;
+      });
+    },
+
     async codeUsed(userId, code) {
       const ctx = await auth.$context;
       const row = await db
@@ -356,31 +509,7 @@ export const betterAuthTwoFactorStore = (
 
     async spendCode(userId, code) {
       const ctx = await auth.$context;
-      const id = usedCodeId(ctx.secret, userId, code);
-      const now = new Date();
-      // The same code can come round again much later: forget an old record of it first.
-      await db
-        .deleteFrom("verification")
-        .where("id", "=", id)
-        .where("expires_at", "<", toDbDate(now, dialect))
-        .execute();
-      try {
-        await db
-          .insertInto("verification")
-          .values({
-            id,
-            identifier: `two-factor-used:${userId}`,
-            value: "",
-            expires_at: toDbDate(new Date(now.getTime() + USED_CODE_KEPT_MS), dialect),
-            created_at: toDbDate(now, dialect),
-            updated_at: toDbDate(now, dialect),
-          })
-          .execute();
-        return true;
-      } catch (error) {
-        if (isUniqueViolation(error)) return false;
-        throw error;
-      }
+      return spendIn(db, dialect, ctx.secret, userId, code, new Date());
     },
 
     async endSession(sessionId) {

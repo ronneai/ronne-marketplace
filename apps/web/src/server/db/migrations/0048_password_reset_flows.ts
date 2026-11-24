@@ -37,6 +37,9 @@ export const passwordResetFlows: AppMigration = (dialect: DatabaseDialect) => ({
       // `code`, `two_factor` or `new_password`.
       .addColumn("step", t.string(16), (c) => c.notNull())
       .addColumn("expires_at", t.timestamp(), (c) => c.notNull())
+      // When the account's two-factor step was passed: a flow that skipped it, two-factor being
+      // off then, is sent back to it if two-factor is on by the new-password step.
+      .addColumn("two_factor_at", t.timestamp())
       .addColumn("created_at", t.timestamp(), (c) => c.notNull())
       .$call(tableDefaults(dialect))
       .execute();

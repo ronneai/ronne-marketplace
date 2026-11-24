@@ -789,6 +789,24 @@
           "bot": "cela ressemblait à un robot, donc rien n’a été envoyé",
           "unknown": "non consigné"
         },
+        "resetCodeReasons": {
+          "wrong": "mauvais code",
+          "spent": "trop de mauvais codes",
+          "expired": "le code avait expiré",
+          "used": "un code plus récent l’avait remplacé",
+          "none": "aucun code",
+          "paused": "la réinitialisation par courriel est suspendue après trop de mauvais codes",
+          "cannot_continue": "le compte ne peut plus se réinitialiser par courriel",
+          "unknown": "non enregistré"
+        },
+        "resetTwoFactorReasons": {
+          "wrong_code": "mauvais code",
+          "used": "un code déjà utilisé",
+          "locked": "la double authentification est verrouillée après trop de mauvais codes",
+          "unreadable": "sa double authentification ne peut pas être lue sur ce serveur",
+          "cannot_continue": "le compte ne peut plus se réinitialiser par courriel",
+          "unknown": "non enregistré"
+        },
         "resetRequestOutcomes": {
           "code": "un code a été envoyé",
           "root": "c’est un compte root, invité à réinitialiser sur le serveur",
@@ -867,7 +885,9 @@
           "two_factor_failed": "Un code de double authentification a été refusé à la connexion ({reason})",
           "sign_up_requested": "A demandé de créer un compte pour <name>{email}</name> : {outcome}",
           "sign_up_code_failed": "Un code d’inscription pour <name>{email}</name> a été refusé : {reason}",
-          "password_reset_requested": "Une réinitialisation du mot de passe par courriel a été demandée pour <name>{email}</name> : {outcome}"
+          "password_reset_requested": "Une réinitialisation du mot de passe par courriel a été demandée pour <name>{email}</name> : {outcome}",
+          "password_reset_code_failed": "Un code de réinitialisation du mot de passe pour <name>{email}</name> a été refusé : {reason}",
+          "password_reset_two_factor_failed": "Un code à deux facteurs a été refusé pendant la réinitialisation du mot de passe de <name>{email}</name> : {reason}"
         },
         "access_token": {
           "created": "A créé le jeton <name>{label}</name> ({expiry}{how, select, cli {, depuis rmk login} device {, par approbation dans le navigateur} other {}})",

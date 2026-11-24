@@ -266,3 +266,163 @@ Witnessed: 2026-11-23 18:07 EST, by a fresh agent (adversarial). Commit: f1f987c
 **Overall:** met. Outside this row, in task 2's `settings/services/password-reset.db.test.ts`: the server-only "first ever" test ran (and failed) on SQLite when `TEST_DATABASE_URL` was set but empty, and deadlocked on MariaDB about 1 run in 4.
 
 Fix after the pass: both reset transactions (`setPasswordResetPolicy`, `requestPasswordReset`) run in `retryOnDeadlock`; the server-only tests skip on `!process.env.TEST_DATABASE_URL`. Both files: 36 passed, 3 skipped with the URL empty and on SQLite; 39 passed on postgres, mysql and mariadb; the MariaDB file 15/15 six times running.
+
+## Task 4 — The code and two-factor steps
+
+Witnessed: 2026-11-23 18:29 EST, by a fresh agent (blind). Commit: 8b025db1 + working tree (18 modified files, 3 untracked). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A right code with no two-factor opens the new-password page for 10 minutes, no session | no | confirmed | 4 files, 55 passed, 1 skipped (SQLite); steps test :149 |
+| 2 | A wrong code is refused and audited; five end the flow | no | confirmed | steps test :181 |
+| 3 | Expired and replaced codes, for a real address and an unknown one | no | confirmed | steps tests :217, :223; `endCodesFor` by `email_hmac` |
+| 4 | A cookie from an earlier step is refused; a missing one says so, at both steps | no | confirmed | tests :170, :176, :427; probe: a code-step token at the two-factor step → `spent` |
+| 5 | The cookie is replaced on success; a second submit at once is refused | no | confirmed | `nextStep`, `advanceFlow` on the old hash |
+| 6 | 20 wrong codes in 24 hours pause reset by email (a right code counts as wrong); sign-in works | no | not met | probe "4 flows × (5 wrong + 1 more)" → the 5th flow's right code opens `new_password`: the sixth try's `endFlow` deletes the flow, and `wrongCodesSince` counts only codes of surviving flows; mutation without the pause fails only the pause test |
+| 7 | 30 code tries per IP per hour | no | confirmed | test :310 |
+| 8 | The code page answers at the floor | no | confirmed | test :319 |
+| 9 | Disabled, made root, erased, *Root only* mid-flow: refused, the flow ends | no | confirmed | 4 tests; mutation M6 fails all 4 |
+| 10 | The next step follows the account now (two-factor on after the request; off before its step, `two_factor_at` null) | no | confirmed | tests :401, :408; mutation M3 → 7 fail |
+| 11 | A disabled account is refused at the two-factor step | no | confirmed | test :435 |
+| 12 | TOTP from the account's secret, as Better Auth decrypts it | no | confirmed | `totp.test.ts`, test :331 |
+| 13 | A backup code works once | no | confirmed | test :350; mutation M2 fails it; a case-changed backup code → `wrong` |
+| 14 | A TOTP code already accepted is refused, and one accepted at a reset is spent | no | partly | behaviour holds (probe "replay" → `used`); but M1 (no `spendCode`) and M7 (no `codeUsed`) each leave 23/23 passing |
+| 15 | Two-factor failures count with sign-in's; the tenth locks for 15 minutes; audited | no | confirmed | test :380; mutation M4 fails it |
+| 16 | The same on PostgreSQL, MySQL and MariaDB | no | confirmed | 3 files, 53 passed on each |
+| 17 | Data: `two_factor_at`; the two audit events in en/fr/pt and the fixture | no | confirmed | 0048 edited in place (unreleased); `src/features/admin-audit` 52 passed |
+| 18 | Task 3's request still meets "What is sent" | no | confirmed | `password-reset.db.test.ts`; `checkResetCode` goes on only with `check.result === "ok" && userId` |
+
+**Overall:** not met: the pause can be bypassed (row 6), and the replay guards are untested one at a time (row 14). Minor: an empty or used two-factor code doesn't count toward the lockout.
+
+### Adversarial pass
+
+Witnessed: 2026-11-23 18:29 EST, by a fresh agent (adversarial). Commit: 8b025db1 + working tree. Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A right code with two-factor off: the new-password page, 10 minutes, cookie replaced, no sign-in | no | confirmed | steps test green on all 4 |
+| 2 | Earlier cookie refused, missing says so, two right submits at once give one | no | confirmed | P2 → `[true,false]`; P6 upper-case token (MySQL) refused |
+| 3 | Five wrong tries end a code, a burst gets no more | no | confirmed | P3 10 at once → at most 5 attempts on every dialect |
+| 4 | Expired and replaced answer alike for an account and none | no | confirmed | tests green on all 4; `paused` only in the audit |
+| 5 | The code page answers at the floor | no | confirmed | P8 a throwing transaction → ≥149 ms with a 150 floor |
+| 6 | 20 wrong in 24 hours pause it for 24 hours | no | not met | P1: 6 flows × (5 wrong + 1) = 30 wrong, then a right code → `new_password` on all 4 |
+| 7 | 30 code tries per IP | no | confirmed | test; both steps share the key |
+| 8 | TOTP or backup code; a backup code raced on two flows gives one | no | confirmed | P4 → one `ok`, one `wrong` |
+| 9 | A TOTP code accepted is refused between reset and sign-in both ways | no | confirmed | P9 both directions → `used` |
+| 10 | Failures count with sign-in's; ten in a row lock it | no | partly | one at a time it holds; P10 60 wrong at once → 60 checked, 0 locked, count 60 on all 4: no per-user serialisation (sign-in uses `oneAtATime`) |
+| 11 | Two-factor on after the request asked; off before its step passed | no | confirmed | tests on all 4 |
+| 12 | Disabled, root, erased, *Root only* can't continue at both steps | no | confirmed | mutation fails 5 tests; P7 |
+| 13 | A flow with no user can't reach the next steps | no | confirmed | P6 |
+| 14 | TOTP checked as Better Auth does | no | confirmed | `totp.test.ts` |
+
+**Overall:** not met: the pause can be avoided (row 6), and a burst gets past the two-factor lockout (row 10). Minor: a right TOTP code resets the count before `spendCode` catches a replay.
+
+Fixes after the two passes: `wrongCodesSince` counts by the address's HMAC (`email_codes.email_hmac`), which outlives ended flows; `checkCodeOf` runs in one transaction holding the account's `two_factor` row (`FOR UPDATE` on PostgreSQL and MySQL; SQLite runs it alone), records a right TOTP code as accepted in that transaction (a replay is `used` and counts as a failure, never clearing the count), and every refusal, an empty or used code included, counts in the lockout. New tests: the pause test tries each flow to its end; a TOTP accepted at a reset refused at the next; a used and an empty code counted; 30 guesses at once → 10 wrong, 20 locked (servers). Mutations: the old flow-based count fails the pause test; no `FOR UPDATE` fails the burst test on PostgreSQL.
+
+### Re-check 1
+
+Witnessed: 2026-11-23 18:41 EST, by a fresh agent (blind). Commit: 8b025db1 + working tree. Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | 20 wrong codes in 24 hours pause reset by email, even when the flows have ended | no | confirmed | probes "4 flows × (5 wrong + 1)" and "5 flows × 5 wrong", then a right code → `wrong` on all 4; `wrongCodesSince` by `email_hmac` |
+| 14 | A TOTP accepted already is refused; one accepted at a reset is spent | no | confirmed | spend inside `checkCodeOf`; mutation dropping `spendIn` → 3 tests fail; returning `used` before counting → 1 fails; probe "replay" → `used` on all 4 |
+| minor | An empty or used code counts toward the lockout | no | confirmed | mutation returning early on an empty code → the test fails |
+| 15 | Failures count with sign-in's; the tenth locks; a burst can't get past | no | confirmed | one transaction over `two_factor` `FOR UPDATE`; steps file (burst test included) and `two-factor-sign-in.db.test.ts` pass on all 4 |
+| 16 | The same on PostgreSQL, MySQL and MariaDB | no | confirmed | SQLite 83 passed, 2 skipped; MySQL 85/85; PostgreSQL and MariaDB 84/85 under load (a timing test each), both passing alone |
+
+**Overall:** met. Note: a witness's `pnpm exec` in a scratch copy rewrote the repository's `node_modules/.bin` shims; restored with `pnpm install --frozen-lockfile --force` (no shim points into the scratchpad).
+
+### Adversarial re-check 1
+
+Witnessed: 2026-11-23 18:42 EST, by a fresh agent (adversarial). Commit: 8b025db1 + working tree (19 modified, 3 untracked). Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | The pause holds even when flows are ended | no | confirmed | P1: 6 flows × (5 wrong + 1), then a right code → `wrong` on all 4; the purge keeps codes a day past expiry |
+| 6a | The pause holds "for that account" | no | partly | P15: paused, then `user.email` changed → a right code for the new address opens `new_password` on all 4: the count follows the address |
+| 10 | Reset failures count with sign-in's, ten lock it, even in a burst | no | confirmed | P10: 60 at once → 10 checked, 50 locked; P11: 20 reset + 20 sign-in at once → count 10; mutation without `forUpdate()` → the steps burst test fails on pg |
+| 10a | No deadlock with sign-in or turning two-factor off | no | confirmed | P11, P14 on all 4 |
+| 10b | `spendIn` in the transaction: no abort on pg, no failure on MySQL | no | confirmed | P12: one TOTP at reset and sign-in at once → one wins, 1 session; P9 replay both ways |
+| 10c | Backup codes under the row lock: one wins | no | confirmed | P13; P4 |
+| M | A right TOTP no longer resets the count before a replay is caught | no | confirmed | P9; the used-code test |
+| 16 | The task's files and sign-in's two-factor flows on every dialect | no | partly | SQLite 114+2 skipped, pg 116, mariadb 116, mysql 115 + 1 failure in the unchanged `two-factor-sign-in.db.test.ts` ("the same backup code in two challenges at once, without any queue", 2nd repeat), passing alone twice |
+
+**Overall:** not met: the pause follows the address, not the account (6a); one unchanged sign-in race test failed once on MySQL (16). Remark: `checkCodeOf` used a deferred transaction on SQLite, which `db/locks.ts` says fails with SQLITE_BUSY when another process writes the file.
+
+Fixes after the two passes: `wrongCodesSince` counts the account's own `auth.password_reset_code_failed` audit rows (reason `wrong` or `paused`) in the 24 hours, which outlive the flows and follow the account through a change of address; `checkCodeOf` uses `writeTransaction` (BEGIN IMMEDIATE on SQLite); SPEC "Rate limits" says so; a test changes the address of a paused account (the right code stays wrong). `two-factor-sign-in.db.test.ts` passed 3/3 on MySQL; it calls Better Auth's own backup-code check, none of this task's code.
+
+### Adversarial re-check 2
+
+Witnessed: 2026-11-23 18:46 EST, by a fresh agent (adversarial). Commit: 8b025db1 + working tree (19 modified, 3 untracked). Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6a | The pause holds for the account through a change of address | no | confirmed | `kysely-password-reset-repository.ts:116-136` counts `audit_log` rows by `target_id`; P15 → `wrong` on all 4 |
+| 6b | Every wrong code for an account leaves an audit row | no | confirmed | `failed()` on every non-ok result with a user, in the attempt's transaction |
+| 6c | Retention can't remove the rows within 24 hours | no | confirmed | no `deleteFrom("audit_log")` outside a test (`audit-log.guard.test.ts` forbids it); retention clears only IPs and listed email keys |
+| 6d | Someone else filling the count goes no further than the spec | no | confirmed | P18: a third party's 20 wrong → the victim's right code `wrong`, sign-in still `ok`, 25 h later `new_password`, on all 4 |
+| 6e | 20 wrong is the limit, even in a burst | no | partly | P17: 19 wrong, then 4 wrong and the right one at once → `ok` on pg, mysql, mariadb (23 wrong before a success); SQLite serialises them. The count is read before anything serialises the account |
+| 6f | The pause lasts 24 hours | no | partly | P16: 20 wrong over hours 0–3, the right code at hour 24.5 → `new_password`: a rolling window from the first of the 20 |
+| 16 | The task's files and sign-in's two-factor flows on every dialect | no | confirmed | mysql 87/87 twice, postgres 87/87, mariadb 87/87; SQLite 85 passed, 2 skipped |
+| R | `checkCodeOf` on SQLite takes the write lock first and doesn't hang | no | confirmed | `writeTransaction`; P10, P11, P14 on SQLite, no `SQLITE_BUSY` |
+
+**Overall:** not met on 6e (a burst at the threshold gets up to 4 extra guesses on the servers) and 6f (the pause is a rolling window). Two adversarial re-checks done: the owner decides (state-witness.md, "Two rounds, then the owner").
+
+The owner chose (2026-11-23): fix both, then one more scoped adversarial round. Fixes: the code step takes the account's row (`lockAccount`) before it counts, so tries at once for one account are counted one after another; `resetPaused` (models/password-reset.ts) is on while some 20 wrong codes fall within 24 hours and the 20th of them is less than 24 hours old, read from two days of the account's audit rows (`wrongCodeTimes`). Tests: the window (unit), the pause still on 21.5 hours after the 20th and off a day after the last try, and a burst at 19 (4 wrong and the right code at once → none `ok`, servers only). `two-factor-sign-in.db.test.ts` "without any queue" (issue #307's race) failed once on MySQL in a run of 3 files at once; alone it passed 10/10 with this task's store and 10/10 with the store before it.
+
+### Adversarial re-check 3
+
+Witnessed: 2026-11-23 19:36 EST, by a fresh agent (adversarial). Commit: 8b025db1 + working tree (19 modified, 3 untracked). Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6e | 20 wrong is the limit, even in a burst | no | confirmed | `lockAccount` before `wrongCodeTimes` (`services/password-reset.ts:393`); P17 3 runs × 4 dialects: never more than 20 `wrong` rows (once on mysql the right code won at 19: `ok`, the rest `replaced`, allowed); P19 (a mixed burst with a new request, sign-ins and a ghost flow) → no deadlock, at most 20 `wrong` |
+| 6e-t | The burst test checks the claim | no | partly | it expected no `ok`, but `ok` is right when the right code is counted first: failed 3 of 10 on postgres |
+| 6f | The pause lasts 24 hours after the 20th | no | partly | P16: `wrong` at T+21.5h and T+24h−1ms, `new_password` at exactly T+24h on all 4; but P22: a try during the pause (`paused`) counts, so the pause runs to about T+44h |
+| 6f-u | `resetPaused` edge cases | no | confirmed | P21: equal timestamps, exactly 24 h, 24 h + 1 ms, 45 rows, empty |
+| 6g | A flow with no user isn't slowed or changed | no | confirmed | P20: no audit rows, 1–12 ms |
+| 16 | The two files on every dialect | no | partly | sqlite 50+3 skipped, mysql 53, mariadb 53, postgres 52/53 (the burst test; "answers at the request's floor" failed once in the same run) |
+
+**Overall:** not met on 6e-t (a flaky test) and 6f (tries during the pause made it longer than the spec says).
+
+Fixes after the pass: `wrongCodeTimes` counts only `wrong` rows, so the pause lasts a day after the 20th as SPEC says (the duration test now checks it ends 24.5 hours after the 20th, a try during the pause included); the burst test asserts what holds in every order (at most 20 `wrong` rows; 19 when the right code won, 20 when not), 5/5 on postgres; the two floor tests allow 5 ms for timers firing early against `performance.now`. All four dialects: 53/53 on the servers, 59 passed and 3 skipped on SQLite.
+
+### Re-check 2
+
+Witnessed: 2026-11-23 19:46 EST, by a fresh agent (blind). Commit: 8b025db1 + working tree (20 modified, 3 untracked). Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6f | The pause ends 24 hours after the 20th, even with tries during it | no | confirmed | `kysely-password-reset-repository.ts:134` keeps only `wrong`; probe `PROBE r2` (paused tries 1, 2, 3 h after the 20th, right code 24 h 1 min after) → `ok` on all 4 |
+| 6f-t | Counting `paused` rows again fails a test | no | not met | that mutation leaves the steps file green: the duration test's only paused try came too late to extend the pause; the probe fails under it |
+| 6e-t | The burst test holds in every order | no | confirmed | 6/6 on postgres |
+| 6e-m | The burst test fails without the lock | no | confirmed | `lockAccount` commented out → 6/6 fail on postgres (19 vs 20, or 21–23 > 20) |
+| 15-f | The 5 ms tolerance can't hide a missing floor | no | confirmed | both waits removed → the 3 floor tests fail on sqlite, postgres, mysql |
+| 16 | Both files on every dialect | no | confirmed | sqlite 50 passed, 3 skipped; 53/53 on each server |
+
+**Overall:** not met on 6f-t (a test gap).
+
+Fix after the pass: the duration test makes a try an hour after the 20th (as the probe does), one at 21.5 hours, and the right code a day and a minute after the 20th → `ok`; with `paused` rows counted again it fails (SQLite run, file restored). The steps file passes on postgres, mysql and mariadb.
+
+### Re-check 3
+
+Witnessed: 2026-11-23 19:48 EST, by a fresh agent (blind). Commit: 8b025db1 + working tree. Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6f-t | A test fails if `paused` tries are counted towards the pause | no | confirmed | mutation `reason === "wrong" \|\| reason === "paused"` (`kysely-password-reset-repository.ts:134`) → "keeps the pause a full day after the 20th wrong code, not after the first" fails (`:328`); restored byte for byte |
+| 6f-t (restored) | The file passes on SQLite and PostgreSQL | no | confirmed | SQLite 27 passed, 2 skipped (server-only); postgres 29/29 |
+
+**Overall:** met.
+
+### Adversarial re-check 4
+
+Witnessed: 2026-11-23 19:52 EST, by a fresh agent (adversarial). Commit: 8b025db1 + working tree (20 modified, 3 untracked). Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6f | The pause ends exactly 24 hours after the 20th, tries during it included | no | confirmed | `kysely-password-reset-repository.ts:134` keeps only `wrong`; P16, P22, P23a, P23b on all 4 → 5/5 each: a paused try at T20+20h then the right code at T20+24h+1min → `ok`; `wrong` at T20+24h−1ms, `ok` at exactly T20+24h; 20 wrong over exactly 24 h paused to its edge, over 24 h + 1 ms not paused |
+| 6e-t | The burst test passes in every order and fails without the lock | no | confirmed | `password-reset-steps.db.test.ts:333-356`; alone on postgres 6/6; `lockAccount` commented out → 4/4 fail; restored (`cmp` identical); the steps file 27+2 skipped on sqlite, 29/29 on postgres, mysql, mariadb |
+
+**Overall:** met.

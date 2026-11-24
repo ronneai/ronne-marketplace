@@ -12,6 +12,8 @@ export type ResetFlow = {
   userId: string | null;
   step: ResetStep;
   expiresAt: Date;
+  /** When the two-factor step was passed; null when it wasn't. */
+  twoFactorAt: Date | null;
   createdAt: Date;
 };
 
@@ -29,13 +31,31 @@ export interface PasswordResetRepository {
   /** The names of the identity providers that are on, for an account linked to none. */
   enabledProviderNames(): Promise<string[]>;
   insertFlow(flow: ResetFlow): Promise<void>;
+  /** The flow whose token hashes to this, or null. */
+  flowByToken(tokenHash: string): Promise<ResetFlow | null>;
+  /**
+   * Moves a flow on: a new token, step and expiry, only while its token is still `fromHash`, so a
+   * cookie copied earlier, or two submits at once, move it once. False when it had moved.
+   */
+  advanceFlow(
+    id: string,
+    fromHash: string,
+    to: { tokenHash: string; step: ResetStep; expiresAt: Date; twoFactorAt?: Date },
+  ): Promise<boolean>;
+  /** Ends a flow and its code: the row goes. */
+  endFlow(id: string, now: Date): Promise<void>;
+  /** The account by id, as a request reads it by address. */
+  accountById(userId: string): Promise<ResetAccount | null>;
+  /** When the account's wrong reset codes were typed since `since`, oldest first, from its audit. */
+  wrongCodeTimes(userId: string, since: Date): Promise<Date[]>;
+  verifyCode: EmailCodeRepository["verify"];
   /** Holds the account's row until the transaction ends (PostgreSQL, MySQL; SQLite runs one at a time). */
   lockAccount(userId: string): Promise<void>;
   /**
-   * Ends the account's earlier reset codes (a new request replaces them). Their flows stay until
-   * they expire, so an old flow's page can say its code was replaced.
+   * Ends the address's earlier reset codes (a newer request replaces them), found by the HMAC the
+   * codes keep. Their flows stay until they expire, so an old flow's page can say it was replaced.
    */
-  endCodesOf(userId: string, now: Date): Promise<void>;
+  endCodesFor(email: string, now: Date): Promise<void>;
   issueCode: EmailCodeRepository["issue"];
   /** True when this proof-of-work answer is new and now taken; false for a replay (190). */
   takeChallenge(challengeHmac: string, expiresAt: Date): Promise<boolean>;

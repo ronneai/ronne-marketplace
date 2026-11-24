@@ -7,13 +7,20 @@ import { emailHmac, reserveEmailCodeSend } from "../models/email-code";
 import { isLocale, type Locale } from "../models/locale";
 import {
   newResetToken,
+  RESET_CODE_IP_LIMIT,
+  RESET_GRANT_MS,
+  RESET_PAUSE_MS,
   RESET_PURPOSE,
   RESET_REQUEST_IP_LIMIT,
   type ResetEmail,
+  type ResetStep,
   resetEmailFor,
+  resetPaused,
+  resetTokenHash,
 } from "../models/password-reset";
 import { checkChallengeAnswer, checkForm, parseChallengeAnswer } from "../models/sign-up-guard";
-import type { PasswordResetRepository } from "../repositories/password-reset-repository";
+import type { PasswordResetRepository, ResetFlow } from "../repositories/password-reset-repository";
+import type { TwoFactorStore } from "../repositories/two-factor-store";
 import { signUpEmail } from "./sign-up";
 
 /**
@@ -52,6 +59,8 @@ export type PasswordResetDeps = {
   minimumMs?: number;
   /** Waits; tests pass their own. */
   wait?: (ms: number) => Promise<void>;
+  /** The account's two-factor (105), checked with no session at the reset's two-factor step. */
+  twoFactor: Pick<TwoFactorStore, "enabled" | "checkCodeOf">;
 };
 
 /** Every answer to a reset request waits until this long after it began (SPEC "Same time"). */
@@ -162,11 +171,13 @@ const answer = async (deps: PasswordResetDeps, input: ResetRequest): Promise<Res
       let code = "";
       let flowExpires = lifetime;
       let limited = !send.ok;
-      if (gets && kind === "code" && account) {
-        // A new request replaces the account's earlier codes. The account's row is held first, so
-        // requests at once end each other's codes one after another, leaving one live code.
-        await repo.lockAccount(account.id);
-        await repo.endCodesOf(account.id, at);
+      // Every flow gets a code, emailed only when the table says so, so the code page behaves the
+      // same for every address: five tries, the lifetime, replaced by a newer request. A newer
+      // request ends the address's earlier codes; a real account's row is held first, so requests
+      // at once for it end each other's codes one after another, leaving one live code.
+      if (send.ok) {
+        if (kind === "code" && account) await repo.lockAccount(account.id);
+        await repo.endCodesFor(email, at);
         const issued = await repo.issueCode({
           purpose: RESET_PURPOSE,
           subjectId: flowId,
@@ -179,8 +190,8 @@ const answer = async (deps: PasswordResetDeps, input: ResetRequest): Promise<Res
           flowExpires = issued.expiresAt;
         } else limited = true;
       }
-      // A code goes only when one was issued; the root's and the providers' answers need none.
-      const sent = gets && (kind !== "code" || code !== "");
+      // Emailed only to whom the table names, once a code exists.
+      const sent = gets && code !== "";
       await repo.insertFlow({
         id: flowId,
         tokenHash: hash,
@@ -188,6 +199,7 @@ const answer = async (deps: PasswordResetDeps, input: ResetRequest): Promise<Res
         userId: sent && kind === "code" ? (account?.id ?? null) : null,
         step: "code",
         expiresAt: flowExpires,
+        twoFactorAt: null,
         createdAt: at,
       });
       const template = kind === "none" ? "reset_code" : TEMPLATE[kind];
@@ -237,4 +249,237 @@ const answer = async (deps: PasswordResetDeps, input: ResetRequest): Promise<Res
     }),
   );
   return { ok: true, token, expiresAt };
+};
+
+// ---- The code and two-factor steps (task 4) ------------------------------------------------------
+
+/** Why a step is refused, as its page says it. */
+export type StepRefusal =
+  /** A wrong code: try again. */
+  | "wrong"
+  /** Five wrong codes, or the flow has ended: ask for a new code. */
+  | "spent"
+  /** The code ran out: send a new one. */
+  | "expired"
+  /** A newer request replaced this code: use the newest email. */
+  | "replaced"
+  /** No flow cookie in this browser: start again here. */
+  | "missing"
+  /** The account changed (disabled, made root, erased, Root only): this reset can't continue. */
+  | "cannot_continue"
+  /** A TOTP code already accepted. */
+  | "used"
+  /** Ten wrong two-factor codes in a row: locked for 15 minutes, as at sign-in. */
+  | "locked"
+  /** The account's two-factor can't be read on this server: a root resets it. */
+  | "unreadable"
+  | "limited";
+
+export type StepChecked =
+  /** The next page, and the cookie's new value (it changes at every step). */
+  | { ok: true; token: string; step: Exclude<ResetStep, "code"> }
+  | { ok: false; refusal: StepRefusal };
+
+/** The flow a cookie names, at `step`, while it lasts; null otherwise. */
+const flowAt = async (
+  repo: PasswordResetRepository,
+  token: string,
+  step: ResetStep,
+  at: Date,
+): Promise<ResetFlow | null> => {
+  const flow = await repo.flowByToken(resetTokenHash(token));
+  if (!flow || flow.step !== step || flow.expiresAt <= at) return null;
+  return flow;
+};
+
+/** The step after a right code or two-factor, read from the account as it is now. */
+const nextStep = async (
+  repo: PasswordResetRepository,
+  flow: ResetFlow,
+  at: Date,
+  /** Whether the account has two-factor on, read before the transaction (SQLite has one connection). */
+  twoFactorOn: boolean,
+  twoFactorPassed: boolean,
+): Promise<StepChecked> => {
+  const step = twoFactorOn && !twoFactorPassed ? "two_factor" : "new_password";
+  const { token, hash } = newResetToken();
+  const moved = await repo.advanceFlow(flow.id, flow.tokenHash, {
+    tokenHash: hash,
+    step,
+    // The new-password page works for 10 minutes from the moment the last step was passed; the
+    // two-factor step keeps the flow's own end (its code's).
+    expiresAt: step === "new_password" ? new Date(at.getTime() + RESET_GRANT_MS) : flow.expiresAt,
+    ...(twoFactorPassed ? { twoFactorAt: at } : {}),
+  });
+  // Another submit moved it first: this cookie is the old one.
+  if (!moved) return { ok: false, refusal: "spent" };
+  return { ok: true, token, step };
+};
+
+/**
+ * Whether the account may still reset by email: the "What is sent" table read again, now. A flow
+ * whose account was disabled, erased, made root, or kept off passwords since ends.
+ */
+const stillResettable = async (repo: PasswordResetRepository, userId: string) => {
+  const account = await repo.accountById(userId);
+  return (
+    account !== null &&
+    resetEmailFor(account, account.email, await repo.passwordPolicy()) === "code"
+  );
+};
+
+const typed = (value: unknown, max: number) =>
+  typeof value === "string" ? value.trim().slice(0, max) : "";
+
+/**
+ * The code typed on the code page (194). The flow's cookie names the flow; its code follows 190's
+ * rules (5 tries, the lifetime, used once, replaced by a newer request). Every flow has one, so
+ * every address's code page answers alike, and in the same time (the request's floor). Right: the
+ * next step is the account's two-factor when it has it on, else the new-password page, and the
+ * cookie changes. Nothing here signs anyone in. 20 wrong codes for an account in 24 hours pause
+ * reset by email for it: every code is then wrong, and sign-in itself is never locked.
+ */
+export const checkResetCode = async (
+  deps: PasswordResetDeps,
+  input: { token: string | null; code: unknown; ip: string | null },
+): Promise<StepChecked> => {
+  const started = performance.now();
+  try {
+    return await codeAnswer(deps, input);
+  } finally {
+    const left = (deps.minimumMs ?? RESET_ANSWER_MS) - (performance.now() - started);
+    if (left > 0) await (deps.wait ?? sleep)(left);
+  }
+};
+
+const codeAnswer = async (
+  deps: PasswordResetDeps,
+  input: { token: string | null; code: unknown; ip: string | null },
+): Promise<StepChecked> => {
+  const at = clock(deps);
+  if (input.ip) {
+    const decision = await deps.limits.consume(
+      [{ limit: RESET_CODE_IP_LIMIT, key: input.ip }],
+      at.getTime(),
+    );
+    if (!decision.allowed) return { ok: false, refusal: "limited" };
+  }
+  if (!input.token) return { ok: false, refusal: "missing" };
+  const flow = await deps.repo.flowByToken(resetTokenHash(input.token));
+  if (flow?.step !== "code") return { ok: false, refusal: "spent" };
+  if (flow.expiresAt <= at) return { ok: false, refusal: "expired" };
+  const code = typed(input.code, 32);
+  // Read before the transaction: the store reads through the app's own connection.
+  const twoFactorOn = flow.userId ? await deps.twoFactor.enabled(flow.userId) : false;
+  return retryOnDeadlock(() =>
+    deps.repo.transaction(async (repo): Promise<StepChecked> => {
+      const userId = flow.userId;
+      const failed = async (reason: string) => {
+        if (userId)
+          await repo.recordAudit(
+            {
+              actorId: null,
+              action: "auth.password_reset_code_failed",
+              target: { type: "user", id: userId },
+              metadata: { reason },
+              ipAddress: input.ip,
+            },
+            at,
+          );
+      };
+      // Paused after 20 wrong codes in a day: a right code is wrong too, and nothing says why.
+      // The account's row first: tries at once for one account are counted one after another, so
+      // a burst at the threshold can't all read the count from before it.
+      if (userId) await repo.lockAccount(userId);
+      // Counted from the account's own audit record, so ended flows and a new address count too;
+      // two days back, as 20 within a day keep it paused a day after the 20th.
+      const paused =
+        userId !== null &&
+        resetPaused(
+          await repo.wrongCodeTimes(userId, new Date(at.getTime() - 2 * RESET_PAUSE_MS)),
+          at,
+        );
+      const check = await repo.verifyCode({
+        purpose: RESET_PURPOSE,
+        subjectId: flow.id,
+        typed: paused ? "------" : code,
+        now: at,
+      });
+      // No one can know the code of a flow without an account: right or not, it's wrong.
+      if (check.result === "ok" && userId) {
+        if (!(await stillResettable(repo, userId))) {
+          await repo.endFlow(flow.id, at);
+          await failed("cannot_continue");
+          return { ok: false, refusal: "cannot_continue" };
+        }
+        return nextStep(repo, flow, at, twoFactorOn, false);
+      }
+      const result = check.result === "ok" ? "wrong" : check.result;
+      await failed(paused && result === "wrong" ? "paused" : result);
+      if (result === "expired") return { ok: false, refusal: "expired" };
+      // Used: a newer request ended it (a right code is used once, and moves the flow on).
+      if (result === "used") return { ok: false, refusal: "replaced" };
+      if (result === "spent" || result === "none") {
+        await repo.endFlow(flow.id, at);
+        return { ok: false, refusal: "spent" };
+      }
+      return { ok: false, refusal: "wrong" };
+    }),
+  );
+};
+
+/**
+ * The account's two-factor at a reset (194, Decision 2): a TOTP code or a backup code, checked as
+ * at sign-in with no session. A TOTP code already accepted is refused; a backup code is used up;
+ * wrong codes count with the sign-in's own, so ten in a row lock it for 15 minutes either way.
+ * Turned off meanwhile, the step is passed as it no longer applies.
+ */
+export const checkResetTwoFactor = async (
+  deps: PasswordResetDeps,
+  input: { token: string | null; code: unknown; ip: string | null },
+): Promise<StepChecked> => {
+  const at = clock(deps);
+  if (input.ip) {
+    const decision = await deps.limits.consume(
+      [{ limit: RESET_CODE_IP_LIMIT, key: input.ip }],
+      at.getTime(),
+    );
+    if (!decision.allowed) return { ok: false, refusal: "limited" };
+  }
+  if (!input.token) return { ok: false, refusal: "missing" };
+  const flow = await flowAt(deps.repo, input.token, "two_factor", at);
+  if (!flow?.userId) return { ok: false, refusal: "spent" };
+  const userId = flow.userId;
+  const failed = (reason: string) =>
+    deps.repo.recordAudit(
+      {
+        actorId: null,
+        action: "auth.password_reset_two_factor_failed",
+        target: { type: "user", id: userId },
+        metadata: { reason },
+        ipAddress: input.ip,
+      },
+      at,
+    );
+  if (!(await stillResettable(deps.repo, userId))) {
+    await deps.repo.transaction((repo) => repo.endFlow(flow.id, at));
+    await failed("cannot_continue");
+    return { ok: false, refusal: "cannot_continue" };
+  }
+  if (!(await deps.twoFactor.enabled(userId)))
+    return deps.repo.transaction((repo) => nextStep(repo, flow, at, false, false));
+  // A TOTP code is 6 digits, spaces allowed; a backup code is kept as typed. Every refusal, an
+  // empty or used code included, counts in the account's lockout, as the store checks them all.
+  const raw = typed(input.code, 32);
+  const code = /^[\d\s]+$/.test(raw) ? raw.replace(/\s+/g, "") : raw;
+  const right = await deps.twoFactor.checkCodeOf(userId, code);
+  if (right === "locked" || right === "unreadable" || right === "used") {
+    await failed(right);
+    return { ok: false, refusal: right };
+  }
+  if (!right) {
+    await failed("wrong_code");
+    return { ok: false, refusal: "wrong" };
+  }
+  return deps.repo.transaction((repo) => nextStep(repo, flow, at, true, true));
 };

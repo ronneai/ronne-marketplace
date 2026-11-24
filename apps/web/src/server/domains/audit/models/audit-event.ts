@@ -113,6 +113,8 @@ export const AUDIT_ACTIONS = [
   "settings.account_rules_changed",
   "settings.password_reset_changed",
   "auth.password_reset_requested",
+  "auth.password_reset_code_failed",
+  "auth.password_reset_two_factor_failed",
   "scan.finding_dismissed",
   "scan.finding_restored",
   "pin.added",

@@ -47,7 +47,11 @@ sessions and other codes ended, and a notice sent afterwards.
   | A disabled account, or one waiting for root's approval (190) | Nothing |
   | No account (an erased one included: its email is a pseudonym, 103) | Nothing |
 
-- **The code**: one of 190's one-time email codes, purpose `password_reset`, subject the user.
+- **The code**: one of 190's one-time email codes, purpose `password_reset`, tied to the request's
+  flow (its subject is the flow), so it never works alone. Every flow gets one, emailed only when
+  the table says so, so the code page answers alike for every address (its tries, its end, its
+  replacement); a newer request for the address ends the earlier codes, found by the address's
+  HMAC the codes keep. The code page answers at the request's 400 ms floor too.
   Its rules are 190's:
   - 6 digits from a cryptographic random source, stored only as an HMAC;
   - it lasts for the *Code lifetime* setting (15 minutes by default);
@@ -60,7 +64,11 @@ sessions and other codes ended, and a notice sent afterwards.
   (105): a code from the app or a backup code, as at sign-in (`TwoFactorStep.tsx`).
   - A backup code used here is spent.
   - A TOTP code already accepted is refused, as at sign-in.
-  - Wrong codes count with the sign-in's own, so the reset gives no extra guesses.
+  - Wrong codes count with the sign-in's own, so the reset gives no extra guesses: Better Auth's
+    account lockout (ten in a row lock it for 15 minutes), checked here without a session, as
+    the reset has none. Checks for one account run one at a time (its two-factor row is held), so
+    guesses sent at once get no more; a used or empty code counts as a failure.
+  - Two-factor turned off (or reset by root) before this step: the step is passed.
   - Someone who lost the authenticator and its backup codes can't go on. The page says a root
     resets two-factor, as today.
 - **The new-password page**, `/sign-in/forgot/new-password`:
@@ -95,7 +103,10 @@ sessions and other codes ended, and a notice sent afterwards.
 - **Rate limits**, through 109's limiter, counted in the database so every replica shares them:
   - per client IP (with `TRUST_PROXY=true`): 10 requests per hour, and 30 code tries per hour;
   - per address: 190's 3 emails per hour, counted from the `email_codes` rows.
-  - After 20 wrong reset codes in 24 hours, reset by email pauses for that account for 24 hours.
+  - After 20 wrong reset codes in 24 hours, reset by email pauses for that account for 24 hours
+    after the 20th (counted from the account's own audit record of wrong reset codes, so flows
+    that ended, and a change of address, still count; tries at once for one account are counted
+    one after another).
     That's well under NIST's 100 failures, and it never locks the account's sign-in (OWASP: no
     lockout from forgotten-password attacks).
 - **Bots**: 190's honeypot field, minimum fill time and the optional proof-of-work challenge, on the
@@ -178,7 +189,9 @@ two-factor failures. Dan gets no "password was reset" notice, because nothing wa
 ## Data
 
 - **`password_reset_flows`**: `id` (ULID), `token_hash`, `user_id` (nullable, FK, cascade on delete),
-  `step` (`code`, `two_factor`, `new_password`), `expires_at`, `created_at`. No email, no IP.
+  `step` (`code`, `two_factor`, `new_password`), `expires_at`, `two_factor_at` (when the two-factor
+  step was passed, so a flow that skipped it is sent back if two-factor is on by the new-password
+  step), `created_at`. No email, no IP.
 - **Codes**: 190's `email_codes`, purpose `password_reset`.
 - **Retention**: the purge job (102) deletes flows and codes a day after they expire.
 - **Erasure (103)** deletes the account's flows and codes. **Your data (104)** lists open reset

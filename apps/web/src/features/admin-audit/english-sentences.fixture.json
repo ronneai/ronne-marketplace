@@ -443,6 +443,14 @@
     "empty": "A password reset by email was asked for sam@example.com: not recorded",
     "rich": "A password reset by email was asked for sam@example.com: not recorded"
   },
+  "auth.password_reset_code_failed": {
+    "empty": "A password reset code for sam@example.com was refused: not recorded",
+    "rich": "A password reset code for sam@example.com was refused: not recorded"
+  },
+  "auth.password_reset_two_factor_failed": {
+    "empty": "A two-factor code was refused while resetting the password of sam@example.com: not recorded",
+    "rich": "A two-factor code was refused while resetting the password of sam@example.com: not recorded"
+  },
   "user.signed_up": {
     "empty": "sam@example.com created their own account",
     "rich": "sam@example.com created their own account"

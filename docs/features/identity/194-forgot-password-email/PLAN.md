@@ -34,7 +34,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     found and not-found paths and checks that both do the same repository calls (lookup, HMAC, flow
     write, outbox or none).
 
-- [ ] **4. The code and two-factor steps.** [risky]
+- [x] **4. The code and two-factor steps.** [risky]
   - `checkResetCode`: the flow's cookie, 190's code rules, the cookie replaced on success, the
     20-per-day pause.
   - `checkResetTwoFactor`: the two-factor store's code check (as `turnOffTwoFactor` uses it), with
@@ -98,3 +98,16 @@ goes into `SPEC.md` instead.
   queues them; task 6 adds only the pages' words.
 - Run several test files in zsh by writing the paths out: an unquoted `$F` holding two paths is
   one argument, and vitest then finds no files.
+- Task 4 changed task 3's request: every flow gets a code (emailed only when the table says so),
+  and codes are replaced per address (`endCodesFor`, by the codes' `email_hmac`), so the code page
+  answers alike for every address. The code page answers at the same 400 ms floor.
+- The reset's two-factor step checks codes with no session: `TwoFactorStore.checkCodeOf`, in one
+  transaction holding the account's `two_factor` row (`writeTransaction`), Better Auth's lockout
+  columns, backup codes decrypted and re-encrypted as Better Auth stores them (encrypted by
+  default), and a right TOTP recorded as used in that transaction. TOTP itself is `models/totp.ts`.
+- Never read through the app's own store or `db` inside a `repo.transaction`: on SQLite's one
+  connection it waits forever (two-factor's state is read before the transaction for that).
+- The 20-a-day pause counts the account's `auth.password_reset_code_failed` audit rows with reason
+  `wrong` (`wrongCodeTimes`, `resetPaused`), with the account's row held first.
+- 0048 gained `two_factor_at` in place: it was unreleased and not yet on the dev database.
+

@@ -25,6 +25,12 @@ export const RESET_CODE_IP_LIMIT: Limit = {
   windowMs: HOUR,
 };
 
+/** Wrong reset codes for one account in `RESET_PAUSE_MS` that pause reset by email for it. */
+export const RESET_PAUSE_AFTER = 20;
+export const RESET_PAUSE_MS = 24 * HOUR;
+/** How long the new-password page works after the last step was passed. */
+export const RESET_GRANT_MS = 10 * 60_000;
+
 /** A reset flow's step, as `password_reset_flows.step` keeps it. */
 export const RESET_STEPS = ["code", "two_factor", "new_password"] as const;
 export type ResetStep = (typeof RESET_STEPS)[number];
@@ -78,4 +84,22 @@ export const resetEmailFor = (
   if (account.role === "root") return "root";
   if (!account.hasPassword || passwordPolicy === "root_only") return "providers";
   return "code";
+};
+
+/**
+ * Whether reset by email is paused for an account at `now` (194): 20 wrong codes fell within 24
+ * hours, and the 20th of them less than 24 hours ago. So the pause lasts a full 24 hours from the
+ * 20th, however spread out the 20 were. `times` oldest first.
+ */
+export const resetPaused = (times: readonly Date[], now: Date): boolean => {
+  for (let last = RESET_PAUSE_AFTER - 1; last < times.length; last++) {
+    const first = times[last - (RESET_PAUSE_AFTER - 1)] as Date;
+    const twentieth = times[last] as Date;
+    if (
+      twentieth.getTime() - first.getTime() <= RESET_PAUSE_MS &&
+      now.getTime() - twentieth.getTime() < RESET_PAUSE_MS
+    )
+      return true;
+  }
+  return false;
 };
