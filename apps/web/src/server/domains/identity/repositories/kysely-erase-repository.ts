@@ -12,6 +12,7 @@ import {
   rewritesAfterCommit,
 } from "../../audit/repositories/kysely-audit-rewrite";
 import { kyselyWorkspaceRepository } from "../../workspaces/repositories/kysely-workspace-repository";
+import { emailHmac } from "../models/email-code";
 import type { EraseRepository } from "./erase-repository";
 import { kyselyIdentityRepository } from "./kysely-identity-repository";
 
@@ -21,14 +22,18 @@ const count = (result: { numDeletedRows?: bigint; numUpdatedRows?: bigint }) =>
 export const kyselyEraseRepository = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
-  options: { inTransaction?: boolean } = {},
+  options: {
+    inTransaction?: boolean;
+    /** The server's AUTH_SECRET: with it, the address's reset codes go too (194). */
+    authSecret?: string;
+  } = {},
 ): EraseRepository => {
   const at = (date: Date) => toDbDate(date, dialect);
   const inTransaction = options.inTransaction ?? false;
   return {
     transaction: (work) =>
       readCommittedTransaction(db, dialect).execute((trx) =>
-        work(kyselyEraseRepository(trx, dialect, { inTransaction: true })),
+        work(kyselyEraseRepository(trx, dialect, { ...options, inTransaction: true })),
       ),
     identity: kyselyIdentityRepository(db, dialect),
     workspaces: kyselyWorkspaceRepository(db, dialect),
@@ -136,10 +141,33 @@ export const kyselyEraseRepository = (
           .where(exactEquals(dialect, "email", email))
           .execute()
       ).map((row) => row.id);
-      const subjects = [userId, ...pending];
+      // Forgot password's flows (194): a code's subject is its flow.
+      const flows = (
+        await db
+          .selectFrom("password_reset_flows")
+          .select("id")
+          .where("user_id", "=", userId)
+          .execute()
+      ).map((row) => row.id);
+      const subjects = [userId, ...pending, ...flows];
       const counts = [
         await db.deleteFrom("terms_acceptances").where("user_id", "=", userId).executeTakeFirst(),
         await db.deleteFrom("email_codes").where("subject_id", "in", subjects).executeTakeFirst(),
+        // And every reset code sent to the address (194), its flow ended already or never the
+        // account's: found by the address's HMAC the codes keep.
+        ...(options.authSecret
+          ? [
+              await db
+                .deleteFrom("email_codes")
+                .where("purpose", "=", "password_reset")
+                .where("email_hmac", "=", emailHmac(options.authSecret, email))
+                .executeTakeFirst(),
+            ]
+          : []),
+        await db
+          .deleteFrom("password_reset_flows")
+          .where("user_id", "=", userId)
+          .executeTakeFirst(),
         ...(pending.length
           ? [await db.deleteFrom("pending_sign_ups").where("id", "in", pending).executeTakeFirst()]
           : []),

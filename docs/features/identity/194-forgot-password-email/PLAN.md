@@ -67,7 +67,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     test resets a password with a code read from the test mail transport (189), then with
     two-factor, then signs in with the new password, and checks that the old session ended.
 
-- [ ] **7. Data protection.**
+- [x] **7. Data protection.**
   - Retention (102) purges flows and codes a day after they expire. Erasure (103) deletes the
     account's flows. Your data (104) lists open flows.
   - *Done when:* the retention, erasure and Your data db tests cover the new table.

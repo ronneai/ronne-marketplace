@@ -1,5 +1,5 @@
 import { sql } from "kysely";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
@@ -35,6 +35,7 @@ import {
   UserErasedError,
   UserNotFoundError,
 } from "../exceptions/errors";
+import { emailHmac } from "../models/email-code";
 import { erasedEmail, erasedName } from "../models/user";
 import type { AppAuth } from "../repositories/auth-instance";
 import type { EraseRepository } from "../repositories/erase-repository";
@@ -42,7 +43,13 @@ import { kyselyEraseRepository } from "../repositories/kysely-erase-repository";
 import { kyselyScimUserRepository } from "../repositories/kysely-scim-user-repository";
 import { kyselySsoRepository } from "../repositories/kysely-sso-repository";
 import { kyselyUserDataRepository } from "../repositories/kysely-user-data-repository";
-import { cookieHeaders, createTestUser, setWorkspaceRole, testAppAuth } from "../testing/test-auth";
+import {
+  cookieHeaders,
+  createTestUser,
+  setWorkspaceRole,
+  TEST_SECRET,
+  testAppAuth,
+} from "../testing/test-auth";
 import { eraseUser, finishErasures } from "./erase-user";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
@@ -695,6 +702,25 @@ describe("eraseUser (103)", () => {
     // Another person's codes, their own and under their pending sign-up, must stay.
     await code("01CODECY000000000000000000", other);
     await code("01CODEPENDCY00000000000000", "01PENDINGCY000000000000000");
+    // Forgot password's flows (194), each with its code: Bob's go, the other person's stay.
+    for (const [flowId, user] of [
+      ["01FLOWBOB00000000000000000", bob.id],
+      ["01FLOWCY000000000000000000", other],
+    ] as const) {
+      await t.db
+        .insertInto("password_reset_flows")
+        .values({
+          id: flowId,
+          token_hash: flowId.padEnd(64, "0"),
+          user_id: user,
+          step: "code",
+          expires_at: now,
+          two_factor_at: null,
+          created_at: now,
+        })
+        .execute();
+      await code(`${flowId.slice(0, 20)}CODE00`, flowId);
+    }
     // A root's notice that Bob waited for approval holds his address.
     await t.db
       .insertInto("notifications")
@@ -711,7 +737,30 @@ describe("eraseUser (103)", () => {
         read_at: null,
       })
       .execute();
+    // Reset codes sent to the addresses, their flows ended already (194): Bob's go, Cy's stay.
+    vi.stubEnv("AUTH_SECRET", TEST_SECRET);
+    for (const [id, email] of [
+      ["01ENDEDCODEBOB000000000000", "bob@example.com"],
+      ["01ENDEDCODECY0000000000000", "cy@example.com"],
+    ] as const)
+      await t.db
+        .insertInto("email_codes")
+        .values({
+          id,
+          purpose: "password_reset",
+          subject_id: `${id.slice(0, 20)}GONE00`,
+          email_hmac: emailHmac(TEST_SECRET, email),
+          code_hmac: "c",
+          attempts: 0,
+          created_at: now,
+          expires_at: now,
+          consumed_at: now,
+        })
+        .execute();
     await adminEraseUser(asRoot, bob.id, "bob@example.com", app);
+    vi.unstubAllEnvs();
+    expect(await rows("email_codes", "id", "01ENDEDCODEBOB000000000000")).toEqual([]);
+    expect(await rows("email_codes", "id", "01ENDEDCODECY0000000000000")).toHaveLength(1);
     expect(await rows("notifications", "subject_id", bob.id)).toEqual([]);
     expect(await rows("email_codes", "subject_id", other)).toHaveLength(1);
     expect(await rows("email_codes", "subject_id", "01PENDINGCY000000000000000")).toHaveLength(1);
@@ -721,6 +770,10 @@ describe("eraseUser (103)", () => {
     expect(await rows("email_codes", "subject_id", "01PENDINGBOB00000000000000")).toEqual([]);
     expect(await rows("pending_sign_ups", "email", "bob@example.com")).toEqual([]);
     expect(await rows("pending_sign_ups", "email", "cy@example.com")).toHaveLength(1);
+    expect(await rows("password_reset_flows", "user_id", bob.id)).toEqual([]);
+    expect(await rows("email_codes", "subject_id", "01FLOWBOB00000000000000000")).toEqual([]);
+    expect(await rows("password_reset_flows", "user_id", other)).toHaveLength(1);
+    expect(await rows("email_codes", "subject_id", "01FLOWCY000000000000000000")).toHaveLength(1);
   });
 
   it("keeps an empty personal workspace that holds another person's draft, renamed", async () => {

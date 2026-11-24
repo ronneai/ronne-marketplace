@@ -209,8 +209,9 @@ two-factor failures. Dan gets no "password was reset" notice, because nothing wa
   step), `created_at`. No email, no IP.
 - **Codes**: 190's `email_codes`, purpose `password_reset`.
 - **Retention**: the purge job (102) deletes flows and codes a day after they expire.
-- **Erasure (103)** deletes the account's flows and codes. **Your data (104)** lists open reset
-  flows (step and expiry only, never the code).
+- **Erasure (103)** deletes the account's flows and codes, every reset code sent to its address
+  included (found by the address's HMAC). **Your data (104)** lists the reset flows still kept
+  (step and expiry only, never the code): open ones, and ended ones the purge hasn't reached.
 - **Audit events** (IPs cleared by retention):
   - `auth.password_reset_requested`: account found, kind of email sent. Recorded only for a real
     account, so an unknown address leaves no trace and nobody can fill the audit log with them;

@@ -103,6 +103,14 @@ export const kyselyUserDataRepository = (
         .orderBy("accepted_at")
         .orderBy("id")
         .execute();
+      // The forgot-password resets still kept (194), open or not yet purged: the step and its end.
+      const resets = await db
+        .selectFrom("password_reset_flows")
+        .select(["step", "expires_at"])
+        .where("user_id", "=", userId)
+        .orderBy("created_at")
+        .orderBy("id")
+        .execute();
       const names = await providerNames();
       // `password` is never selected: whether there is one is what the file says.
       const accounts = await db
@@ -144,6 +152,10 @@ export const kyselyUserDataRepository = (
         termsAcceptances: terms.map((row) => ({
           version: row.version,
           acceptedAt: fromDbDate(row.accepted_at),
+        })),
+        passwordResets: resets.map((row) => ({
+          step: row.step,
+          expiresAt: fromDbDate(row.expires_at),
         })),
         signInMethods,
         scim: scim

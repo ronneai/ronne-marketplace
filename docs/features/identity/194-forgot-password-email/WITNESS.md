@@ -597,3 +597,38 @@ Witnessed: 2026-11-23 20:54 EST, by a fresh agent (blind). Commit: dd1e3795 + wo
 | 14 | The panel on the Authentication tab, with its states | no | confirmed | `password-reset-form.test.tsx` 5 tests; mutation `disabled={false}` fails one; restored |
 
 **Overall:** met. Remark: SPEC.md:64 names `TwoFactorStep.tsx` for what the step accepts ("as at sign-in"), which holds.
+
+## Task 7 — Data protection
+
+Witnessed: 2026-11-23 21:05 EST, by a fresh agent (blind). Commit: ca55dce9 + working tree (7 modified files, 121 insertions, 3 deletions). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Retention deletes reset flows a day after `expires_at`, no sooner | no | confirmed | `retention-purge.ts:495`; the new test (DAY+1s deleted, DAY−1s kept, dry run 2); mutation (table out of the loop) fails it |
+| 2 | Retention deletes reset codes a day after they expire | no | confirmed | `email_codes` already in the loop, `password_reset` rows included; the test checks none left |
+| 3 | Erasure deletes the account's open flows | no | confirmed | `kysely-erase-repository.ts:139-154`; the erase test; erasure keeps the `user` row, so the explicit delete is needed |
+| 4 | Erasure deletes the codes of the account's flows | no | partly | codes of current flows go (mutation without `...flows` fails the test); but a code whose flow already ended (`endFlow`, `consumeGrant` delete it) and one of a no-account flow typed with the address stay (probe `w194-t7-erase-leftovers.db.test.ts`) |
+| 5 | Your data lists the account's reset flows, step and expiry only | no | confirmed | `kysely-user-data-repository.ts:106-113,156-159`; the test; mutation (no `user_id` filter) fails it. Remark: ended-but-unpurged flows are listed too, not only "open" |
+| 6 | Your data never shows the code or the token | no | confirmed | no `email_codes` query; the hash is never selected |
+| 7 | The three db tests pass on SQLite and the servers | no | confirmed | 60/60 on each |
+| 8 | Done when: the three tests cover the new table | no | partly | each new test fails under its mutation; nothing covers the codes left in row 4 |
+
+**Overall:** not met: erasure leaves the reset codes of ended flows and of no-account flows started with the address.
+
+Fixes after the pass: `kyselyEraseRepository` takes `authSecret` (the erase action and the retention job pass `loadConfig().authSecret`) and `deleteSignUpData` also deletes every `password_reset` code with the address's HMAC; the erase test adds a reset code of Bob's address and of Cy's whose flows are gone (Bob's deleted, Cy's kept; removing the new delete fails it). SPEC Data says erasure takes every reset code sent to the address, and that Your data lists the reset flows still kept (open ones, and ended ones the purge hasn't reached). The three files: 60/60 on SQLite, postgres, mysql, mariadb.
+
+### Re-check 1
+
+Witnessed: 2026-11-23 21:10 EST, by a fresh agent (blind). Commit: ca55dce9 + working tree (11 modified files). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | Erasure deletes the account's open flows | no | confirmed | `kysely-erase-repository.ts:144-151,167-170`; the erase test; 14/14 on SQLite and MariaDB |
+| 4 | Erasure deletes the codes of the account's flows, and every reset code sent to its address | no | confirmed | `kysely-erase-repository.ts:157-166`; probe `w194-t7-r1-erase.db.test.ts` in `transaction()`: an ended flow's code and a no-account flow's code (from `" Bob@Example.COM "`) deleted; Cy's reset code and Bob's `sign_up` code kept; SQLite, pg, mysql. Another secret → all four kept |
+| 5 | Your data lists the reset flows still kept, step and expiry only | no | confirmed | no expiry filter, as the reworded SPEC Data says. Remark: two comments still said "Open" |
+| 7 | The three db tests pass on SQLite and the servers | no | confirmed | 60/60 SQLite; 62/62 pg and mysql with the probe; 14/14 erase on mariadb |
+| 8 | The three tests cover the new table | no | confirmed | mutating the HMAC delete fails the erase test; restored |
+| 9 | Every real erasure passes the secret | no | confirmed | callers `actions/erase-user.ts:12`, `jobs/retention-job.ts:61`, and the transaction rebuild (`...options`) |
+| 10 | Another address's codes stay | no | confirmed | erase test; probe |
+
+**Overall:** met. The two "Open" comments now say "still kept".

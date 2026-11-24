@@ -510,6 +510,29 @@ describe("exportUserData (104)", () => {
     // Someone who didn't sign up: nothing to say.
     const { data: root } = await exportAs(asRoot, rootId);
     expect(root.account).toMatchObject({ signedUpAt: null, termsAcceptances: [] });
+  });
+
+  it("lists the person's open forgot-password resets: the step and its end, never a code or token (194)", async () => {
+    const id = await createTestUser(app, { email: "sam@example.com", password });
+    const asSam = await signedIn("sam@example.com");
+    const ends = new Date("2026-11-23T12:15:00.000Z");
+    await t.db
+      .insertInto("password_reset_flows")
+      .values({
+        id: "01FLOWSAM00000000000000000",
+        token_hash: "a".repeat(64),
+        user_id: id,
+        step: "two_factor",
+        expires_at: at(ends),
+        two_factor_at: null,
+        created_at: at(new Date(ends.getTime() - 15 * 60_000)),
+      })
+      .execute();
+    const { data } = await exportAs(asSam, id);
+    expect(data.account.passwordResets).toEqual([{ step: "two_factor", expiresAt: ends }]);
+    expect(JSON.stringify(data)).not.toContain("a".repeat(64));
+    const { data: root } = await exportAs(asRoot, rootId);
+    expect(root.account.passwordResets).toEqual([]);
     // The way each account was made (191): this root came from setup.
     expect(root.account.createdVia).toBe("setup");
   });

@@ -822,6 +822,51 @@ describe("self-registration's data in the purge (190)", () => {
     ]);
   });
 
+  it("deletes forgot password's reset flows and their codes a day past their end, no sooner (194)", async () => {
+    const flow = async (id: string, expiresAt: Date) =>
+      t.db
+        .insertInto("password_reset_flows")
+        .values({
+          id,
+          token_hash: id.padEnd(64, "0"),
+          user_id: null,
+          step: "code",
+          expires_at: at(expiresAt),
+          two_factor_at: null,
+          created_at: at(new Date(expiresAt.getTime() - 15 * 60_000)),
+        })
+        .execute();
+    await flow("01OLDFLOW00000000000000000", ended(DAY + 1000));
+    await flow("01NEWFLOW00000000000000000", ended(DAY - 1000));
+    await t.db
+      .insertInto("email_codes")
+      .values({
+        id: "01OLDRESETCODE000000000000",
+        purpose: "password_reset",
+        subject_id: "01OLDFLOW00000000000000000",
+        email_hmac: "h",
+        code_hmac: "c",
+        attempts: 0,
+        created_at: at(ended(DAY + 16 * 60_000)),
+        expires_at: at(ended(DAY + 1000)),
+        consumed_at: null,
+      })
+      .execute();
+    const dry = await runRetentionPurge(t.db, t.dialect, POLICY, NOW, { dryRun: true });
+    expect(dry.signUpsDeleted).toBe(2);
+    expect((await runRetentionPurge(t.db, t.dialect, POLICY, NOW)).signUpsDeleted).toBe(2);
+    expect(await t.db.selectFrom("password_reset_flows").select("id").execute()).toEqual([
+      { id: "01NEWFLOW00000000000000000" },
+    ]);
+    expect(
+      await t.db
+        .selectFrom("email_codes")
+        .select("id")
+        .where("purpose", "=", "password_reset")
+        .execute(),
+    ).toEqual([]);
+  });
+
   it("clears the emails typed at sign-up with the IP retention, as failed sign-ins' are", async () => {
     const actions = [
       "auth.sign_up_requested",
