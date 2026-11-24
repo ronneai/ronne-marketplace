@@ -223,6 +223,12 @@ export const HELP = {
   "signing-up": {
     href: docsHref("account", "signing-up"),
   },
+  "forgot-password": {
+    href: docsHref("account", "forgot"),
+  },
+  "reset-by-email": {
+    href: docsHref("authentication", "overview"),
+  },
   "backup-codes-once": {
     href: docsHref("account", "two-factor"),
   },

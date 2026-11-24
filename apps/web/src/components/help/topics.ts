@@ -162,6 +162,7 @@ export const TOPICS = [
     sections: [
       { id: "signing-in", title: "Signing in" },
       { id: "signing-up", title: "Signing up" },
+      { id: "forgot", title: "Forgot your password" },
       { id: "two-factor", title: "Two-factor sign-in" },
       { id: "language", title: "Language" },
     ],

@@ -632,3 +632,69 @@ Witnessed: 2026-11-23 21:10 EST, by a fresh agent (blind). Commit: ca55dce9 + wo
 | 10 | Another address's codes stay | no | confirmed | erase test; probe |
 
 **Overall:** met. The two "Open" comments now say "still kept".
+
+## Task 8 — Documentation
+
+Witnessed: 2026-11-23 21:20 EST, by a fresh agent (blind). Commit: 3c00d86c + working tree (7 files changed, marketplace); ronne-web d5d66b5 (`docs/marketplace-194-forgot-password`, compared with origin/main). Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | ronne-web has `account#forgot` in en, pt, fr, in `topics.ts`, labelled 0.8.0 | no | confirmed | `git diff origin/main...HEAD`; `docsUpcoming.sections.account.forgot = "0.8.0"` |
+| 2 | The app's `topics.ts` has it too | no | confirmed | `topics.ts:165` |
+| 3 | `authentication#overview`: the setting, its requirements, the contact, why root is left out, in three languages | no | confirmed | the `reset-by-email` subheading in `overview`, in `<Since version="0.8.0">`; names and requirements match `admin.json` |
+| 4 | `privacy#retention`: flows and codes and how long, erasure and Your data, in three languages | no | confirmed | the RULES_0_8 row matches `retention-purge.ts:495`; erasure matches `kysely-erase-repository.ts:147-168`; Your data matches `kysely-user-data-repository.ts:107` |
+| 5 | `account#forgot`'s facts match the code | no | confirmed | `models/password-reset.ts:29-32, 83-85`; `services/password-reset.ts:581-604`; `mail.json`; the UI labels in `auth.json` in three languages |
+| 6 | The helper links to `account#forgot` when the feature is on | no | confirmed | `Help.tsx:226`; on the request page, which redirects to sign-in while closed |
+| 7 | The setting has a helper | no | confirmed | `PasswordResetForm.tsx`; `Help.tsx:229`; `help.json` in three languages |
+| 8 | The docs render tests pass | no | confirmed | ronne-web `pnpm test` 226 passed; marketplace help and page tests 28 passed |
+| 9 | `pnpm docs:links` passes, and catches a missing section | no | confirmed | "Compared 41 topics"; mutation without `forgot` → refused |
+| 10 | The ronne-web branch is named in the index's status | no | can't check here | set when the task is ticked: README.md:323 and M32:22 said `in progress` |
+
+**Overall:** not met on row 10 alone (set at the tick). Remarks: the provider bullet didn't say *Root only* accounts get the providers email; the first paragraph didn't say the note shows when email stops working too.
+
+Fixes after the pass: ronne-web 829bf89 adds both remarks to `account#forgot` in en, pt and fr (website lint and 226 tests pass); the index and M32 rows say `done (the Documentation in ronne-web docs/marketplace-194-forgot-password)`.
+
+### Re-check 1
+
+Witnessed: 2026-11-23 21:20 EST, by a fresh agent (blind). Commit: 3c00d86c + working tree (marketplace); ronne-web 829bf89 (`docs/marketplace-194-forgot-password`). Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | The index and M32 name the ronne-web branch, statuses agreeing | no | partly | both named it, but the rule (`features-index.js:42-45, 121`, `statusWithoutNote`) is the index says `done` and only the milestone carries the note, as M19's 130, 132, 141 do |
+| 11 | `account#forgot` says *Root only* accounts get the providers email, in three languages | no | confirmed | `git show 829bf89`; the labels match `admin.json:1083`; matches `models/password-reset.ts:85`. Remark: with no provider name at all, nothing is sent |
+| 12 | `account#forgot` says the note also shows when email stops working | no | confirmed | matches `actions/password-reset.ts:36-45` |
+| 13 | `pnpm docs:check` passes | no | not met | exit 1: the index row carried the milestone's note |
+| 14 | `docs:links` passes | no | confirmed | 41 topics compared |
+| 15 | The website tests pass | no | confirmed | 226 passed |
+
+**Overall:** not met on rows 10 and 13.
+
+Fix after the pass: the index row says `done`; the M32 row keeps `done (the Documentation in ronne-web docs/marketplace-194-forgot-password)`. `pnpm docs:check` passes.
+
+### Re-check 2
+
+Witnessed: 2026-11-23 21:21 EST, by a fresh agent (blind). Commit: 3c00d86c + working tree (11 modified files). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | The index row says `done`, the M32 row names the ronne-web branch with `done` | no | confirmed | `README.md:323` → `done`; `M32-open-sign-up-and-email.md:22` → `done (the Documentation in ronne-web docs/marketplace-194-forgot-password)` |
+| 13 | `pnpm docs:check` passes | no | confirmed | exit 0 |
+| 16 | `pnpm witness:check` passes | no | not met | exit 1: two Task 8 "Witnessed:" lines put "marketplace" before the sha; and task 8 ticked before a met pass |
+
+**Overall:** not met on row 16.
+
+Fix after the pass: both lines start `Commit: 3c00d86c`.
+
+### Re-check 3
+
+Witnessed: 2026-11-23 21:22 EST, by a fresh agent (blind). Commit: 3c00d86c + working tree (11 modified files). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Both Task 8 "Witnessed:" lines start `Commit: 3c00d86c`, sha first | no | confirmed | `grep -n "Witnessed:" WITNESS.md` → lines 638 and 659, as lines 485–622 |
+| 2 | `docs/features/README.md` row 194 says `done` | no | confirmed | `README.md:323` |
+| 3 | The M32 row names `docs/marketplace-194-forgot-password` | no | confirmed | `M32-open-sign-up-and-email.md:22` |
+| 4 | `pnpm docs:check` passes | no | confirmed | exit 0 |
+| 5 | `pnpm witness:check`'s only error is task 8's tick before a met pass, gone once one is added | no | confirmed | one error only; probe `rc3` with this pass added → `check-witness.js` exits 0 |
+
+**Overall:** met.

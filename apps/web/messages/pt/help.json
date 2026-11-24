@@ -394,5 +394,13 @@
   "signing-up": {
     "question": "Como funciona a criação de uma conta?",
     "answer": "Digite seu nome, e-mail e uma senha. Um código de 6 dígitos vai para esse endereço; digite-o aqui, nesta janela, e a conta passa a existir. Depois, entre. Se um root precisar aprová-la, você recebe um e-mail quando isso acontecer."
+  },
+  "forgot-password": {
+    "question": "Como funciona a redefinição por e-mail?",
+    "answer": "Digite o seu endereço; se a conta dele puder redefinir aqui, um código de 6 dígitos vai para ele. Depois a sua autenticação de dois fatores, se tiver, e uma nova senha. Nada faz você entrar: todas as sessões terminam, e você entra com a nova senha."
+  },
+  "reset-by-email": {
+    "question": "Do que a redefinição por e-mail precisa antes?",
+    "answer": "O e-mail configurado, um e-mail de teste da configuração atual que funcionou, e o contato da instância. Um código nunca faz ninguém entrar, e contas root sempre redefinem no servidor."
   }
 }

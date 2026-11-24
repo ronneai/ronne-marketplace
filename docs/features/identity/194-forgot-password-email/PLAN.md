@@ -72,7 +72,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     account's flows. Your data (104) lists open flows.
   - *Done when:* the retention, erasure and Your data db tests cover the new table.
 
-- [ ] **8. Documentation.**
+- [x] **8. Documentation.**
   - ronne-web: `account#forgot` (new section, in `topics.ts` here and there), `authentication#overview`,
     `privacy#retention`, in all three languages.
   - Helpers: the *Forgot?* note's link and the setting's helper.

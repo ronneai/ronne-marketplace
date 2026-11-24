@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { useKeptActionState } from "@/components/ui/kept-form";
 import { Notice } from "@/components/ui/Notice";
@@ -51,7 +52,10 @@ export const PasswordResetForm = ({
       noValidate
     >
       <div className="grid gap-1">
-        <h2 className="text-base font-semibold text-fg">{t("title")}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-semibold text-fg">{t("title")}</h2>
+          <Help id="reset-by-email" />
+        </div>
         <p className="text-sm text-muted">{t("intro")}</p>
       </div>
       {blockers.length > 0 ? (

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { Help } from "@/components/help/Help";
 import { resetPageGuard } from "@/features/forgot-password/page-guard";
 import { RequestForm } from "@/features/forgot-password/RequestForm";
 import { resetShell } from "@/features/forgot-password/ResetShell";
@@ -23,7 +24,14 @@ const Forgot = async () => {
   const now = new Date();
   return resetShell({
     title: t("title"),
-    subtitle: <p>{t("subtitle")}</p>,
+    subtitle: (
+      <>
+        <p>{t("subtitle")}</p>
+        <div>
+          <Help id="forgot-password" />
+        </div>
+      </>
+    ),
     children: (
       <RequestForm
         stamp={formStamp(authSecret, now)}
