@@ -6,10 +6,10 @@ const jar = vi.hoisted(() => ({
   value: "token" as string | undefined,
 }));
 const reset = vi.hoisted(() => ({
-  requestPasswordReset: vi.fn(),
+  requestReset: vi.fn(),
   checkResetCode: vi.fn(),
   checkResetTwoFactor: vi.fn(),
-  completePasswordReset: vi.fn(),
+  completeReset: vi.fn(),
 }));
 vi.mock("@/server/domains/identity/actions/password-reset", () => reset);
 vi.mock("@/server/config", () => ({
@@ -51,7 +51,7 @@ beforeEach(() => {
 
 describe("the reset pages' actions (194)", () => {
   it("sets the flow's cookie as the spec says, over https", async () => {
-    reset.requestPasswordReset.mockResolvedValue({
+    reset.requestReset.mockResolvedValue({
       ok: true,
       token: "new-token",
       expiresAt: new Date(),
@@ -81,18 +81,18 @@ describe("the reset pages' actions (194)", () => {
   });
 
   it("posts the token box ticked or not, and lands on sign-in once done", async () => {
-    reset.completePasswordReset.mockResolvedValue({ ok: true, done: true });
+    reset.completeReset.mockResolvedValue({ ok: true, done: true });
     await expect(
       actions.newPasswordFromForm({}, form({ password: "p", confirm: "p" })),
     ).rejects.toThrow("REDIRECT /sign-in?reset=done");
-    expect(reset.completePasswordReset).toHaveBeenCalledWith(
+    expect(reset.completeReset).toHaveBeenCalledWith(
       expect.any(Headers),
       expect.objectContaining({ token: "token", revokeTokens: false }),
     );
     await expect(
       actions.newPasswordFromForm({}, form({ password: "p", confirm: "p", revokeTokens: "on" })),
     ).rejects.toThrow();
-    expect(reset.completePasswordReset).toHaveBeenLastCalledWith(
+    expect(reset.completeReset).toHaveBeenLastCalledWith(
       expect.any(Headers),
       expect.objectContaining({ revokeTokens: true }),
     );

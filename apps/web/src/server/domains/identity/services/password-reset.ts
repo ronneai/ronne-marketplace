@@ -105,7 +105,7 @@ const TEMPLATE: Record<Exclude<ResetEmail, "none">, ResetMail> = {
  * nothing about the address: reset off, the per-IP limit, a stale form, the challenge, a typed
  * value that isn't an address. From the lookup on, every address gets the same answer.
  */
-export const requestPasswordReset = async (
+export const requestReset = async (
   deps: PasswordResetDeps,
   input: ResetRequest,
 ): Promise<ResetRequested> => {
@@ -524,7 +524,7 @@ export type ResetCompleted =
  * (Decision 4), the audit row, and the notice to its address (sent once it commits, 189). Nobody
  * is signed in.
  */
-export const completePasswordReset = async (
+export const completeReset = async (
   deps: PasswordResetDeps,
   input: {
     token: string | null;

@@ -42,7 +42,7 @@ const later = (ms: number) => {
 
 /** A request from the page, as a person makes it: the flow's token, and the code sent, if any. */
 const asked = async (email = "ana@acme.com") => {
-  const result = await reset.requestPasswordReset(deps(), {
+  const result = await reset.requestReset(deps(), {
     email,
     locale: "en",
     stamp: formStamp(TEST_SECRET, new Date(clock.getTime() - 5000)),

@@ -25,7 +25,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     when the contact is cleared.
 
 - [x] **3. The request.** [risky]
-  - The identity service `requestPasswordReset`: normalise the address; decide the email from the
+  - The identity service `requestReset`: normalise the address; decide the email from the
     spec's table; write the flow row on every path; create the code (190) only for a password
     account; queue the email (189); the limits; the honeypot and the challenge (190's helpers);
     audit only for a real account. The per-IP limits use 109's database limiter.
@@ -46,7 +46,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     TOTP code, and each mid-flow change in the spec's edge cases.
 
 - [x] **5. The reset.** [risky]
-  - `completePasswordReset`: the 10-minute single-use grant; the password rules; one transaction
+  - `completeReset`: the 10-minute single-use grant; the password rules; one transaction
     that sets the password, clears 128's hold, deletes sessions, ends other codes, flows and device
     grants, revokes tokens unless the box was unchecked, and records `user.password_reset_by_email`;
     then 189's "password changed or reset" notice, with `via: email`.
@@ -126,4 +126,7 @@ goes into `SPEC.md` instead.
   which static rendering in tests can't wait for. The flow's cookie is cleared by setting it empty
   and expired with its own options: `cookies().delete` sends no `Secure`, and a `__Secure-`
   cookie isn't replaced without it. Rebuild (`pnpm build`) before the e2e: it serves the build.
+- The service's entry points are `requestReset` and `completeReset`, not `…PasswordReset`:
+  CodeQL's `js/insufficient-password-hash` treats what a function named for a password returns
+  as one, and flagged the flow token's HMAC (#334).
 

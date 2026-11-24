@@ -53,7 +53,7 @@ const NEXT = {
 export const requestResetFromForm = serverAction(
   async (_previous: ResetRequestState, form: FormData): Promise<ResetRequestState> => {
     const email = String(form.get("email") ?? "");
-    const result = await reset.requestPasswordReset(await requestHeaders(), {
+    const result = await reset.requestReset(await requestHeaders(), {
       email,
       locale: form.get("locale"),
       stamp: form.get("stamp"),
@@ -110,7 +110,7 @@ export const resetTwoFactorFromForm = serverAction(
 /** The new-password page. Done: the cookie goes, and the person signs in with the new password. */
 export const newPasswordFromForm = serverAction(
   async (_previous: NewPasswordState, form: FormData): Promise<NewPasswordState> => {
-    const result = await reset.completePasswordReset(await requestHeaders(), {
+    const result = await reset.completeReset(await requestHeaders(), {
       token: await currentToken(),
       password: form.get("password"),
       confirm: form.get("confirm"),

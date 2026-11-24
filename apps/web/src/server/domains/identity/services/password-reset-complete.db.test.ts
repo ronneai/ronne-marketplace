@@ -57,7 +57,7 @@ const latestCode = async () => {
 };
 /** A request, then its code: the new-password page's cookie. */
 const granted = async () => {
-  const asked = await reset.requestPasswordReset(deps(), {
+  const asked = await reset.requestReset(deps(), {
     email: "ana@acme.com",
     locale: "en",
     stamp: formStamp(TEST_SECRET, new Date(clock.getTime() - 5000)),
@@ -78,7 +78,7 @@ const complete = (
   token: string | null,
   extra: Partial<{ password: string; confirm: string; revokeTokens: boolean }> = {},
 ) =>
-  reset.completePasswordReset(deps(), {
+  reset.completeReset(deps(), {
     token,
     password: extra.password ?? NEW,
     confirm: extra.confirm ?? extra.password ?? NEW,
@@ -253,7 +253,7 @@ describe("the reset (194)", () => {
   it("ends the account's other reset flows and codes, and approved rmk sign-ins", async () => {
     const first = await granted();
     later(61_000);
-    const other = await reset.requestPasswordReset(deps(), {
+    const other = await reset.requestReset(deps(), {
       email: "ana@acme.com",
       locale: "en",
       stamp: formStamp(TEST_SECRET, new Date(clock.getTime() - 5000)),
@@ -440,7 +440,7 @@ describe("the reset (194)", () => {
             ),
         },
       };
-      const resetting = reset.completePasswordReset(paused, {
+      const resetting = reset.completeReset(paused, {
         token: grant.token,
         password: NEW,
         confirm: NEW,

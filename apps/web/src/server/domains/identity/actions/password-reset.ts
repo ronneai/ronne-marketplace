@@ -63,13 +63,13 @@ export const passwordResetOpenness = (
 ) => passwordResetDeps(app, context).openness();
 
 /** The request page, posted. */
-export const requestPasswordReset = (
+export const requestReset = (
   headers: Headers,
   input: Omit<service.ResetRequest, "ip">,
   app: AppAuth = getAppAuth(),
   context?: PasswordResetContext,
 ) =>
-  service.requestPasswordReset(passwordResetDeps(app, context), {
+  service.requestReset(passwordResetDeps(app, context), {
     ...input,
     ip: clientIp(headers, app.trustProxy),
   });
@@ -99,13 +99,13 @@ export const checkResetTwoFactor = (
   });
 
 /** The new-password page, posted. */
-export const completePasswordReset = (
+export const completeReset = (
   headers: Headers,
   input: { token: string | null; password: unknown; confirm: unknown; revokeTokens: boolean },
   app: AppAuth = getAppAuth(),
   context?: PasswordResetContext,
 ) =>
-  service.completePasswordReset(passwordResetDeps(app, context), {
+  service.completeReset(passwordResetDeps(app, context), {
     ...input,
     ip: clientIp(headers, app.trustProxy),
   });

@@ -50,7 +50,7 @@ const form = (fields: Partial<reset.ResetRequest> = {}): reset.ResetRequest => (
   ...fields,
 });
 const request = (fields: Partial<reset.ResetRequest> = {}, d = deps()) =>
-  reset.requestPasswordReset(d, form(fields));
+  reset.requestReset(d, form(fields));
 
 /** The emails queued, opened, oldest first. */
 const mails = async () => {
@@ -415,10 +415,7 @@ describe("asking to reset a forgotten password (194)", () => {
     // A minute apart for the limits, all at once for the database.
     const d = deps();
     const asks = [0, 1, 2].map((i) =>
-      reset.requestPasswordReset(
-        { ...d, now: () => new Date(clock.getTime() + i * 61_000) },
-        form(),
-      ),
+      reset.requestReset({ ...d, now: () => new Date(clock.getTime() + i * 61_000) }, form()),
     );
     await Promise.all(asks);
     const live = (await codes()).filter((c) => c.consumed_at === null);
@@ -553,10 +550,7 @@ describe("the answer's time (194, SPEC 'Same time')", () => {
 
   it("waits only what's left of the floor", async () => {
     const waited: number[] = [];
-    await reset.requestPasswordReset(
-      { ...deps(400), wait: async (ms) => void waited.push(ms) },
-      form(),
-    );
+    await reset.requestReset({ ...deps(400), wait: async (ms) => void waited.push(ms) }, form());
     expect(waited).toHaveLength(1);
     expect(waited[0]).toBeGreaterThan(300);
     expect(waited[0]).toBeLessThanOrEqual(400);
