@@ -267,6 +267,52 @@ Witnessed: 2026-11-23 18:07 EST, by a fresh agent (adversarial). Commit: f1f987c
 
 Fix after the pass: both reset transactions (`setPasswordResetPolicy`, `requestPasswordReset`) run in `retryOnDeadlock`; the server-only tests skip on `!process.env.TEST_DATABASE_URL`. Both files: 36 passed, 3 skipped with the URL empty and on SQLite; 39 passed on postgres, mysql and mariadb; the MariaDB file 15/15 six times running.
 
+### Adversarial re-check 3 (CI: keyed token hash)
+
+Witnessed: 2026-11-23 22:19 EST, by a fresh agent (adversarial). Commit: d5273fde + working tree (9 files). Machine: macOS 27.2.1, Node v24.0.0.
+
+CodeQL's `js/insufficient-password-hash` flagged the flow token's plain SHA-256 on #334; the change keeps an HMAC-SHA256 under a key HKDF-derived from AUTH_SECRET (a89d5721).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The flow token is kept as an HMAC-SHA256 keyed from AUTH_SECRET, no longer a plain SHA-256 | no | confirmed | `models/password-reset.ts:1,43-61`; `createHash` no longer imported; `password-reset.db.test.ts:174` asserts the row isn't `sha256(token)` |
+| 2 | Every place that makes or looks up a token passes the secret | no | confirmed | 6 call sites in `services/password-reset.ts` (156, 299, 315, 378, 539, 552), all `deps.authSecret` or threaded from it |
+| 3 | A token made in one step is found in the next | no | confirmed | SQLite: 71 passed, 6 skipped (`skipIf(!TEST_DATABASE_URL)`); PostgreSQL: 68 passed |
+| 4 | The tests fail when one call site uses another secret | no | confirmed | `mutate.sh`, one site at a time: 156 → 34 failures, 299 → 8, 315 → 20, 378 → 33, 539 → 11, 552 → 1; restored, `cmp` clean |
+| 5 | A different AUTH_SECRET makes an open flow unfindable at every step | no | confirmed | `rotation-probe.db.test.ts` (temporary): code step `spent`, two-factor ok:false, reset `spent`; hostile tokens refused |
+| 6 | The spec says rotation ends open flows; its wording matches | no | confirmed | SPEC.md:105-106, :197; comments in `0048_password_reset_flows.ts:16`, `schema.ts:562` |
+| 7 | CodeQL no longer flags the token hash | no | can't check here | needs CodeQL on GitHub |
+
+**Overall:** not met on row 7 alone. Remark: a test comment still said SHA-256 (fixed in a89d5721).
+
+Fixes after the pass: CodeQL still flagged the HMAC, reading what a function named for a password returns as one; 9410a6f2 renames the entry points `requestReset` and `completeReset`.
+
+### Re-check 2 (CI: CodeQL on #334)
+
+Witnessed: 2026-11-23 22:56 EST, by a fresh agent (blind). Commit: 9410a6f2 (branch feat/194-forgot-password-email, pushed). Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | PR #334 has no open `js/insufficient-password-hash` alert | no | confirmed | `code-scanning/alerts?ref=refs/pull/334/merge&state=open` → `[]`; alerts 39–42 `fixed`; latest analyses on merge b61976ca `results_count` 0 |
+| 2 | CodeQL passes, no check fails, on 9410a6f2 | no | confirmed | `gh pr checks 334`: CodeQL and both Analyze pass, none fail; headRefOid 9410a6f2; run 45321314180 success |
+| 3 | The old entry-point names are gone; `resetTokenHash` still uses createHmac | no | confirmed | grep → no matches; `models/password-reset.ts:60-61` |
+
+**Overall:** met.
+
+### Adversarial re-check 4 (CI)
+
+Witnessed: 2026-11-23 22:59 EST, by a fresh agent (adversarial). Commit: 9410a6f2 (plus the docs-only WITNESS.md working-tree change). Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every place that makes or looks up a reset token uses the same AUTH_SECRET; a flow runs request → code → two-factor → reset | no | confirmed | 3 creation sites (`services/password-reset.ts:156, :315, :552`) and 3 lookups (:299, :378, :539), all from `deps.authSecret`; `actions/password-reset.ts:20-35` throws without one. SQLite: 85 passed, 6 skipped; PostgreSQL: 68 passed; the steps test reaches `two_factor` (`password-reset-steps.db.test.ts:405-407`) |
+| 2 | Changing the secret at one call site fails the tests | no | confirmed | :378 rotated → 33 failed; :315 → 20 failed; restored, `git status` shows only WITNESS.md |
+| 3 | A different AUTH_SECRET makes an open flow unfindable | no | confirmed | `models/password-reset.test.ts:55`; the :378 mutation found none of the open flows. Remark: no service test rotates the secret end to end |
+| 4 | The rename left no stale caller | no | confirmed | `git grep` at 9410a6f2 → only earlier WITNESS.md passes; `tsc --noEmit` exit 0 |
+| 5 | CodeQL on #334 has no open `js/insufficient-password-hash` alert and passed on 9410a6f2 | no | confirmed | open alerts 0; 39–42 fixed; CodeQL and both Analyze succeeded |
+
+**Overall:** met.
+
 ## Task 4 — The code and two-factor steps
 
 Witnessed: 2026-11-23 18:29 EST, by a fresh agent (blind). Commit: 8b025db1 + working tree (18 modified files, 3 untracked). Machine: macOS 27.2.1, Node v24.0.0.
