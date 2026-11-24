@@ -85,6 +85,19 @@ sessions and other codes ended, and a notice sent afterwards.
   - revokes the access tokens if the box was checked;
   - records `user.password_reset_by_email` in the audit log.
 
+  The account's row is held while the transaction runs, so a change made at that moment (made
+  root, disabled, erased) is waited for and seen. Once the reset has committed, it also ends the
+  account's sessions created up to the commit (100 ms later), which catches a sign-in with the old
+  password whose session write waited for the reset.
+
+  **A known limit, shared with Change password and root's Reset password** (owner, 2026-11-23): a
+  sign-in, or another session's Change password, that is already checking the old password at
+  the instant of the reset can still end with a session. Better Auth checks the password and then
+  creates the session, so a check that spans the commit gets a session stamped after it, and its
+  Change password gives the changer a new session after writing its own password. The person is
+  emailed of each change. Closing it needs a check when every session is created, against the
+  moment the account's password last changed: feature 200, for the whole app.
+
   After the transaction, 189's "password changed or reset" security notice is emailed
   (`queueSecurityNotice`), saying the reset was by email. Then the person
   lands on the sign-in page with "Your password is changed. Sign in with it." They aren't signed in.
@@ -201,7 +214,9 @@ two-factor failures. Dan gets no "password was reset" notice, because nothing wa
     account, so an unknown address leaves no trace and nobody can fill the audit log with them;
   - `auth.password_reset_code_failed`;
   - `auth.password_reset_two_factor_failed`;
-  - `user.password_reset_by_email`: sessions ended, tokens revoked, two-factor method.
+  - `user.password_reset_by_email`: sessions ended, tokens revoked (or kept), and whether the
+    account's two-factor step was passed (the flow keeps when, not which method; a failure is
+    audited with its own event).
 
 ## Documentation
 

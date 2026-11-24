@@ -71,6 +71,10 @@
     "empty": "Reset the password of sam@example.com",
     "rich": "Reset the password of sam@example.com and turned off its two-factor sign-in, asking for a new one at their next sign-in (2 sessions ended, 1 token revoked, 1 SCIM token revoked, 1 request to join cancelled) from the command line"
   },
+  "user.password_reset_by_email": {
+    "empty": "Reset their password with a code sent by email, ending 0 sessions and revoking 0 access tokens",
+    "rich": "Reset their password with a code sent by email, ending 2 sessions and revoking 1 access token"
+  },
   "user.password_change_requested": {
     "empty": "Asked for a new password at the next sign-in of sam@example.com",
     "rich": "Asked for a new password at the next sign-in of sam@example.com from the command line"

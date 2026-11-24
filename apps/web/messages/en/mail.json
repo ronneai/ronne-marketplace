@@ -22,6 +22,11 @@
       "body": "A root set a new password for your account on {host}. Your old password no longer works.",
       "notYou": "If you didn't ask for this, contact your administrator at once."
     },
+    "password_reset_by_email": {
+      "subject": "Your password was reset",
+      "body": "The password of your account on {host} was reset with a code sent to this address. Every session was signed out: sign in again with the new password.",
+      "notYou": "If this wasn't you, reset your password again at once and contact your administrator."
+    },
     "two_factor_enabled": {
       "subject": "Two-factor sign-in was turned on",
       "body": "Two-factor sign-in was turned on for your account on {host}. Signing in now also asks for a code from an authenticator app.",

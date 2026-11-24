@@ -3,8 +3,11 @@ import { retryOnDeadlock } from "../../../db/locks";
 import type { RateLimitStore } from "../../../rate-limit/rate-limiter";
 import type { QueuedMail } from "../../mail/services/outbox";
 import { type ResetMail, renderMail } from "../../mail/services/templates";
+import { InvalidPasswordError } from "../exceptions/errors";
 import { emailHmac, reserveEmailCodeSend } from "../models/email-code";
 import { isLocale, type Locale } from "../models/locale";
+import { validatePassword } from "../models/password";
+import type { PasswordHasher } from "../models/password-hasher";
 import {
   newResetToken,
   RESET_CODE_IP_LIMIT,
@@ -59,9 +62,14 @@ export type PasswordResetDeps = {
   minimumMs?: number;
   /** Waits; tests pass their own. */
   wait?: (ms: number) => Promise<void>;
+  /** Hashes the new password as sign-in reads it (argon2id). */
+  hasher: PasswordHasher;
   /** The account's two-factor (105), checked with no session at the reset's two-factor step. */
   twoFactor: Pick<TwoFactorStore, "enabled" | "checkCodeOf">;
 };
+
+/** How long after a reset commits its late session cleanup runs (a blocked insert lands first). */
+export const RESET_SETTLE_MS = 100;
 
 /** Every answer to a reset request waits until this long after it began (SPEC "Same time"). */
 export const RESET_ANSWER_MS = 400;
@@ -482,4 +490,129 @@ export const checkResetTwoFactor = async (
     return { ok: false, refusal: "wrong" };
   }
   return deps.repo.transaction((repo) => nextStep(repo, flow, at, true, true));
+};
+
+// ---- The reset (task 5) ---------------------------------------------------------------------------
+
+export type ResetCompleted =
+  /** The password is set; every session ended. The person signs in again with it. */
+  | { ok: true; done: true }
+  /** Two-factor was turned on since the flow passed its code: its step first, with a new cookie. */
+  | { ok: true; done: false; step: "two_factor"; token: string }
+  | {
+      ok: false;
+      refusal:
+        | "missing"
+        | "spent"
+        | "expired"
+        | "cannot_continue"
+        | "mismatch"
+        | "password_short"
+        | "password_long";
+    };
+
+/**
+ * The new-password page, posted (194). The grant lasts 10 minutes from the last step passed and is
+ * used once, only from the browser holding the flow's current cookie. The account is read as it
+ * is now: disabled, made root, erased or kept off passwords since, the reset can't continue; with
+ * two-factor turned on since and never passed in this flow, it goes back to that step. The same
+ * password as before is allowed (Decision 7). In one transaction: the password, 128's hold
+ * cleared, every session ended, the account's other reset flows and codes and its approved
+ * `rmk login --web` sign-ins ended, its access tokens revoked unless the box was unticked
+ * (Decision 4), the audit row, and the notice to its address (sent once it commits, 189). Nobody
+ * is signed in.
+ */
+export const completePasswordReset = async (
+  deps: PasswordResetDeps,
+  input: {
+    token: string | null;
+    password: unknown;
+    confirm: unknown;
+    revokeTokens: boolean;
+    ip: string | null;
+  },
+): Promise<ResetCompleted> => {
+  const at = clock(deps);
+  if (!input.token) return { ok: false, refusal: "missing" };
+  const flow = await deps.repo.flowByToken(resetTokenHash(input.token));
+  if (flow?.step !== "new_password" || !flow.userId) return { ok: false, refusal: "spent" };
+  const userId = flow.userId;
+  if (flow.expiresAt <= at) {
+    await deps.repo.transaction((repo) => repo.endFlow(flow.id, at));
+    return { ok: false, refusal: "expired" };
+  }
+  if (!(await stillResettable(deps.repo, userId))) {
+    await deps.repo.transaction((repo) => repo.endFlow(flow.id, at));
+    return { ok: false, refusal: "cannot_continue" };
+  }
+  const twoFactorOn = await deps.twoFactor.enabled(userId);
+  if (twoFactorOn && !flow.twoFactorAt) {
+    const { token, hash } = newResetToken();
+    const moved = await deps.repo.transaction((repo) =>
+      repo.advanceFlow(flow.id, flow.tokenHash, {
+        tokenHash: hash,
+        step: "two_factor",
+        expiresAt: flow.expiresAt,
+      }),
+    );
+    if (!moved) return { ok: false, refusal: "spent" };
+    return { ok: true, done: false, step: "two_factor", token };
+  }
+  const password = typeof input.password === "string" ? input.password : "";
+  try {
+    validatePassword(password);
+  } catch (error) {
+    if (error instanceof InvalidPasswordError)
+      return {
+        ok: false,
+        refusal: error.reason === "too_short" ? "password_short" : "password_long",
+      };
+    throw error;
+  }
+  if (input.confirm !== password) return { ok: false, refusal: "mismatch" };
+  // Hashed before the transaction: argon2 takes a while, and holds nothing.
+  const passwordHash = await deps.hasher.hash(password);
+  const done = await retryOnDeadlock(() =>
+    deps.repo.transaction(async (repo): Promise<"done" | "spent" | "cannot_continue"> => {
+      // The grant, once: a second submit, or a copy of the cookie, finds it gone.
+      if (!(await repo.consumeGrant(flow.id, flow.tokenHash))) return "spent";
+      // The account's row held, then read again: a change being made at this moment (made root,
+      // disabled) is waited for and seen, never reset past.
+      await repo.lockAccount(userId);
+      if (!(await stillResettable(repo, userId))) return "cannot_continue";
+      await repo.setPassword(userId, passwordHash, at);
+      await repo.clearPasswordChange(userId, at);
+      const sessionsEnded = await repo.deleteSessions(userId);
+      await repo.endFlowsOf(userId, at);
+      await repo.denyApprovedDeviceGrants(userId, at);
+      const tokensRevoked = input.revokeTokens ? await repo.revokeAccessTokens(userId, at) : 0;
+      await repo.recordAudit(
+        {
+          actorId: userId,
+          action: "user.password_reset_by_email",
+          target: { type: "user", id: userId },
+          metadata: {
+            sessionsEnded,
+            tokensRevoked,
+            tokensKept: !input.revokeTokens,
+            twoFactor: flow.twoFactorAt !== null,
+          },
+          ipAddress: input.ip,
+        },
+        at,
+      );
+      await repo.queueResetNotice(userId, at);
+      return "done";
+    }),
+  );
+  if (done !== "done") return { ok: false, refusal: done };
+  // A sign-in that checked the old password while the reset held the account can only write its
+  // session once the reset has committed, so the transaction's delete never saw it. Its session
+  // was stamped before the commit (Better Auth stamps it, then inserts), and a sign-in with the new
+  // password comes after: once such inserts have landed, the account's sessions stamped up to the
+  // commit end too.
+  const committed = new Date();
+  await (deps.wait ?? sleep)(RESET_SETTLE_MS);
+  await deps.repo.deleteSessionsUpTo(userId, committed);
+  return { ok: true, done: true };
 };

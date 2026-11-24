@@ -6,6 +6,7 @@ import { kyselySettingsRepository } from "../../settings/repositories/kysely-set
 import { passwordResetPolicy } from "../../settings/services/password-reset";
 import { signUpPolicy } from "../../settings/services/sign-up";
 import { clientIp } from "../models/client-ip";
+import { argon2PasswordHasher } from "../repositories/argon2-password-hasher";
 import { type AppAuth, getAppAuth } from "../repositories/auth-instance";
 import { betterAuthTwoFactorStore } from "../repositories/better-auth-two-factor-store";
 import { kyselyPasswordResetRepository } from "../repositories/kysely-password-reset-repository";
@@ -29,6 +30,7 @@ export const passwordResetDeps = (
   return {
     repo: kyselyPasswordResetRepository(app.db, app.dialect, context.authSecret),
     twoFactor: betterAuthTwoFactorStore(app.auth, app.db, app.dialect),
+    hasher: argon2PasswordHasher,
     limits: app.rateLimits,
     authSecret: context.authSecret,
     // Open while root's setting is on, email is set up and the contact is set: when email stops
@@ -92,6 +94,18 @@ export const checkResetTwoFactor = (
   context?: PasswordResetContext,
 ) =>
   service.checkResetTwoFactor(passwordResetDeps(app, context), {
+    ...input,
+    ip: clientIp(headers, app.trustProxy),
+  });
+
+/** The new-password page, posted. */
+export const completePasswordReset = (
+  headers: Headers,
+  input: { token: string | null; password: unknown; confirm: unknown; revokeTokens: boolean },
+  app: AppAuth = getAppAuth(),
+  context?: PasswordResetContext,
+) =>
+  service.completePasswordReset(passwordResetDeps(app, context), {
     ...input,
     ip: clientIp(headers, app.trustProxy),
   });

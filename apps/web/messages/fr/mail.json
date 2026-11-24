@@ -22,6 +22,11 @@
       "body": "Un root a défini un nouveau mot de passe pour votre compte sur {host}. L’ancien ne fonctionne plus.",
       "notYou": "Si vous ne l’avez pas demandé, communiquez sans tarder avec votre administrateur."
     },
+    "password_reset_by_email": {
+      "subject": "Votre mot de passe a été réinitialisé",
+      "body": "Le mot de passe de votre compte sur {host} a été réinitialisé avec un code envoyé à cette adresse. Toutes les sessions ont été fermées : reconnectez-vous avec le nouveau mot de passe.",
+      "notYou": "Si ce n’était pas vous, réinitialisez votre mot de passe sans tarder et communiquez avec votre administrateur."
+    },
     "two_factor_enabled": {
       "subject": "La double authentification a été activée",
       "body": "La double authentification a été activée pour votre compte sur {host}. La connexion demande maintenant aussi un code d’une application d’authentification.",

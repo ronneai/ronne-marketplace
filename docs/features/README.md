@@ -326,3 +326,4 @@ was planned:
 | [197](identity/197-verified-email-change/SPEC.md) | Verified email change | identity | M32 | specified |
 | [198](items/198-model-effort/SPEC.md) | Model and effort per AI tool | items | M33 | specified |
 | [199](platform/199-features-by-domain/SPEC.md) | Features by domain, one file per milestone | platform | Repository | done |
+| 200 | Sessions tied to the password they were made with | — | M32 | planned |

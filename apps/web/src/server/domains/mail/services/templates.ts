@@ -9,6 +9,8 @@ import { choosing } from "../../settings/models/language-policy";
 export const MAIL_NOTICES = [
   "password_changed",
   "password_reset",
+  // The person reset it themselves, with a code sent to this address (194).
+  "password_reset_by_email",
   "two_factor_enabled",
   "two_factor_disabled",
   "backup_codes_regenerated",

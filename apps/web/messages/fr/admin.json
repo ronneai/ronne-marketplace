@@ -854,6 +854,7 @@
           "updated": "A modifié <name>{who}</name> ({changed}){relinked, select, true {, de nouveau lié,} other {}} par le provisionnement SCIM de <code>{provider}</code>",
           "scim_adopted": "A lié <name>{who}</name> au provisionnement SCIM de <code>{provider}</code>, qui le gère désormais",
           "password_reset": "A réinitialisé le mot de passe de <name>{who}</name>{twoFactor, select, true { et désactivé sa double authentification} other {}}{change, select, true {, en demandant un nouveau mot de passe à sa prochaine connexion} other {}}{ended}{via}",
+          "password_reset_by_email": "A réinitialisé son mot de passe avec un code envoyé par courriel{twoFactor, select, true {, après la double authentification} other {}}, fermant {sessions, plural, one {# session} other {# sessions}} et révoquant {tokens, plural, one {# jeton d’accès} other {# jetons d’accès}}",
           "password_change_requested": "{required, select, false {A cessé de demander un nouveau mot de passe à la prochaine connexion de <name>{who}</name>{via}} other {A demandé un nouveau mot de passe à la prochaine connexion de <name>{who}</name>{via}}}",
           "two_factor_reset": "A désactivé la double authentification de <name>{who}</name>{ended}{via}",
           "password_changed": "{required, select, true {A choisi son propre mot de passe, comme root l’a demandé} other {A changé son mot de passe}}{ended}",

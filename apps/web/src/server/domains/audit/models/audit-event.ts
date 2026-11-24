@@ -115,6 +115,7 @@ export const AUDIT_ACTIONS = [
   "auth.password_reset_requested",
   "auth.password_reset_code_failed",
   "auth.password_reset_two_factor_failed",
+  "user.password_reset_by_email",
   "scan.finding_dismissed",
   "scan.finding_restored",
   "pin.added",

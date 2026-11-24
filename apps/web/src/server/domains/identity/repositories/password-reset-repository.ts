@@ -49,6 +49,24 @@ export interface PasswordResetRepository {
   /** When the account's wrong reset codes were typed since `since`, oldest first, from its audit. */
   wrongCodeTimes(userId: string, since: Date): Promise<Date[]>;
   verifyCode: EmailCodeRepository["verify"];
+  /** Uses the new-password grant: the flow goes, only while its token is still `tokenHash`. */
+  consumeGrant(id: string, tokenHash: string): Promise<boolean>;
+  /** Ends every reset flow of the account and their codes. */
+  endFlowsOf(userId: string, now: Date): Promise<void>;
+  /** Sets the account's password (its credential account's hash). */
+  setPassword(userId: string, passwordHash: string, now: Date): Promise<void>;
+  /** Clears root's "must change your password" (128). */
+  clearPasswordChange(userId: string, now: Date): Promise<void>;
+  /** Ends every session of the account; how many. */
+  deleteSessions(userId: string): Promise<number>;
+  /** Ends the account's sessions created up to `at` (the reset's late cleanup). */
+  deleteSessionsUpTo(userId: string, at: Date): Promise<number>;
+  /** Revokes the account's active access tokens (162); how many. */
+  revokeAccessTokens(userId: string, now: Date): Promise<number>;
+  /** Withdraws `rmk login --web` sign-ins approved and not picked up yet (107), as denied. */
+  denyApprovedDeviceGrants(userId: string, now: Date): Promise<void>;
+  /** The "password reset by email" notice to the account's own address (189). */
+  queueResetNotice(userId: string, now: Date): Promise<void>;
   /** Holds the account's row until the transaction ends (PostgreSQL, MySQL; SQLite runs one at a time). */
   lockAccount(userId: string): Promise<void>;
   /**

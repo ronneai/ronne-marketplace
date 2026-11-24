@@ -426,3 +426,132 @@ Witnessed: 2026-11-23 19:52 EST, by a fresh agent (adversarial). Commit: 8b025db
 | 6e-t | The burst test passes in every order and fails without the lock | no | confirmed | `password-reset-steps.db.test.ts:333-356`; alone on postgres 6/6; `lockAccount` commented out → 4/4 fail; restored (`cmp` identical); the steps file 27+2 skipped on sqlite, 29/29 on postgres, mysql, mariadb |
 
 **Overall:** met.
+
+## Task 5 — The reset
+
+Witnessed: 2026-11-23 20:00 EST, by a fresh agent (blind). Commit: 2579c9b5 + working tree (15 modified files, plus the untracked `services/password-reset-complete.db.test.ts`). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The task's db tests pass on all four databases | no | confirmed | 10 passed on each |
+| 2 | The grant is refused after 10 minutes | no | confirmed | test; probe P2 (10 min − 1 ms → done); mutation M3 fails 1 test |
+| 3 | The grant works once, a second use included | no | confirmed | test; P3 two submits at once → one `ok`, one audit, one notice on all 4. Test gap: M2 (`consumeGrant` always true) passes all 10 (`endFlowsOf` hides it one after another); under M2 P3 fails on pg |
+| 4 | The password rules apply | no | confirmed | test |
+| 5 | The same password is allowed | no | confirmed | test |
+| 6 | The password is set | no | confirmed | test 1; M10 fails 2 |
+| 7 | 128's hold is cleared | no | confirmed | test; M6 fails 1 |
+| 8 | Every session ends, none is created | no | confirmed | test 1; P5; M1 fails 1 |
+| 9 | Other reset flows and codes end; another account's untouched | no | confirmed | test; M5 fails 1; P7 |
+| 10 | Approved device grants withdrawn, shown by a test | no | partly | behaviour holds; M7 (no `denyApprovedDeviceGrants`) passes all 10: the test ticks the box, and `revokeAccessTokens` also denies approved grants |
+| 11 | Tokens revoked by default, kept only unticked | no | confirmed | tests; M4 fails 1 |
+| 12 | `user.password_reset_by_email` records what Data lists | no | partly | `twoFactor` is a boolean; Data asks for the two-factor method |
+| 13 | One transaction, the account read again inside it | no | confirmed | test gap: M11 (no re-check inside) passes all tests |
+| 14 | The notice reaches the scheduler only after the commit, shown by a test | no | partly | behaviour holds (P9 with a throwing listener); M13 (`mailQueued` inside the transaction) passes all 10 |
+| 15 | The notice says the reset was by email, in three languages | no | confirmed | new `password_reset_by_email` notice; en, fr, pt |
+| 16 | Two-factor turned on mid-flow sends it back | no | confirmed | test; M12 fails 1 |
+| 17 | An account changed mid-flow can't be reset | no | confirmed | test (disabled); P6 (made root) |
+| 18 | An earlier step's cookie, or none, is refused | no | confirmed | test; P1 |
+| 19 | The action wires the hasher and the client IP | no | confirmed | `actions/password-reset.ts` |
+
+**Overall:** not met on rows 10, 12 and 14. Minor: an account changed between the two checks gets `spent`, not `cannot_continue`.
+
+### Adversarial pass
+
+Witnessed: 2026-11-23 20:00 EST, by a fresh agent (adversarial). Commit: 2579c9b5 + working tree. Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tests pass on all four dialects | no | confirmed | 10 passed on each |
+| 2 | No cookie, a code-step cookie, a forged token or a flow with no user can't set a password | no | confirmed | P1, P2; own tests |
+| 3 | With two-factor on, a flow that never passed it can't set the password | no | confirmed | P3 |
+| 4 | The grant lasts 10 minutes | no | confirmed | own test; P6 |
+| 5 | The grant works once, two submits at once included | no | partly | P4 → one `ok` on all 4; but ignoring `consumeGrant` leaves the own tests green (P4 then fails on pg) |
+| 6 | One transaction: password, hold, sessions, other flows and codes | no | confirmed | own tests; mutations fail them |
+| 7 | Approved `rmk login --web` grants denied, box ticked or not | no | partly | P5 (unticked) → denied; removing `denyApprovedDeviceGrants` leaves the own tests green |
+| 8 | Tokens revoked by default, kept only unticked | no | confirmed | own tests |
+| 9 | Nobody signed in, a racing sign-in leaves no session | no | confirmed | P10/P12 on SQLite, pg, mysql → 0 sessions |
+| 10 | A root, disabled, erased or *Root only* account can't be reset | no | not met | in turn it holds (P7); raced, P9 on pg, mysql, mariadb: another transaction holds `UPDATE user SET role='root'` while the reset runs → `done`, password changed: the re-check reads before `setPassword` locks the row; removing the re-check leaves the own tests green |
+| 11 | The notice only when the reset commits; a rollback leaves nothing | no | confirmed | P8 |
+| 12 | The notice says the reset was by email | no | confirmed | new template; remark: no reset time in the body (the footer's "When:" line has it) |
+| 13 | The audit row records sessions, tokens and the two-factor method | no | partly | `twoFactor` is a boolean |
+| 14 | The same password allowed; password rules apply | no | confirmed | own test; P11 (non-ASCII, line break) |
+
+**Overall:** not met: an account made root during a reset gets its password reset by email (row 10); the own tests miss `consumeGrant`, `denyApprovedDeviceGrants` and the in-transaction re-check (rows 5, 7, 10); the audit row keeps a yes/no, not the method (row 13).
+
+Fixes after the two passes: in the reset's transaction the account's row is held (`lockAccount`) before it's read again, so a change being made at that moment is waited for and seen; an account changed between the two reads answers `cannot_continue`. SPEC Data: `user.password_reset_by_email` keeps whether the two-factor step was passed (the flow keeps when, not which method). The notice's footer has the "When: … UTC" line. New tests: approved rmk sign-ins withdrawn with the tokens kept; a throwing scheduler can't undo the reset (the notice is handed over after the commit); two submits at once reset once and an account made root while the reset runs isn't reset (servers). Mutations on postgres: no lock before the re-check fails the promotion test; `consumeGrant`'s result ignored fails the two-submits test. 14/14 on postgres, mysql, mariadb; 12 passed, 2 skipped on SQLite.
+
+### Re-check 1
+
+Witnessed: 2026-11-23 20:11 EST, by a fresh agent (blind). Commit: 2579c9b5 + working tree (17 modified files, plus the untracked `services/password-reset-complete.db.test.ts`). Machine: macOS 27.2.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tests and probes pass on all four databases | no | confirmed | SQLite 21 passed, 2 skipped; pg, mysql, mariadb 23 each |
+| 3 | The grant works once, two submits at once, shown by a test | no | confirmed | M2 → the two-submits test fails on pg |
+| 10 | Approved grants withdrawn with the box unticked, shown by a test | no | confirmed | M7 fails it on SQLite and pg |
+| 12 | The audit row records what Data lists | no | confirmed | Data reworded; test 1 `twoFactor: false`, P8 `true` |
+| 13 | The account's row locked and read again in the transaction, shown by a test | no | confirmed | M11, M11b, M11c each fail the promotion test on pg |
+| 14 | The notice reaches the scheduler only after the commit, shown by a test | no | confirmed | M13 fails it on SQLite and pg |
+| 20 | An account changed between the reads gets `cannot_continue` | no | confirmed | the race test |
+
+**Overall:** met.
+
+### Adversarial re-check 1
+
+Witnessed: 2026-11-23 20:19 EST, by a fresh agent (adversarial). Commit: 2579c9b5 + working tree. Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tests pass on all four | no | confirmed | SQLite 12+2 skipped; 14 each on the servers |
+| 10 | Made root while the reset runs: not reset | no | confirmed | own test; P9; mutation without the lock fails on pg, mysql, mariadb |
+| 10a | Disabled or erased while it runs (held uncommitted): not reset | no | confirmed | R1, R2 on pg, mysql, mariadb |
+| 10b | The real admin disable and erase racing it | no | confirmed | R3: before the lock → `cannot_continue`; during → the admin waits, reset done, then disabled or erased; no deadlock |
+| 10c | The re-read after the lock sees the commit on MySQL and MariaDB | no | confirmed | R1, R2; remark: REPEATABLE READ still passes (no plain read before the lock) |
+| L1 | A second reset of the same account: one wins | no | confirmed | R4, 4 rounds, all 4 dialects |
+| L2 | No deadlock with root's Reset password or Change password | no | confirmed | R5 both orders |
+| L3 | No session survives a sign-in with the old password racing the reset | no | partly | R6 (reset paused after `lockAccount`, sign-in with the old password) → sessions=1 after on pg, mysql, mariadb: the insert waits on the row and lands after `deleteSessions` |
+| L4 | No session survives the old session's Change password racing it | no | partly | R5 `change/after` → both ok, sessions=1, the password is the changer's |
+| 5 | The grant works once, shown by a test | no | confirmed | mutation fails the two-submits test on pg, mysql |
+| 7 | Approved grants withdrawn with tokens kept, shown by a test | no | confirmed | mutation fails it on sqlite, pg, mysql |
+| 13 | The audit row as Data says | no | confirmed | SPEC diff "whether the account's two-factor step was passed"; `metadata.twoFactor: flow.twoFactorAt !== null` |
+| 13a | The re-check inside the transaction, shown by a test | no | confirmed | mutation fails the promotion test on pg, mysql |
+| 14 | The notice after the commit, shown by a test | no | confirmed | mutation fails it on sqlite, pg, mysql |
+
+**Overall:** not met on L3 and L4: a sign-in, or the old session's password change, that checked the old password while the reset held the account keeps a session.
+
+Fixes after the passes: after a reset commits, `completePasswordReset` waits `RESET_SETTLE_MS` (100 ms) and ends the account's sessions created up to the commit (`deleteSessionsUpTo`): a stale sign-in's session is stamped before the commit (Better Auth stamps `createdAt`, then inserts), one with the new password after. A test pauses the reset after taking the row, signs in with the old password meanwhile, and finds no session left (servers; without the cleanup it fails on pg and mysql). SPEC "What a reset does" says so, and states the limit left by Better Auth's one-step Change password (its password set after the reset, its session ended, both changes emailed).
+
+### Adversarial re-check 2
+
+Witnessed: 2026-11-23 20:45 EST, by a fresh agent (adversarial). Commit: 2579c9b5 + working tree. Machine: macOS (Darwin 27.2.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| L3 | No session survives a sign-in with the old password racing the reset | no | not met | R8: a sign-in reads the old hash, its verify slowed (+300 ms), the reset starts 0–250 ms later → `sessions=1` with the new password set on all 4; natural timing: SQLite 1 in 3 at offset 0, pg 0 in 12. Better Auth stamps `createdAt` after the password check, so a check spanning the commit is stamped after it and the cleanup keeps it |
+| L3a | The 100 ms wait is enough for a blocked insert | no | confirmed | R6 and the new test pass; R8 natural on pg 0 in 12 |
+| L3b | Clock skew or MySQL precision | no | confirmed | both stamps from Node's clock; `datetime(3)` / `timestamptz` keep milliseconds; not tested: several instances with skewed clocks |
+| L3c | The cleanup spares other accounts and a new-password sign-in in the window | no | confirmed | R10 on sqlite and pg |
+| L4 | The stated Change-password limit | no | not met | R9 at offset 0 on all 4: both ok, `sessions=1`, the changer's password: Better Auth's `revokeOtherSessions: true` creates a new session after writing the password, so "its session ends" is wrong |
+| L4a | Both changes are emailed | no | confirmed | read: `session.ts:251` and the reset's notice |
+
+**Overall:** not met on L3 and L4. Remark: a sign-in whose session the cleanup deletes between Better Auth's insert and its lookup throws instead of refusing (SQLite, 2 in 12).
+
+Two adversarial re-checks done: the owner decided (2026-11-23) to keep the reset as it is (the row lock and the late cleanup), state the remaining race accurately in SPEC "What a reset does" as a known limit shared with Change password and root's Reset password, and fix it for the whole app in a follow-up, feature 200 (planned in M32: a check when every session is created, against the moment the account's password last changed). SPEC's wrong Change-password sentence is replaced.
+
+### Adversarial re-check 3
+
+Witnessed: 2026-11-23 20:29 EST, by a fresh agent (adversarial). Commit: 2579c9b5 + working tree (21 changed or new files). Machine: macOS (Darwin 27.2.0), Node v24.0.0. Scoped to L3 and L4 as SPEC "What a reset does" now states them, and row 200.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The reset ends every session the account has when it runs | no | confirmed | the complete test on all 4; R6–R9 `sessions=0` whenever no check spanned the commit |
+| 2 | (a) A sign-in whose session write waited on the row lock is ended by the cleanup | no | confirmed | `password-reset.ts:614-616`, `deleteSessionsUpTo` (`created_at <= upTo`, this user); R6 on pg, mysql → `sessions=0`; sqlite refused the sign-in, 0 |
+| 3 | (b) A sign-in that checked the old password well before and wasn't blocked is ended | no | confirmed | R7 offsets 0–40 ms → signed in, session gone; R8 mysql offset 250 → 0 |
+| 4 | (b) The open case is exactly a check spanning the commit (sign-in) | no | confirmed | R8 (verify slowed 300 ms) → `sessions=1`, the reset's password, only then |
+| 5 | (b) The open case is exactly another session's Change password checking at the instant | no | confirmed | R9: offset 0 (and 20 on pg) → `sessions=1 pw=changer`, as SPEC says; later offsets → `sessions=0 pw=reset` |
+| 6 | (b) The cleanup keeps another account's sessions and a new-password sign-in | no | confirmed | R10 on sqlite, pg, mysql |
+| 7 | (b) The person is emailed of each change | no | confirmed | read: the reset's notice in its transaction; Change password's `password_changed` in its own |
+| 8 | The complete test on all four dialects | no | confirmed | sqlite 12 passed, 3 skipped; 15/15 on pg, mysql, mariadb |
+| 9 | Row 200 planned in the index and M32, saying what it closes | no | confirmed | README.md:329; M32:25; `check-docs-index.js` exit 0 |
+
+**Overall:** met. Remark: on SQLite a sign-in racing the reset can throw "Better Auth signed in but its session can't be found" instead of refusing (no session left); for 200.

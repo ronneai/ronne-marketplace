@@ -14,6 +14,7 @@ import { emailHmac } from "../models/email-code";
 import { RESET_PURPOSE, type ResetAccount, type ResetStep } from "../models/password-reset";
 import { kyselyChallengeRepository } from "./kysely-challenge-repository";
 import { kyselyEmailCodeRepository } from "./kysely-email-code-repository";
+import { kyselyIdentityRepository } from "./kysely-identity-repository";
 import type { PasswordResetRepository, ResetFlow } from "./password-reset-repository";
 
 /**
@@ -28,6 +29,8 @@ export const kyselyPasswordResetRepository = (
 ): PasswordResetRepository => {
   const at = (date: Date) => toDbDate(date, dialect);
   const codes = kyselyEmailCodeRepository(db, dialect, authSecret);
+  // In a transaction, its notices are handed to the scheduler with the rest, once it commits.
+  const identity = kyselyIdentityRepository(db, dialect, queued);
   /** An account as a reset reads it, by address or by id. */
   const account = async (by: "email" | "id", value: string): Promise<ResetAccount | null> => {
     const user = await db
@@ -140,6 +143,56 @@ export const kyselyPasswordResetRepository = (
     },
 
     verifyCode: codes.verify,
+
+    async consumeGrant(id: string, tokenHash: string): Promise<boolean> {
+      const deleted = await db
+        .deleteFrom("password_reset_flows")
+        .where("id", "=", id)
+        .where("token_hash", "=", tokenHash)
+        .executeTakeFirst();
+      return Number(deleted.numDeletedRows) === 1;
+    },
+
+    async endFlowsOf(userId: string, now: Date): Promise<void> {
+      await db
+        .updateTable("email_codes")
+        .set({ consumed_at: at(now) })
+        .where("purpose", "=", RESET_PURPOSE)
+        .where(
+          "subject_id",
+          "in",
+          db.selectFrom("password_reset_flows").select("id").where("user_id", "=", userId),
+        )
+        .where("consumed_at", "is", null)
+        .execute();
+      await db.deleteFrom("password_reset_flows").where("user_id", "=", userId).execute();
+    },
+
+    setPassword: (userId, passwordHash, now) => identity.setPassword(userId, passwordHash, now),
+    clearPasswordChange: (userId, now) => identity.setPasswordChangeRequired(userId, false, now),
+    deleteSessions: (userId) => identity.deleteSessions(userId),
+
+    async deleteSessionsUpTo(userId: string, upTo: Date): Promise<number> {
+      const deleted = await db
+        .deleteFrom("session")
+        .where("user_id", "=", userId)
+        .where("created_at", "<=", at(upTo))
+        .executeTakeFirst();
+      return Number(deleted.numDeletedRows);
+    },
+    revokeAccessTokens: (userId, now) => identity.revokeAccessTokens(userId, now),
+
+    async denyApprovedDeviceGrants(userId: string, now: Date): Promise<void> {
+      await db
+        .updateTable("device_grants")
+        .set({ status: "denied", decided_at: at(now) })
+        .where("user_id", "=", userId)
+        .where("status", "=", "approved")
+        .execute();
+    },
+
+    queueResetNotice: (userId, now) =>
+      identity.queueSecurityNotice(userId, "password_reset_by_email", now),
     passwordPolicy: () => effectivePasswordPolicyIn(db, dialect),
 
     async enabledProviderNames(): Promise<string[]> {

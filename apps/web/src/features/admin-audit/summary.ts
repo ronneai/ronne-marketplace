@@ -218,6 +218,12 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     provider: text(m.provider),
   }),
   "user.scim_adopted": (m, e, h) => ({ who: h.who(m, e), provider: text(m.provider) }),
+  "user.password_reset_by_email": (m) => ({
+    // `{ sessionsEnded, tokensRevoked, twoFactor }` (194): the person reset it, with an emailed code.
+    sessions: Number(m.sessionsEnded ?? 0),
+    tokens: Number(m.tokensRevoked ?? 0),
+    twoFactor: m.twoFactor === true ? "true" : "false",
+  }),
   "user.password_reset": (m, e, h) => ({
     who: h.who(m, e),
     twoFactor: flag(m.twoFactorReset === true),

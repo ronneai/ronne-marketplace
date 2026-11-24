@@ -279,6 +279,99 @@ O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails n
 "
 `;
 
+exports[`renderMail (189) > writes password_reset_by_email in en, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Your password was reset</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">The password of your account on marketplace.acme.example was reset with a code sent to this address. Every session was signed out: sign in again with the new password.</p>
+<p style="margin:0 0 16px">When: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">If this wasn&#39;t you, reset your password again at once and contact your administrator.</p>
+<p style="margin:0 0 16px">To reach your administrator, reply to this email.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">This email was sent by Ronne at marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ronne sends one whenever the way you sign in to your account changes. These emails can&#39;t be turned off.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes password_reset_by_email in en, as text and HTML > text 1`] = `
+"The password of your account on marketplace.acme.example was reset with a code sent to this address. Every session was signed out: sign in again with the new password.
+
+When: 2026-11-21 16:32 UTC
+
+If this wasn't you, reset your password again at once and contact your administrator.
+To reach your administrator, reply to this email.
+
+-- 
+This email was sent by Ronne at marketplace.acme.example.
+Ronne sends one whenever the way you sign in to your account changes. These emails can't be turned off.
+"
+`;
+
+exports[`renderMail (189) > writes password_reset_by_email in fr, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>Votre mot de passe a été réinitialisé</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">Le mot de passe de votre compte sur marketplace.acme.example a été réinitialisé avec un code envoyé à cette adresse. Toutes les sessions ont été fermées : reconnectez-vous avec le nouveau mot de passe.</p>
+<p style="margin:0 0 16px">Quand : 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Si ce n’était pas vous, réinitialisez votre mot de passe sans tarder et communiquez avec votre administrateur.</p>
+<p style="margin:0 0 16px">Pour joindre votre administrateur, répondez à ce courriel.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ce courriel a été envoyé par Ronne sur marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes password_reset_by_email in fr, as text and HTML > text 1`] = `
+"Le mot de passe de votre compte sur marketplace.acme.example a été réinitialisé avec un code envoyé à cette adresse. Toutes les sessions ont été fermées : reconnectez-vous avec le nouveau mot de passe.
+
+Quand : 2026-11-21 16:32 UTC
+
+Si ce n’était pas vous, réinitialisez votre mot de passe sans tarder et communiquez avec votre administrateur.
+Pour joindre votre administrateur, répondez à ce courriel.
+
+-- 
+Ce courriel a été envoyé par Ronne sur marketplace.acme.example.
+Ronne en envoie un chaque fois que la façon de vous connecter à votre compte change. Ces courriels ne peuvent pas être désactivés.
+"
+`;
+
+exports[`renderMail (189) > writes password_reset_by_email in pt, as text and HTML > html 1`] = `
+"<!doctype html>
+<html lang="pt">
+<head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<title>A sua senha foi redefinida</title></head>
+<body style="margin:0;padding:24px;background:#ffffff;color:#1f2933;font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5"><div style="max-width:560px;margin:0 auto">
+<p style="margin:0 0 16px">A senha da sua conta em marketplace.acme.example foi redefinida com um código enviado para este endereço. Todas as sessões foram encerradas: entre de novo com a nova senha.</p>
+<p style="margin:0 0 16px">Quando: 2026-11-21 16:32 UTC</p>
+<p style="margin:0 0 16px;font-weight:600">Se não foi você, redefina a sua senha de novo imediatamente e fale com o seu administrador.</p>
+<p style="margin:0 0 16px">Para falar com o seu administrador, responda a este e-mail.</p>
+<hr style="border:0;border-top:1px solid #d9dee3;margin:24px 0">
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">Este e-mail foi enviado pelo Ronne em marketplace.acme.example.</p>
+<p style="margin:0 0 8px;font-size:13px;color:#52606d">O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.</p>
+</div></body></html>
+"
+`;
+
+exports[`renderMail (189) > writes password_reset_by_email in pt, as text and HTML > text 1`] = `
+"A senha da sua conta em marketplace.acme.example foi redefinida com um código enviado para este endereço. Todas as sessões foram encerradas: entre de novo com a nova senha.
+
+Quando: 2026-11-21 16:32 UTC
+
+Se não foi você, redefina a sua senha de novo imediatamente e fale com o seu administrador.
+Para falar com o seu administrador, responda a este e-mail.
+
+-- 
+Este e-mail foi enviado pelo Ronne em marketplace.acme.example.
+O Ronne envia um sempre que muda a forma de entrar na sua conta. Esses e-mails não podem ser desativados.
+"
+`;
+
 exports[`renderMail (189) > writes sign_up_approved in en, as text and HTML > html 1`] = `
 "<!doctype html>
 <html lang="en">

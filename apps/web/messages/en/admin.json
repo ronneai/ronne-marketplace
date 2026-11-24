@@ -854,6 +854,7 @@
           "updated": "Changed the {changed} of <name>{who}</name>{relinked, select, true {, linked again,} other {}} through SCIM provisioning by <code>{provider}</code>",
           "scim_adopted": "Linked <name>{who}</name> to SCIM provisioning by <code>{provider}</code>, which manages it from now on",
           "password_reset": "Reset the password of <name>{who}</name>{twoFactor, select, true { and turned off its two-factor sign-in} other {}}{change, select, true {, asking for a new one at their next sign-in} other {}}{ended}{via}",
+          "password_reset_by_email": "Reset their password with a code sent by email{twoFactor, select, true {, after two-factor} other {}}, ending {sessions, plural, one {# session} other {# sessions}} and revoking {tokens, plural, one {# access token} other {# access tokens}}",
           "password_change_requested": "{required, select, false {Stopped asking for a new password at the next sign-in of <name>{who}</name>{via}} other {Asked for a new password at the next sign-in of <name>{who}</name>{via}}}",
           "two_factor_reset": "Turned off the two-factor sign-in of <name>{who}</name>{ended}{via}",
           "password_changed": "{required, select, true {Chose their own password, as root asked} other {Changed their password}}{ended}",

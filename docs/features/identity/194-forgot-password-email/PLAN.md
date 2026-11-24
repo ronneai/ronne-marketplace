@@ -45,7 +45,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
     replaced code, a cookie from an earlier step, a missing cookie, both two-factor methods, a used
     TOTP code, and each mid-flow change in the spec's edge cases.
 
-- [ ] **5. The reset.** [risky]
+- [x] **5. The reset.** [risky]
   - `completePasswordReset`: the 10-minute single-use grant; the password rules; one transaction
     that sets the password, clears 128's hold, deletes sessions, ends other codes, flows and device
     grants, revokes tokens unless the box was unchecked, and records `user.password_reset_by_email`;
@@ -110,4 +110,13 @@ goes into `SPEC.md` instead.
 - The 20-a-day pause counts the account's `auth.password_reset_code_failed` audit rows with reason
   `wrong` (`wrongCodeTimes`, `resetPaused`), with the account's row held first.
 - 0048 gained `two_factor_at` in place: it was unreleased and not yet on the dev database.
+- Task 5: the notice is queued in the reset's transaction and handed to the scheduler after the
+  commit (189's way), so it exists if and only if the reset does.
+- Task 5's known limit (owner, 2026-11-23): a sign-in or Change password already checking the old
+  password at the instant of a reset can keep a session (Better Auth checks, then creates the
+  session). The row lock and a cleanup 100 ms after the commit catch the common case; feature 200
+  closes it for the whole app.
+- For 200: a sign-in whose session the reset's cleanup deletes between Better Auth's insert and
+  its own lookup throws "Better Auth signed in but its session can't be found" rather than
+  refusing (seen on SQLite, nothing left open).
 
