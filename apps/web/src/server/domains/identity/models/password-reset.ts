@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHmac, hkdfSync, randomBytes } from "node:crypto";
 import type { Limit } from "../../../rate-limit/rate-limiter";
 import type { PasswordSignInPolicy } from "../../settings/models/password-sign-in-policy";
 
@@ -36,17 +36,29 @@ export const RESET_STEPS = ["code", "two_factor", "new_password"] as const;
 export type ResetStep = (typeof RESET_STEPS)[number];
 
 /**
- * A new flow token: 32 random bytes for the browser's cookie, and the SHA-256 the row keeps, so a
- * database read can't continue a flow.
+ * A new flow token: 32 random bytes for the browser's cookie, and what the row keeps of it, an
+ * HMAC-SHA256 under a key derived from AUTH_SECRET, so a copy of the database can't continue a
+ * flow, or even check a guess. Rotating the secret ends the flows still open, as it ends their codes.
  */
-export const newResetToken = (): { token: string; hash: string } => {
+export const newResetToken = (authSecret: string): { token: string; hash: string } => {
   const token = randomBytes(32).toString("base64url");
-  return { token, hash: resetTokenHash(token) };
+  return { token, hash: resetTokenHash(authSecret, token) };
 };
 
-/** The SHA-256 a flow row keeps of its token (hex). */
-export const resetTokenHash = (token: string): string =>
-  createHash("sha256").update(token, "utf8").digest("hex");
+const keys = new Map<string, Buffer>();
+const keyOf = (authSecret: string): Buffer => {
+  let key = keys.get(authSecret);
+  if (!key) {
+    key = Buffer.from(hkdfSync("sha256", authSecret, Buffer.alloc(0), "password-reset-flow", 32));
+    if (keys.size >= 8) keys.clear();
+    keys.set(authSecret, key);
+  }
+  return key;
+};
+
+/** What a flow row keeps of its token: its HMAC-SHA256 (hex). */
+export const resetTokenHash = (authSecret: string, token: string): string =>
+  createHmac("sha256", keyOf(authSecret)).update(token, "utf8").digest("hex");
 
 /** An account as a reset request reads it: what decides the email, and nothing more. */
 export type ResetAccount = {

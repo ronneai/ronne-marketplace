@@ -102,8 +102,8 @@ sessions and other codes ended, and a notice sent afterwards.
   (`queueSecurityNotice`), saying the reset was by email. Then the person
   lands on the sign-in page with "Your password is changed. Sign in with it." They aren't signed in.
 - **The reset flow's state**: a `password_reset_flows` row and a cookie.
-  - The cookie holds 32 random bytes and the row only their SHA-256, so a database read can't
-    continue a flow.
+  - The cookie holds 32 random bytes and the row only their HMAC-SHA256, under a key derived from
+    `AUTH_SECRET`, so a database read can't continue a flow or even check a guess.
   - The cookie is HttpOnly, SameSite=Strict, Path `/sign-in/forgot`. It has the `__Secure-` prefix
     and Secure when the public URL is https, as the session cookie does
     (`identity/models/session-cookie.ts`); a `__Host-` name would need Path `/`, and this one stays

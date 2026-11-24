@@ -13,7 +13,7 @@ const mysqlHasIndex = async (db: Kysely<unknown>, table: string, name: string) =
 /**
  * Forgot password by email (feature 194): `password_reset_flows`, one row per request, even for an
  * address that gets no code, so every request does the same work. The browser holds 32 random
- * bytes in a cookie and the row only their SHA-256 (`token_hash`), so a database read can't
+ * bytes in a cookie and the row only their HMAC keyed from AUTH_SECRET (`token_hash`), so a database read can't
  * continue a flow. No email address and no IP are kept. `user_id` is null for an address that gets
  * no code; a deleted user takes their flows (cascade). The codes are 190's `email_codes`, purpose
  * `password_reset`. The setting keeps its default in code (off), so no setting row is written here.

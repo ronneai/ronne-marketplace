@@ -559,7 +559,7 @@ export interface EmailCodeTable {
 
 /**
  * A forgotten-password reset in progress (migration 0048, 194): one per request, even for an
- * address that gets no code. Only the SHA-256 of the browser's cookie is kept; no address, no IP.
+ * address that gets no code. Only a keyed HMAC of the browser's cookie is kept; no address, no IP.
  */
 export interface PasswordResetFlowTable {
   id: string;

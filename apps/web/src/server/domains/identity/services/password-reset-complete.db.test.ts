@@ -329,7 +329,7 @@ describe("the reset (194)", () => {
         await t.db
           .selectFrom("password_reset_flows")
           .select("step")
-          .where("token_hash", "=", resetTokenHash(back.token))
+          .where("token_hash", "=", resetTokenHash(TEST_SECRET, back.token))
           .executeTakeFirst()
       )?.step,
     ).toBe("two_factor");

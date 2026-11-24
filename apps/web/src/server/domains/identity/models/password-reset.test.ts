@@ -45,12 +45,14 @@ describe("what a reset request emails (194, SPEC 'What is sent')", () => {
 });
 
 describe("the flow's token (194)", () => {
-  it("is 32 random bytes; the row keeps only its SHA-256", () => {
-    const a = newResetToken();
-    const b = newResetToken();
+  it("is 32 random bytes; the row keeps only an HMAC of it, keyed from AUTH_SECRET", () => {
+    const a = newResetToken("a-secret-a-secret-a-secret-a-secret-0");
+    const b = newResetToken("a-secret-a-secret-a-secret-a-secret-0");
     expect(Buffer.from(a.token, "base64url")).toHaveLength(32);
     expect(a.token).not.toBe(b.token);
-    expect(a.hash).toBe(resetTokenHash(a.token));
+    expect(a.hash).toBe(resetTokenHash("a-secret-a-secret-a-secret-a-secret-0", a.token));
+    // Another AUTH_SECRET, another hash: rotating it ends the flows still open.
+    expect(resetTokenHash("another-secret-another-secret-another-0", a.token)).not.toBe(a.hash);
     expect(a.hash).toMatch(/^[0-9a-f]{64}$/);
     expect(a.hash).not.toContain(a.token);
   });

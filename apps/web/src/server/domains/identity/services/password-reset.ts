@@ -153,7 +153,7 @@ const answer = async (deps: PasswordResetDeps, input: ResetRequest): Promise<Res
   const locale: Locale = isLocale(input.locale) ? input.locale : "en";
   const sender = await deps.mail();
   const flowId = newId();
-  const { token, hash } = newResetToken();
+  const { token, hash } = newResetToken(deps.authSecret);
   // The per-address limit on every path (an HMAC of the address): 3 emails an hour, shared by
   // every replica. Over it, the page is the same and nothing goes.
   // The 60-second wait is the address's, not the flow's: each request makes a new flow.
@@ -290,18 +290,20 @@ export type StepChecked =
 
 /** The flow a cookie names, at `step`, while it lasts; null otherwise. */
 const flowAt = async (
+  authSecret: string,
   repo: PasswordResetRepository,
   token: string,
   step: ResetStep,
   at: Date,
 ): Promise<ResetFlow | null> => {
-  const flow = await repo.flowByToken(resetTokenHash(token));
+  const flow = await repo.flowByToken(resetTokenHash(authSecret, token));
   if (!flow || flow.step !== step || flow.expiresAt <= at) return null;
   return flow;
 };
 
 /** The step after a right code or two-factor, read from the account as it is now. */
 const nextStep = async (
+  authSecret: string,
   repo: PasswordResetRepository,
   flow: ResetFlow,
   at: Date,
@@ -310,7 +312,7 @@ const nextStep = async (
   twoFactorPassed: boolean,
 ): Promise<StepChecked> => {
   const step = twoFactorOn && !twoFactorPassed ? "two_factor" : "new_password";
-  const { token, hash } = newResetToken();
+  const { token, hash } = newResetToken(authSecret);
   const moved = await repo.advanceFlow(flow.id, flow.tokenHash, {
     tokenHash: hash,
     step,
@@ -373,7 +375,7 @@ const codeAnswer = async (
     if (!decision.allowed) return { ok: false, refusal: "limited" };
   }
   if (!input.token) return { ok: false, refusal: "missing" };
-  const flow = await deps.repo.flowByToken(resetTokenHash(input.token));
+  const flow = await deps.repo.flowByToken(resetTokenHash(deps.authSecret, input.token));
   if (flow?.step !== "code") return { ok: false, refusal: "spent" };
   if (flow.expiresAt <= at) return { ok: false, refusal: "expired" };
   const code = typed(input.code, 32);
@@ -420,7 +422,7 @@ const codeAnswer = async (
           await failed("cannot_continue");
           return { ok: false, refusal: "cannot_continue" };
         }
-        return nextStep(repo, flow, at, twoFactorOn, false);
+        return nextStep(deps.authSecret, repo, flow, at, twoFactorOn, false);
       }
       const result = check.result === "ok" ? "wrong" : check.result;
       await failed(paused && result === "wrong" ? "paused" : result);
@@ -455,7 +457,7 @@ export const checkResetTwoFactor = async (
     if (!decision.allowed) return { ok: false, refusal: "limited" };
   }
   if (!input.token) return { ok: false, refusal: "missing" };
-  const flow = await flowAt(deps.repo, input.token, "two_factor", at);
+  const flow = await flowAt(deps.authSecret, deps.repo, input.token, "two_factor", at);
   if (!flow?.userId) return { ok: false, refusal: "spent" };
   const userId = flow.userId;
   const failed = (reason: string) =>
@@ -475,7 +477,7 @@ export const checkResetTwoFactor = async (
     return { ok: false, refusal: "cannot_continue" };
   }
   if (!(await deps.twoFactor.enabled(userId)))
-    return deps.repo.transaction((repo) => nextStep(repo, flow, at, false, false));
+    return deps.repo.transaction((repo) => nextStep(deps.authSecret, repo, flow, at, false, false));
   // A TOTP code is 6 digits, spaces allowed; a backup code is kept as typed. Every refusal, an
   // empty or used code included, counts in the account's lockout, as the store checks them all.
   const raw = typed(input.code, 32);
@@ -489,7 +491,7 @@ export const checkResetTwoFactor = async (
     await failed("wrong_code");
     return { ok: false, refusal: "wrong" };
   }
-  return deps.repo.transaction((repo) => nextStep(repo, flow, at, true, true));
+  return deps.repo.transaction((repo) => nextStep(deps.authSecret, repo, flow, at, true, true));
 };
 
 // ---- The reset (task 5) ---------------------------------------------------------------------------
@@ -534,7 +536,7 @@ export const completePasswordReset = async (
 ): Promise<ResetCompleted> => {
   const at = clock(deps);
   if (!input.token) return { ok: false, refusal: "missing" };
-  const flow = await deps.repo.flowByToken(resetTokenHash(input.token));
+  const flow = await deps.repo.flowByToken(resetTokenHash(deps.authSecret, input.token));
   if (flow?.step !== "new_password" || !flow.userId) return { ok: false, refusal: "spent" };
   const userId = flow.userId;
   if (flow.expiresAt <= at) {
@@ -547,7 +549,7 @@ export const completePasswordReset = async (
   }
   const twoFactorOn = await deps.twoFactor.enabled(userId);
   if (twoFactorOn && !flow.twoFactorAt) {
-    const { token, hash } = newResetToken();
+    const { token, hash } = newResetToken(deps.authSecret);
     const moved = await deps.repo.transaction((repo) =>
       repo.advanceFlow(flow.id, flow.tokenHash, {
         tokenHash: hash,

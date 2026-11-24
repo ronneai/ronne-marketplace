@@ -163,14 +163,15 @@ describe("asking to reset a forgotten password (194)", () => {
       locale: "pt",
     });
     expect(codeIn(mail?.text)).toMatch(/^\d{6}$/);
-    // The row keeps only the token's SHA-256, the account, the step and the times.
+    // The row keeps only a keyed HMAC of the token, the account, the step and the times.
     const [flow] = await flows();
     expect(flow).toMatchObject({
-      token_hash: resetTokenHash(asked.token),
+      token_hash: resetTokenHash(TEST_SECRET, asked.token),
       user_id: id,
       step: "code",
     });
-    expect(flow?.token_hash).toBe(createHash("sha256").update(asked.token).digest("hex"));
+    // Keyed: a plain hash of the token isn't what the row holds.
+    expect(flow?.token_hash).not.toBe(createHash("sha256").update(asked.token).digest("hex"));
     expect(asked.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
     // The code is the flow's, never usable alone.
     const [code] = await codes();

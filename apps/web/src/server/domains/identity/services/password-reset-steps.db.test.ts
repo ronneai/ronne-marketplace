@@ -71,7 +71,7 @@ const flowOf = (token: string) =>
   t.db
     .selectFrom("password_reset_flows")
     .selectAll()
-    .where("token_hash", "=", resetTokenHash(token))
+    .where("token_hash", "=", resetTokenHash(TEST_SECRET, token))
     .executeTakeFirst();
 const events = async (action: string) =>
   (await listAuditEvents(t.db, t.dialect, { size: 100 })).events.filter((e) => e.action === action);
