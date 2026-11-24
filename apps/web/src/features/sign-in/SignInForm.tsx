@@ -17,11 +17,14 @@ import type { SignInFormState } from "./types";
 export const SignInForm = ({
   next,
   resetCommand,
+  resetByEmail = false,
   initial = {},
 }: {
   next: string;
   /** For the Forgot? note (#147). */
   resetCommand: string;
+  /** Reset by email is open (194): *Forgot?* opens its page instead of the note. */
+  resetByEmail?: boolean;
   initial?: SignInFormState;
 }) => {
   const t = useTranslations("auth.signIn");
@@ -46,7 +49,7 @@ export const SignInForm = ({
       <div className="grid gap-1.5">
         <div className="flex items-baseline justify-between gap-2">
           <Label htmlFor="password">{t("password")}</Label>
-          <ForgotPassword resetCommand={resetCommand} />
+          <ForgotPassword resetCommand={resetCommand} resetByEmail={resetByEmail} />
         </div>
         <PasswordInput
           id="password"

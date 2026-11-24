@@ -320,9 +320,10 @@ was planned:
 | [191](identity/191-account-creation-rules/SPEC.md) | Who may create accounts | identity | M32 | done |
 | [192](identity/192-google-linkedin-sign-in/SPEC.md) | Google and LinkedIn sign-in | identity | M32 | specified |
 | [193](identity/193-sign-in-with-apple/SPEC.md) | Sign in with Apple | identity | M32 | specified |
-| [194](identity/194-forgot-password-email/SPEC.md) | Forgot password by email | identity | M32 | specified |
+| [194](identity/194-forgot-password-email/SPEC.md) | Forgot password by email | identity | M32 | done |
 | [195](platform/195-fork-friendly-ci/SPEC.md) | Fork-friendly CI and contributing from a private copy | platform | Repository | specified |
 | [196](identity/196-breached-passwords/SPEC.md) | Breached-password check | identity | M32 | specified |
 | [197](identity/197-verified-email-change/SPEC.md) | Verified email change | identity | M32 | specified |
 | [198](items/198-model-effort/SPEC.md) | Model and effort per AI tool | items | M33 | specified |
 | [199](platform/199-features-by-domain/SPEC.md) | Features by domain, one file per milestone | platform | Repository | done |
+| 200 | Sessions tied to the password they were made with | — | M32 | planned |

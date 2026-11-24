@@ -22,6 +22,11 @@
       "body": "Um root definiu uma nova senha para a sua conta em {host}. A senha antiga não funciona mais.",
       "notYou": "Se você não pediu isso, fale com o seu administrador imediatamente."
     },
+    "password_reset_by_email": {
+      "subject": "A sua senha foi redefinida",
+      "body": "A senha da sua conta em {host} foi redefinida com um código enviado para este endereço. Todas as sessões foram encerradas: entre de novo com a nova senha.",
+      "notYou": "Se não foi você, redefina a sua senha de novo imediatamente e fale com o seu administrador."
+    },
     "two_factor_enabled": {
       "subject": "A autenticação de dois fatores foi ativada",
       "body": "A autenticação de dois fatores foi ativada para a sua conta em {host}. Ao entrar, agora também é pedido um código de um aplicativo autenticador.",
@@ -68,6 +73,23 @@
       "subject": "Sua conta em {host} não foi aprovada",
       "body": "{how, select, provider {A conta criada em {host} quando você entrou com {provider} não foi aprovada, então ela foi excluída. Você pode perguntar o motivo ao seu administrador.} other {A conta que você criou em {host} não foi aprovada, então ela foi excluída, com o que você digitou. Você pode perguntar o motivo ao seu administrador.}}",
       "notYou": "Se você não criou uma conta lá, ignore este e-mail: nada restou dela."
+    }
+  },
+  "reset": {
+    "reset_code": {
+      "subject": "Seu código para redefinir a senha em {host}: {code}",
+      "body": "Seu código para redefinir a sua senha em {host} é {code}. Ele vale por {minutes} minutos. Digite-o na janela em que você o pediu. Ele não faz você entrar: em seguida você escolhe uma nova senha.",
+      "notYou": "Se você não pediu isso, ignore este e-mail: a sua senha não mudou."
+    },
+    "reset_root": {
+      "subject": "Redefinir a sua senha em {host}",
+      "body": "Alguém pediu para redefinir a senha desta conta root em {host}. Contas root não são redefinidas por e-mail: peça a outro root, ou execute {command} onde o Ronne está instalado.",
+      "notYou": "Se você não pediu isso, ignore este e-mail: a sua senha não mudou."
+    },
+    "reset_providers": {
+      "subject": "Entrar em {host}",
+      "body": "Alguém pediu para redefinir a senha da sua conta em {host}, mas a sua conta não entra com senha. Você entra com {providers}: use essa opção na página de entrada.",
+      "notYou": "Se você não pediu isso, ignore este e-mail: nada mudou na sua conta."
     }
   }
 }

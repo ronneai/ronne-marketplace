@@ -394,5 +394,13 @@
   "signing-up": {
     "question": "Comment fonctionne la création d’un compte?",
     "answer": "Tapez votre nom, votre courriel et un mot de passe. Un code à 6 chiffres est envoyé à cette adresse; tapez-le ici, dans cette fenêtre, et le compte existe. Connectez-vous ensuite. Si un root doit l’approuver, vous recevez un courriel quand il le fait."
+  },
+  "forgot-password": {
+    "question": "Comment fonctionne la réinitialisation par courriel?",
+    "answer": "Tapez votre adresse; si son compte peut se réinitialiser ici, un code à 6 chiffres lui est envoyé. Puis votre double authentification, si vous l’avez, et un nouveau mot de passe. Rien ne vous connecte : toutes les sessions se ferment, et vous vous connectez avec le nouveau mot de passe."
+  },
+  "reset-by-email": {
+    "question": "De quoi la réinitialisation par courriel a-t-elle besoin d’abord?",
+    "answer": "Le courriel configuré, un courriel de test de la configuration actuelle qui a fonctionné, et le contact de l’instance. Un code ne connecte jamais personne, et les comptes root se réinitialisent toujours sur le serveur."
   }
 }

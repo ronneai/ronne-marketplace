@@ -24,6 +24,14 @@ sessions and other codes ended, and a notice sent afterwards.
   **Instance contact** is set. Every security notice prints that contact, so a person who didn't ask
   for a reset knows whom to tell (NIST SP 800-63B-4 §4.6). Clearing the contact turns the setting
   off, and the audit row says why.
+  - "Its last test passed" is about the setup as it is: a change to how email is sent (the
+    transport, the sender's address, the server, the region or domain, a credential, even one
+    typed again) clears the last test's result, so the Email tab says untested until a new test.
+    The contact, the sender's name and the reply-to address keep it. A success names the setup it
+    went through, so a test or send of the old setup that ends after the change doesn't count for
+    the new one.
+  - Turning it on reads email's readiness in its own transaction and holds the contact's row, so
+    a contact cleared at the same moment leaves it off.
   When it's off, or email stops working, "Forgot?" shows today's note unchanged.
 - **The request page**, `/sign-in/forgot`: one field, the email address. The reply is always the
   same page and words: "If an account can reset its password with this address, we've sent it a
@@ -39,7 +47,11 @@ sessions and other codes ended, and a notice sent afterwards.
   | A disabled account, or one waiting for root's approval (190) | Nothing |
   | No account (an erased one included: its email is a pseudonym, 103) | Nothing |
 
-- **The code**: one of 190's one-time email codes, purpose `password_reset`, subject the user.
+- **The code**: one of 190's one-time email codes, purpose `password_reset`, tied to the request's
+  flow (its subject is the flow), so it never works alone. Every flow gets one, emailed only when
+  the table says so, so the code page answers alike for every address (its tries, its end, its
+  replacement); a newer request for the address ends the earlier codes, found by the address's
+  HMAC the codes keep. The code page answers at the request's 400 ms floor too.
   Its rules are 190's:
   - 6 digits from a cryptographic random source, stored only as an HMAC;
   - it lasts for the *Code lifetime* setting (15 minutes by default);
@@ -52,7 +64,11 @@ sessions and other codes ended, and a notice sent afterwards.
   (105): a code from the app or a backup code, as at sign-in (`TwoFactorStep.tsx`).
   - A backup code used here is spent.
   - A TOTP code already accepted is refused, as at sign-in.
-  - Wrong codes count with the sign-in's own, so the reset gives no extra guesses.
+  - Wrong codes count with the sign-in's own, so the reset gives no extra guesses: Better Auth's
+    account lockout (ten in a row lock it for 15 minutes), checked here without a session, as
+    the reset has none. Checks for one account run one at a time (its two-factor row is held), so
+    guesses sent at once get no more; a used or empty code counts as a failure.
+  - Two-factor turned off (or reset by root) before this step: the step is passed.
   - Someone who lost the authenticator and its backup codes can't go on. The page says a root
     resets two-factor, as today.
 - **The new-password page**, `/sign-in/forgot/new-password`:
@@ -69,15 +85,29 @@ sessions and other codes ended, and a notice sent afterwards.
   - revokes the access tokens if the box was checked;
   - records `user.password_reset_by_email` in the audit log.
 
+  The account's row is held while the transaction runs, so a change made at that moment (made
+  root, disabled, erased) is waited for and seen. Once the reset has committed, it also ends the
+  account's sessions created up to the commit (100 ms later), which catches a sign-in with the old
+  password whose session write waited for the reset.
+
+  **A known limit, shared with Change password and root's Reset password** (owner, 2026-11-23): a
+  sign-in, or another session's Change password, that is already checking the old password at
+  the instant of the reset can still end with a session. Better Auth checks the password and then
+  creates the session, so a check that spans the commit gets a session stamped after it, and its
+  Change password gives the changer a new session after writing its own password. The person is
+  emailed of each change. Closing it needs a check when every session is created, against the
+  moment the account's password last changed: feature 200, for the whole app.
+
   After the transaction, 189's "password changed or reset" security notice is emailed
   (`queueSecurityNotice`), saying the reset was by email. Then the person
   lands on the sign-in page with "Your password is changed. Sign in with it." They aren't signed in.
 - **The reset flow's state**: a `password_reset_flows` row and a cookie.
-  - The cookie holds 32 random bytes and the row only their SHA-256, so a database read can't
-    continue a flow.
-  - The cookie is HttpOnly, SameSite=Strict, Path `/sign-in/forgot`. It has the `__Host-` prefix
-    and Secure when the public URL is https, as the session cookie's prefix follows it
-    (`identity/models/session-cookie.ts`).
+  - The cookie holds 32 random bytes and the row only their HMAC-SHA256, under a key derived from
+    `AUTH_SECRET`, so a database read can't continue a flow or even check a guess.
+  - The cookie is HttpOnly, SameSite=Strict, Path `/sign-in/forgot`. It has the `__Secure-` prefix
+    and Secure when the public URL is https, as the session cookie does
+    (`identity/models/session-cookie.ts`); a `__Host-` name would need Path `/`, and this one stays
+    on the reset's pages.
   - The value is replaced at every step (code checked, two-factor passed), so a cookie copied
     early can't skip a step.
   - The row has: the hash; the user, or null for an address that gets no code; the step; the
@@ -87,14 +117,26 @@ sessions and other codes ended, and a notice sent afterwards.
 - **Rate limits**, through 109's limiter, counted in the database so every replica shares them:
   - per client IP (with `TRUST_PROXY=true`): 10 requests per hour, and 30 code tries per hour;
   - per address: 190's 3 emails per hour, counted from the `email_codes` rows.
-  - After 20 wrong reset codes in 24 hours, reset by email pauses for that account for 24 hours.
+  - After 20 wrong reset codes in 24 hours, reset by email pauses for that account for 24 hours
+    after the 20th (counted from the account's own audit record of wrong reset codes, so flows
+    that ended, and a change of address, still count; tries at once for one account are counted
+    one after another).
     That's well under NIST's 100 failures, and it never locks the account's sign-in (OWASP: no
     lockout from forgotten-password attacks).
 - **Bots**: 190's honeypot field, minimum fill time and the optional proof-of-work challenge, on the
-  request page.
+  request page. The pages work without JavaScript, except the request page while the challenge is
+  on (it's solved in the browser), as sign-up's form.
 - **Same time**: each request does the same work whether or not an email goes out: it looks up the
   address, computes an HMAC and writes a flow row. The email is queued in the outbox (189), so
-  sending is never on the request's path.
+  sending is never on the request's path. A real account's request still writes more (its code,
+  its email, its audit row), so every answer, a refusal included, waits until 400 ms after the
+  request began (OWASP: responses in a consistent amount of time). It is a floor, not a fixed
+  time: the extra writes take tens of milliseconds, and only a database stalled for longer than
+  the floor on that one request would show.
+  - The per-address limit is taken before the transaction, as 190's is: a request whose
+    transaction then fails still counts, which errs towards fewer emails.
+  - The 60-second wait between emails is the address's, whichever flow asks.
+  - Requests at once for one account hold its row in turn, so only the newest code works.
 - **Signed in already**: `/sign-in/forgot` sends a signed-in person to Account › Change password.
 - **Screen text and emails** in English, Brazilian Portuguese and Canadian French (129). The email
   is in the language of the page it was asked from.
@@ -162,17 +204,22 @@ two-factor failures. Dan gets no "password was reset" notice, because nothing wa
 ## Data
 
 - **`password_reset_flows`**: `id` (ULID), `token_hash`, `user_id` (nullable, FK, cascade on delete),
-  `step` (`code`, `two_factor`, `new_password`), `expires_at`, `created_at`. No email, no IP.
+  `step` (`code`, `two_factor`, `new_password`), `expires_at`, `two_factor_at` (when the two-factor
+  step was passed, so a flow that skipped it is sent back if two-factor is on by the new-password
+  step), `created_at`. No email, no IP.
 - **Codes**: 190's `email_codes`, purpose `password_reset`.
 - **Retention**: the purge job (102) deletes flows and codes a day after they expire.
-- **Erasure (103)** deletes the account's flows and codes. **Your data (104)** lists open reset
-  flows (step and expiry only, never the code).
+- **Erasure (103)** deletes the account's flows and codes, every reset code sent to its address
+  included (found by the address's HMAC). **Your data (104)** lists the reset flows still kept
+  (step and expiry only, never the code): open ones, and ended ones the purge hasn't reached.
 - **Audit events** (IPs cleared by retention):
   - `auth.password_reset_requested`: account found, kind of email sent. Recorded only for a real
     account, so an unknown address leaves no trace and nobody can fill the audit log with them;
   - `auth.password_reset_code_failed`;
   - `auth.password_reset_two_factor_failed`;
-  - `user.password_reset_by_email`: sessions ended, tokens revoked, two-factor method.
+  - `user.password_reset_by_email`: sessions ended, tokens revoked (or kept), and whether the
+    account's two-factor step was passed (the flow keeps when, not which method; a failure is
+    audited with its own event).
 
 ## Documentation
 

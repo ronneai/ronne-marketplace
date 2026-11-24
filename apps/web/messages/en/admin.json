@@ -789,6 +789,33 @@
           "bot": "it looked like a bot, so nothing was sent",
           "unknown": "not recorded"
         },
+        "resetCodeReasons": {
+          "wrong": "wrong code",
+          "spent": "too many wrong codes",
+          "expired": "the code had ended",
+          "used": "a newer code had replaced it",
+          "none": "no code",
+          "paused": "reset by email is paused after too many wrong codes",
+          "cannot_continue": "the account can no longer reset by email",
+          "unknown": "not recorded"
+        },
+        "resetTwoFactorReasons": {
+          "wrong_code": "wrong code",
+          "used": "a code already used",
+          "locked": "two-factor is locked after too many wrong codes",
+          "unreadable": "its two-factor can't be read on this server",
+          "cannot_continue": "the account can no longer reset by email",
+          "unknown": "not recorded"
+        },
+        "resetRequestOutcomes": {
+          "code": "a code was sent",
+          "root": "it's a root account, so it was told to reset on the server",
+          "providers": "it signs in another way, which the email named",
+          "none": "nothing was sent (the account is disabled or waits for approval)",
+          "bot": "it looked like a bot, so nothing was sent",
+          "limited": "too many emails to the address, so nothing was sent",
+          "unknown": "not recorded"
+        },
         "signUpCodeReasons": {
           "wrong": "wrong code",
           "spent": "too many wrong codes",
@@ -827,6 +854,7 @@
           "updated": "Changed the {changed} of <name>{who}</name>{relinked, select, true {, linked again,} other {}} through SCIM provisioning by <code>{provider}</code>",
           "scim_adopted": "Linked <name>{who}</name> to SCIM provisioning by <code>{provider}</code>, which manages it from now on",
           "password_reset": "Reset the password of <name>{who}</name>{twoFactor, select, true { and turned off its two-factor sign-in} other {}}{change, select, true {, asking for a new one at their next sign-in} other {}}{ended}{via}",
+          "password_reset_by_email": "Reset their password with a code sent by email{twoFactor, select, true {, after two-factor} other {}}, ending {sessions, plural, one {# session} other {# sessions}} and revoking {tokens, plural, one {# access token} other {# access tokens}}",
           "password_change_requested": "{required, select, false {Stopped asking for a new password at the next sign-in of <name>{who}</name>{via}} other {Asked for a new password at the next sign-in of <name>{who}</name>{via}}}",
           "two_factor_reset": "Turned off the two-factor sign-in of <name>{who}</name>{ended}{via}",
           "password_changed": "{required, select, true {Chose their own password, as root asked} other {Changed their password}}{ended}",
@@ -857,7 +885,10 @@
           "backup_codes_regenerated": "Made new backup codes; the old ones stopped working",
           "two_factor_failed": "A two-factor code was refused at sign-in ({reason})",
           "sign_up_requested": "Asked to create an account for <name>{email}</name>: {outcome}",
-          "sign_up_code_failed": "A sign-up code for <name>{email}</name> was refused: {reason}"
+          "sign_up_code_failed": "A sign-up code for <name>{email}</name> was refused: {reason}",
+          "password_reset_requested": "A password reset by email was asked for <name>{email}</name>: {outcome}",
+          "password_reset_code_failed": "A password reset code for <name>{email}</name> was refused: {reason}",
+          "password_reset_two_factor_failed": "A two-factor code was refused while resetting the password of <name>{email}</name>: {reason}"
         },
         "access_token": {
           "created": "Created token <name>{label}</name> ({expiry}{how, select, cli {, from rmk login} device {, by browser approval} other {}})",
@@ -942,7 +973,8 @@
           "languages": "Changed the languages: {changes}",
           "mail": "Changed outgoing email: {changes}",
           "sign_up_changed": "Changed self-registration: {changes}",
-          "account_rules_changed": "Changed who may create accounts: {changes}"
+          "account_rules_changed": "Changed who may create accounts: {changes}",
+          "password_reset_changed": "{state, select, on {Turned on password reset by email} off {Turned off password reset by email} other {Changed password reset by email}}{reason, select, contact_cleared {, as the instance contact was cleared} other {}}"
         },
         "mail": {
           "test_sent": "Sent a test email{result, select, sent {, which the provider took} retry {, which didn't go yet ({reason})} failed {, which failed ({reason})} other {}}"
@@ -1631,6 +1663,29 @@
       "save": "Save",
       "done": {
         "saved": "Self-registration saved.",
+        "unchanged": "Nothing changed."
+      }
+    },
+    "passwordReset": {
+      "title": "Forgot password by email",
+      "intro": "Whether people can reset a forgotten password themselves, with a 6-digit code sent to their address, then their two-factor, then a new password. It never signs anyone in, and root accounts always reset on the server. It's off until you turn it on.",
+      "blockedTitle": "Reset by email can be turned on once these are done:",
+      "closedTitle": "Reset by email is on, but closed until these are done again:",
+      "blockers": {
+        "mail": "Email is set up, so the code can be sent.",
+        "working": "A test email of the setup as it is now worked.",
+        "contact": "The instance contact is set, so every notice says whom to tell."
+      },
+      "fix": {
+        "mail": "Set up email",
+        "working": "Send a test email",
+        "contact": "Set the contact"
+      },
+      "enabled": "People can reset a forgotten password by email",
+      "enabledHint": "Forgot? on the sign-in page opens the reset. Every session ends when a password is reset, and the person gets an email saying so.",
+      "save": "Save",
+      "done": {
+        "saved": "Forgot password by email saved.",
         "unchanged": "Nothing changed."
       }
     }

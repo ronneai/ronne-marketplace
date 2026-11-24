@@ -1,3 +1,4 @@
+import { loadConfig } from "../../../config";
 import { clientIp } from "../models/client-ip";
 import { type AppAuth, getAppAuth } from "../repositories/auth-instance";
 import { kyselyEraseRepository } from "../repositories/kysely-erase-repository";
@@ -8,7 +9,7 @@ export type { EraseCounts, EraseResult } from "../services/erase-user";
 
 /** Entry points for erasing a user (103). Thin: who's asking, and the dependencies. */
 const deps = ({ db, dialect }: AppAuth): service.EraseDeps => ({
-  repo: kyselyEraseRepository(db, dialect),
+  repo: kyselyEraseRepository(db, dialect, { authSecret: loadConfig().authSecret }),
 });
 
 const actor = async (headers: Headers, app: AppAuth) => ({

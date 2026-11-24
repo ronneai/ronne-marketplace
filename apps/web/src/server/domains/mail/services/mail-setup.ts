@@ -1,6 +1,7 @@
 import { requirePermission } from "../../identity/models/permissions";
 import type { Resolver } from "../../scans/models/endpoint";
 import type { SettingsRepository } from "../../settings/repositories/settings-repository";
+import { turnOffPasswordResetForContact } from "../../settings/services/password-reset";
 import type { SettingsActor } from "../../settings/services/settings";
 import {
   InvalidMailSetupError,
@@ -23,7 +24,9 @@ import {
   type StoredMailSetup,
   sealMailSecret,
   secretFieldOf,
+  setupFingerprint,
   targetOf,
+  UNTESTED_FIELDS,
 } from "../models/mail-settings";
 import type { MailAddress, MailTransport } from "../models/message";
 import { isMailAddress } from "../models/message";
@@ -69,6 +72,25 @@ export type MailSetupShown = Omit<StoredMailSetup, SecretField> & {
 
 const RESOLVE_NOT_SET: Resolver = async () => [];
 
+/**
+ * The status the tab shows (194): a result through another setup (before root changed it) says
+ * nothing about this one, so it's untested, as is a success that names no setup (recorded before
+ * 194), since 194's switch doesn't count it either. A failure that names none (its credentials
+ * couldn't be read) is shown. The setup's fingerprint stays on the server.
+ */
+const shownStatus = (
+  stored: StoredMailSetup,
+  last: MailLastStatus | null,
+): MailSetupShown["status"] => {
+  if (!isMailTransportKind(stored.transport)) return "not_set_up";
+  if (!last) return "untested";
+  const fingerprint = setupFingerprint(stored);
+  if (last.status === "working")
+    return last.setup === fingerprint ? { status: "working", at: last.at } : "untested";
+  if (last.setup !== undefined && last.setup !== fingerprint) return "untested";
+  return { status: "failing", at: last.at, reason: last.reason };
+};
+
 /** The tab's view of the setup (189). Root only. */
 export const mailSetup = async (
   deps: MailSetupDeps,
@@ -99,7 +121,7 @@ export const mailSetup = async (
     ...shown,
     secretSaved,
     secretProblem,
-    status: isMailTransportKind(stored.transport) ? (last ?? "untested") : "not_set_up",
+    status: shownStatus(stored, last),
     relayHosts: [...context.allowedHosts].sort(),
   };
 };
@@ -273,6 +295,11 @@ export const saveMailSetup = async (
     // save's whole setup (the second waits for the first's rows, then writes all of its own),
     // never a mix of the two that neither would have saved.
     for (const f of STORED_FIELDS) await repo.set(MAIL_KEYS[f], to[f], by, at);
+    // A change to how email is sent makes the last test or send about another setup: cleared, so
+    // the tab says untested and 194's switch waits for a test of this one. The contact, the
+    // sender's name and the reply-to address don't change whether email goes out.
+    if (changed.some((f) => !UNTESTED_FIELDS.has(f)))
+      await repo.set(MAIL_KEYS.lastStatus, "", by, at);
     await repo.recordAudit(
       {
         actorId: by,
@@ -286,6 +313,8 @@ export const saveMailSetup = async (
       },
       at,
     );
+    // No contact, no reset by email (194): every notice must say whom to tell.
+    if (to.contact === "") await turnOffPasswordResetForContact(repo, by, actor.ip, at);
     return { changed: true };
   });
 };
@@ -299,6 +328,8 @@ export type MailSender =
       replyTo: string;
       /** The instance contact, printed in every security notice; "" when root set none. */
       contact: string;
+      /** Which setup this is (`setupFingerprint`), recorded with a success. */
+      setup: string;
     }
   | { ok: false; problem: "not_set_up" | "credentials_unreadable" };
 
@@ -365,6 +396,7 @@ export const mailSender = async (
       : { address: setup.fromAddress },
     replyTo: setup.replyTo,
     contact: setup.contact,
+    setup: setupFingerprint(setup),
   };
 };
 

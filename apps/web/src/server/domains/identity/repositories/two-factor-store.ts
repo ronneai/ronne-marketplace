@@ -84,6 +84,19 @@ export interface TwoFactorStore {
     | { ok: true; headers: Headers; userId: string; sessionId: string; remember: boolean }
     | { ok: false; error: ChallengeRefusal }
   >;
+  /**
+   * The two-factor step of a forgotten-password reset (194), where there is no session and no
+   * sign-in challenge: a TOTP code or an unused backup code (which it uses up) for this user.
+   * Failures count in the account's own budget, the sign-in's, so a reset gives no extra guesses:
+   * ten wrong in a row lock it for 15 minutes (`locked`), as at sign-in. A right TOTP code is
+   * recorded as accepted in the same step; one accepted already is `used`, and counts as a
+   * failure. Checks for one account run one at a time. `unreadable` when this server's
+   * AUTH_SECRET can't decrypt the secret.
+   */
+  checkCodeOf(
+    userId: string,
+    code: string,
+  ): Promise<"totp" | "backup_code" | false | "used" | "locked" | "unreadable">;
   /** Whether this TOTP code was already accepted for the user, within the time it stays valid. */
   codeUsed(userId: string, code: string): Promise<boolean>;
   /** Records a TOTP code as accepted; false when it already was (two uses at once). */

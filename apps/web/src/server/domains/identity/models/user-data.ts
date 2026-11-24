@@ -51,6 +51,8 @@ export type UserDataAccount = {
   approvalPendingAt: Date | null;
   /** Every terms version accepted, at sign-up and since, oldest first (190). */
   termsAcceptances: { version: string; acceptedAt: Date }[];
+  /** The forgot-password resets still kept (194): the step and when it ends, never the code or the token. */
+  passwordResets: { step: string; expiresAt: Date }[];
   signInMethods: UserDataSignInMethod[];
   scim: { provider: string; externalId: string | null; active: boolean } | null;
 };

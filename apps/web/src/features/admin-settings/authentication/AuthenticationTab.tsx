@@ -15,9 +15,14 @@ import { twoFactorCoverage } from "@/server/domains/identity/actions/two-factor"
 import type { TwoFactorCoverage } from "@/server/domains/identity/models/two-factor-coverage";
 import { getAppAuth } from "@/server/domains/identity/repositories/auth-instance";
 import { adminAccountRules } from "@/server/domains/settings/actions/account-rules";
+import { adminPasswordResetSettings } from "@/server/domains/settings/actions/password-reset";
 import { instanceSettings } from "@/server/domains/settings/actions/settings";
 import { adminSignUpSettings } from "@/server/domains/settings/actions/sign-up";
 import type { AccountRules } from "@/server/domains/settings/models/account-rules";
+import type {
+  PasswordResetPolicy,
+  PasswordResetReadiness,
+} from "@/server/domains/settings/models/password-reset-policy";
 import type { PasswordSignInPolicy } from "@/server/domains/settings/models/password-sign-in-policy";
 import type { SignUpPolicy } from "@/server/domains/settings/models/sign-up-policy";
 import type { TokenPolicy } from "@/server/domains/settings/models/token-policy";
@@ -27,6 +32,7 @@ import { requestHeaders } from "@/server/http/request-headers";
 import { AccountRulesPanel } from "./account-rules/AccountRulesPanel";
 import { waysIn } from "./account-rules/overview";
 import { PasswordPolicyForm } from "./PasswordPolicyForm";
+import { PasswordResetForm } from "./PasswordResetForm";
 import { IdentityProvidersPanel } from "./providers/IdentityProvidersPanel";
 import { type SignInMethod, SignInMethodsPanel } from "./SignInMethodsPanel";
 import { SignUpForm } from "./SignUpForm";
@@ -48,6 +54,8 @@ type AuthenticationData = {
   tokensPast: number;
   /** Self-registration (190) and what it needs first. */
   signUp: { policy: SignUpPolicy; readiness: SignUpReadiness };
+  /** Forgot password by email (194) and what it needs first. */
+  passwordReset: { policy: PasswordResetPolicy; readiness: PasswordResetReadiness };
   /** Who may create accounts (191): the block list, and whether email is set up. */
   accountRules: AccountRules;
   mailReady: boolean;
@@ -139,6 +147,12 @@ const PANELS: readonly {
     render: ({ signUp }) => <SignUpForm policy={signUp.policy} readiness={signUp.readiness} />,
   },
   {
+    id: "forgot-password",
+    render: ({ passwordReset }) => (
+      <PasswordResetForm policy={passwordReset.policy} readiness={passwordReset.readiness} />
+    ),
+  },
+  {
     id: "two-factor",
     render: ({ twoFactorPolicy, coverage }) => (
       <TwoFactorPolicyForm policy={twoFactorPolicy} coverage={coverage} />
@@ -170,6 +184,7 @@ export const AuthenticationTab = async () => {
     signUp,
     accountRules,
     mailReady,
+    passwordReset,
   ] = await Promise.all([
     instanceSettings(request),
     twoFactorCoverage(request),
@@ -180,6 +195,7 @@ export const AuthenticationTab = async () => {
     adminSignUpSettings(request),
     adminAccountRules(request),
     providerMailReady(app),
+    adminPasswordResetSettings(request),
   ]);
   const data = {
     twoFactorPolicy: settings.twoFactorPolicy,
@@ -193,6 +209,7 @@ export const AuthenticationTab = async () => {
     signUp,
     accountRules,
     mailReady,
+    passwordReset,
   };
   return PANELS.map((panel) => (
     // The id is the panel's anchor: the overview links to #self-registration (191).

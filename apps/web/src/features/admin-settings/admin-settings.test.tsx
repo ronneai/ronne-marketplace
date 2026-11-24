@@ -56,6 +56,14 @@ vi.mock("@/server/domains/identity/repositories/auth-instance", () => ({ getAppA
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/domains/settings/actions/settings", () => settings);
 // The Self-registration panel (190): its own data, off and ready.
+// Forgot password by email's panel (194): off, and ready to turn on.
+vi.mock("@/server/domains/settings/actions/password-reset", () => ({
+  adminPasswordResetSettings: vi.fn(async () => ({
+    policy: { enabled: false },
+    readiness: { mail: true, working: true, contact: true },
+  })),
+  adminSetPasswordResetPolicy: vi.fn(),
+}));
 vi.mock("@/server/domains/settings/actions/sign-up", async () => {
   const { DEFAULT_SIGN_UP_POLICY } = await import(
     "@/server/domains/settings/models/sign-up-policy"

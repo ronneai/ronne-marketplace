@@ -485,13 +485,14 @@ const deleteOldMail = async (db: Db, dialect: DatabaseDialect, cutoff: Date, o: 
 
 /**
  * Self-registration's short-lived rows (190): a pending sign-up, a one-time code or a used
- * challenge, a day past its end. A day's grace so a code entered at its last minute still finds
+ * challenge, a day past its end; and forgot password's reset flows (194), the same. A day's grace so a code entered at its last minute still finds
  * its row; nothing in them is of use after.
  */
 const deleteEndedSignUps = async (db: Db, dialect: DatabaseDialect, now: Date, o: PurgeOptions) => {
   const before = toDbDate(daysBefore(now, 1), dialect);
   let total = 0;
-  for (const table of ["pending_sign_ups", "email_codes"] as const) {
+  // 194's reset flows end with their code: kept as long, a day past their end.
+  for (const table of ["pending_sign_ups", "email_codes", "password_reset_flows"] as const) {
     const matching = (q: Db) => q.selectFrom(table).where("expires_at", "<", before);
     if (o.dryRun) {
       total += await count(matching(db).select((eb) => eb.fn.countAll().as("n")));

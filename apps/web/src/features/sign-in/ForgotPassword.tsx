@@ -10,16 +10,30 @@ import { Popover } from "@/components/ui/Popover";
 const LINK = "text-sm text-link underline-offset-2 hover:underline";
 
 /**
- * "Forgot?" opens a note on who can reset a password. The MVP sends no email (spec 006).
+ * "Forgot?" opens the reset by email page while root has it on and email can go (194). Otherwise
+ * it opens a note on who can reset a password (spec 006).
  * `resetCommand` is reset-root-password as typed for how this instance was installed (#147),
  * worked out on the server. It opens in a popover (owner, 2026-10-09); until JavaScript runs, a
  * native <details> that opens in place, so it works without it.
  */
-export const ForgotPassword = ({ resetCommand }: { resetCommand: string }) => {
+export const ForgotPassword = ({
+  resetCommand,
+  resetByEmail = false,
+}: {
+  resetCommand: string;
+  resetByEmail?: boolean;
+}) => {
   const t = useTranslations("auth.signIn");
   // The popover exists only once JavaScript runs; the first client render matches the server's.
   const [enhanced, setEnhanced] = useState(false);
   useEffect(() => setEnhanced(true), []);
+
+  if (resetByEmail)
+    return (
+      <a href="/sign-in/forgot" className={LINK}>
+        {t("forgot")}
+      </a>
+    );
 
   if (!enhanced)
     return (

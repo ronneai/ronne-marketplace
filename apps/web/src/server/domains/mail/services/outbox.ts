@@ -201,17 +201,28 @@ export const deliverDue = async (
       await status(await end({ status: "sent", at: done }, "sent", kind), {
         status: "working",
         at: done.toISOString(),
+        setup: sender.setup,
       });
     } else if (result.status === "retry") {
       const update = retryOrFail(attempts, done, result.reason, result.waitSeconds);
       const ended = await end(update, result.reason, kind);
       // A retry says nothing yet about the setup; the last try failing does.
       if (update.status === "failed")
-        await status(ended, { status: "failing", at: done.toISOString(), reason: result.reason });
+        await status(ended, {
+          status: "failing",
+          at: done.toISOString(),
+          reason: result.reason,
+          setup: sender.setup,
+        });
     } else {
       await status(
         await end({ status: "failed", attempts, lastError: result.reason }, result.reason, kind),
-        { status: "failing", at: done.toISOString(), reason: result.reason },
+        {
+          status: "failing",
+          at: done.toISOString(),
+          reason: result.reason,
+          setup: sender.setup,
+        },
       );
     }
     await options.renew?.();

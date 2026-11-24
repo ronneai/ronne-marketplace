@@ -7,6 +7,7 @@ import {
   effectivePasswordPolicy,
   signInProviders,
 } from "@/server/domains/identity/actions/password-policy";
+import { passwordResetOpenness } from "@/server/domains/identity/actions/password-reset";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { signUpOpenness } from "@/server/domains/identity/actions/sign-up";
 import { safeNextPath } from "@/server/domains/identity/models/route-guard";
@@ -30,6 +31,7 @@ const SignIn = async ({
     reason?: string | string[];
     error?: string | string[];
     signedUp?: string | string[];
+    reset?: string | string[];
   }>;
 }) => {
   const params = await searchParams;
@@ -40,14 +42,16 @@ const SignIn = async ({
   if (await getCurrentUser(await requestHeaders())) redirect(next);
   // The identity providers that are on, and whether password sign-in is root only (106).
   const app = getAppAuthIfConfigured();
-  const [providers, policy, signUp] = app
+  const [providers, policy, signUp, reset] = app
     ? await Promise.all([
         signInProviders(app),
         effectivePasswordPolicy(app),
         // Self-registration (190): its link only while it's open.
         loadConfig().authSecret ? signUpOpenness(app) : null,
+        // Reset by email (194): *Forgot?* opens it only while it's open.
+        loadConfig().authSecret ? passwordResetOpenness(app) : null,
       ])
-    : [[], "everyone" as const, null];
+    : [[], "everyone" as const, null, null];
   return (
     <SignInPage
       next={next}
@@ -60,6 +64,8 @@ const SignIn = async ({
       rootOnly={policy === "root_only"}
       ssoError={one(params.error)}
       signUpOpen={signUp?.open ?? false}
+      resetByEmail={reset?.open ?? false}
+      resetDone={one(params.reset) === "done"}
       signedUp={one(params.signedUp)}
       here={await currentPath()}
       languages={await requestChoosableLocales()}

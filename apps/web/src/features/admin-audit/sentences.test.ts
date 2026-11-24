@@ -95,6 +95,27 @@ describe("the email setup's sentence (189)", () => {
     );
   });
 
+  it("says reset by email was turned on or off, and why when the contact was cleared (194)", () => {
+    expect(line("en", "settings.password_reset_changed", { from: false, to: true })).toBe(
+      "Turned on password reset by email",
+    );
+    expect(
+      line("en", "settings.password_reset_changed", {
+        from: true,
+        to: false,
+        reason: "contact_cleared",
+      }),
+    ).toBe("Turned off password reset by email, as the instance contact was cleared");
+    expect(
+      line("pt", "settings.password_reset_changed", { to: false, reason: "contact_cleared" }),
+    ).toBe(
+      "Desativou a redefinição de senha por e-mail, porque o contato da instância foi apagado",
+    );
+    expect(line("fr", "settings.password_reset_changed", { to: true })).toBe(
+      "A activé la réinitialisation du mot de passe par courriel",
+    );
+  });
+
   it("says what changed in self-registration (190)", () => {
     const base = {
       enabled: false,

@@ -23,6 +23,8 @@ export const SignInPage = ({
   rootOnly = false,
   ssoError,
   signUpOpen = false,
+  resetByEmail = false,
+  resetDone = false,
   signedUp,
   here,
   languages,
@@ -45,6 +47,10 @@ export const SignInPage = ({
   ssoError?: string;
   /** Self-registration is open (190): the **Create an account** link. */
   signUpOpen?: boolean;
+  /** Reset by email is open (194): *Forgot?* opens its page. */
+  resetByEmail?: boolean;
+  /** Back from a reset (194): `?reset=done`. */
+  resetDone?: boolean;
   /** Back from the code page (190): `?signedUp=ready` or `waiting`. */
   signedUp?: string;
   /** This page's path and query, for the language switch to come back to (129). */
@@ -59,7 +65,12 @@ export const SignInPage = ({
   // Root only applies while a provider is on; with none, the password form is for everyone.
   const passwordBehindLink = rootOnly && providers.length > 0;
   const form = (
-    <SignInForm next={next} resetCommand={resetCommand} initial={email ? { email } : undefined} />
+    <SignInForm
+      next={next}
+      resetCommand={resetCommand}
+      resetByEmail={resetByEmail}
+      initial={email ? { email } : undefined}
+    />
   );
   const account = (
     <div className="grid gap-6">
@@ -81,6 +92,7 @@ export const SignInPage = ({
         </Notice>
       ) : null}
       {signedUpCode ? <Notice kind="info" title={t(`signedUp.${signedUpCode}`)} /> : null}
+      {resetDone ? <Notice kind="info" title={t("resetDone")} /> : null}
       {againCode ? <Notice kind="warn" title={t(`again.${againCode}`)} /> : null}
       {ssoCode ? <Notice kind="error" title={t(`sso.${ssoCode}`)} /> : null}
       {passwordBehindLink ? (

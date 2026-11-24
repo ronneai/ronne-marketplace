@@ -394,5 +394,13 @@
   "signing-up": {
     "question": "How does creating an account work?",
     "answer": "Type your name, email and a password. A 6-digit code goes to that address; type it here, in this window, and the account exists. Then sign in. If a root has to approve it, you get an email when they do."
+  },
+  "forgot-password": {
+    "question": "How does a reset by email work?",
+    "answer": "Type your address; if its account can reset here, a 6-digit code goes to it. Then your two-factor, if you have it, and a new password. Nothing signs you in: every session ends, and you sign in with the new password."
+  },
+  "reset-by-email": {
+    "question": "What does reset by email need first?",
+    "answer": "Email set up, a test email of the setup as it is now that worked, and the instance contact. A code never signs anyone in, and root accounts always reset on the server."
   }
 }

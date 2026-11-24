@@ -789,6 +789,33 @@
           "bot": "cela ressemblait à un robot, donc rien n’a été envoyé",
           "unknown": "non consigné"
         },
+        "resetCodeReasons": {
+          "wrong": "mauvais code",
+          "spent": "trop de mauvais codes",
+          "expired": "le code avait expiré",
+          "used": "un code plus récent l’avait remplacé",
+          "none": "aucun code",
+          "paused": "la réinitialisation par courriel est suspendue après trop de mauvais codes",
+          "cannot_continue": "le compte ne peut plus se réinitialiser par courriel",
+          "unknown": "non enregistré"
+        },
+        "resetTwoFactorReasons": {
+          "wrong_code": "mauvais code",
+          "used": "un code déjà utilisé",
+          "locked": "la double authentification est verrouillée après trop de mauvais codes",
+          "unreadable": "sa double authentification ne peut pas être lue sur ce serveur",
+          "cannot_continue": "le compte ne peut plus se réinitialiser par courriel",
+          "unknown": "non enregistré"
+        },
+        "resetRequestOutcomes": {
+          "code": "un code a été envoyé",
+          "root": "c’est un compte root, invité à réinitialiser sur le serveur",
+          "providers": "il se connecte autrement, ce que le courriel indique",
+          "none": "rien n’a été envoyé (le compte est désactivé ou attend une approbation)",
+          "bot": "cela ressemblait à un robot, donc rien n’a été envoyé",
+          "limited": "trop de courriels vers l’adresse, donc rien n’a été envoyé",
+          "unknown": "non enregistré"
+        },
         "signUpCodeReasons": {
           "wrong": "code erroné",
           "spent": "trop de codes erronés",
@@ -827,6 +854,7 @@
           "updated": "A modifié <name>{who}</name> ({changed}){relinked, select, true {, de nouveau lié,} other {}} par le provisionnement SCIM de <code>{provider}</code>",
           "scim_adopted": "A lié <name>{who}</name> au provisionnement SCIM de <code>{provider}</code>, qui le gère désormais",
           "password_reset": "A réinitialisé le mot de passe de <name>{who}</name>{twoFactor, select, true { et désactivé sa double authentification} other {}}{change, select, true {, en demandant un nouveau mot de passe à sa prochaine connexion} other {}}{ended}{via}",
+          "password_reset_by_email": "A réinitialisé son mot de passe avec un code envoyé par courriel{twoFactor, select, true {, après la double authentification} other {}}, fermant {sessions, plural, one {# session} other {# sessions}} et révoquant {tokens, plural, one {# jeton d’accès} other {# jetons d’accès}}",
           "password_change_requested": "{required, select, false {A cessé de demander un nouveau mot de passe à la prochaine connexion de <name>{who}</name>{via}} other {A demandé un nouveau mot de passe à la prochaine connexion de <name>{who}</name>{via}}}",
           "two_factor_reset": "A désactivé la double authentification de <name>{who}</name>{ended}{via}",
           "password_changed": "{required, select, true {A choisi son propre mot de passe, comme root l’a demandé} other {A changé son mot de passe}}{ended}",
@@ -857,7 +885,10 @@
           "backup_codes_regenerated": "A créé de nouveaux codes de secours; les anciens ont cessé de fonctionner",
           "two_factor_failed": "Un code de double authentification a été refusé à la connexion ({reason})",
           "sign_up_requested": "A demandé de créer un compte pour <name>{email}</name> : {outcome}",
-          "sign_up_code_failed": "Un code d’inscription pour <name>{email}</name> a été refusé : {reason}"
+          "sign_up_code_failed": "Un code d’inscription pour <name>{email}</name> a été refusé : {reason}",
+          "password_reset_requested": "Une réinitialisation du mot de passe par courriel a été demandée pour <name>{email}</name> : {outcome}",
+          "password_reset_code_failed": "Un code de réinitialisation du mot de passe pour <name>{email}</name> a été refusé : {reason}",
+          "password_reset_two_factor_failed": "Un code à deux facteurs a été refusé pendant la réinitialisation du mot de passe de <name>{email}</name> : {reason}"
         },
         "access_token": {
           "created": "A créé le jeton <name>{label}</name> ({expiry}{how, select, cli {, depuis rmk login} device {, par approbation dans le navigateur} other {}})",
@@ -942,7 +973,8 @@
           "languages": "A modifié les langues : {changes}",
           "mail": "A modifié l’envoi de courriels : {changes}",
           "sign_up_changed": "A modifié l’inscription : {changes}",
-          "account_rules_changed": "A modifié qui peut créer des comptes : {changes}"
+          "account_rules_changed": "A modifié qui peut créer des comptes : {changes}",
+          "password_reset_changed": "{state, select, on {A activé la réinitialisation du mot de passe par courriel} off {A désactivé la réinitialisation du mot de passe par courriel} other {A modifié la réinitialisation du mot de passe par courriel}}{reason, select, contact_cleared {, car le contact de l’instance a été effacé} other {}}"
         },
         "mail": {
           "test_sent": "A envoyé un courriel d’essai{result, select, sent {, accepté par le fournisseur} retry {, pas encore parti ({reason})} failed {, qui a échoué ({reason})} other {}}"
@@ -1631,6 +1663,29 @@
       "save": "Enregistrer",
       "done": {
         "saved": "Inscription enregistrée.",
+        "unchanged": "Rien n’a changé."
+      }
+    },
+    "passwordReset": {
+      "title": "Mot de passe oublié par courriel",
+      "intro": "Si les gens peuvent réinitialiser eux-mêmes un mot de passe oublié, avec un code à 6 chiffres envoyé à leur adresse, puis leur double authentification, puis un nouveau mot de passe. Cela ne connecte jamais personne, et les comptes root se réinitialisent toujours sur le serveur. C’est désactivé jusqu’à ce que vous l’activiez.",
+      "blockedTitle": "La réinitialisation par courriel peut être activée une fois ceci fait :",
+      "closedTitle": "La réinitialisation par courriel est activée, mais fermée jusqu’à ce que ceci soit fait de nouveau :",
+      "blockers": {
+        "mail": "Le courriel est configuré, pour que le code puisse être envoyé.",
+        "working": "Un courriel de test de la configuration actuelle a fonctionné.",
+        "contact": "Le contact de l’instance est défini, pour que chaque avis dise à qui s’adresser."
+      },
+      "fix": {
+        "mail": "Configurer le courriel",
+        "working": "Envoyer un courriel de test",
+        "contact": "Définir le contact"
+      },
+      "enabled": "Les gens peuvent réinitialiser un mot de passe oublié par courriel",
+      "enabledHint": "Oublié? sur la page de connexion ouvre la réinitialisation. Toutes les sessions se ferment quand un mot de passe est réinitialisé, et la personne reçoit un courriel qui le dit.",
+      "save": "Enregistrer",
+      "done": {
+        "saved": "Mot de passe oublié par courriel enregistré.",
         "unchanged": "Rien n’a changé."
       }
     }

@@ -9,6 +9,8 @@ import { choosing } from "../../settings/models/language-policy";
 export const MAIL_NOTICES = [
   "password_changed",
   "password_reset",
+  // The person reset it themselves, with a code sent to this address (194).
+  "password_reset_by_email",
   "two_factor_enabled",
   "two_factor_disabled",
   "backup_codes_regenerated",
@@ -29,8 +31,17 @@ export type SignUpMail = (typeof SIGN_UP_MAILS)[number];
 const isSignUpMail = (template: string): template is SignUpMail =>
   (SIGN_UP_MAILS as readonly string[]).includes(template);
 
-/** Every email Ronne writes: root's test email, the notices and sign-up's. */
-export type MailTemplate = "test" | MailNotice | SignUpMail;
+/**
+ * The emails a forgotten-password request sends (194): the code, the answer to a root account
+ * (reset on the server), and to an account that signs in another way.
+ */
+export const RESET_MAILS = ["reset_code", "reset_root", "reset_providers"] as const;
+export type ResetMail = (typeof RESET_MAILS)[number];
+const isResetMail = (template: string): template is ResetMail =>
+  (RESET_MAILS as readonly string[]).includes(template);
+
+/** Every email Ronne writes: root's test email, the notices, sign-up's and the reset's. */
+export type MailTemplate = "test" | MailNotice | SignUpMail | ResetMail;
 
 /** What a template is filled with. None of it comes from the person the email is about. */
 export type MailValues = {
@@ -45,9 +56,13 @@ export type MailValues = {
    * provider made (191): root named it.
    */
   provider?: string;
-  /** The one-time code, required for `sign_up_code`, and how many minutes it works. */
+  /** The one-time code, required for `sign_up_code` and `reset_code`, and how many minutes it works. */
   code?: string;
   minutes?: number;
+  /** The reset command as the instance types it (`reset-root-password`), for `reset_root`. */
+  command?: string;
+  /** How the account signs in instead, for `reset_providers`: the names root gave them. */
+  providers?: string;
 };
 
 export type RenderedMail = { subject: string; text: string; html: string };
@@ -105,15 +120,22 @@ export const renderMail = async (
   // A company sign-in's notice names it: never "with ." for a name left out.
   if (template === "sso_linked" && !values.provider?.trim())
     throw new Error("The sso_linked email needs the provider's name");
-  if (template === "sign_up_code" && !/^\d{6}$/.test(values.code ?? ""))
-    throw new Error("The sign_up_code email needs its 6-digit code");
+  if (
+    (template === "sign_up_code" || template === "reset_code") &&
+    !/^\d{6}$/.test(values.code ?? "")
+  )
+    throw new Error(`The ${template} email needs its 6-digit code`);
+  if (template === "reset_root" && !values.command?.trim())
+    throw new Error("The reset_root email needs the reset command");
+  if (template === "reset_providers" && !values.providers?.trim())
+    throw new Error("The reset_providers email needs how the account signs in");
   const t = createTranslator({
     locale,
     messages: messages ?? { mail: (await requestMessages(locale)).mail },
     namespace: "mail",
   });
   const { host, contact } = values;
-  const signUp = isSignUpMail(template);
+  const signUp = isSignUpMail(template) || isResetMail(template);
   const words =
     template === "test"
       ? {
@@ -121,24 +143,36 @@ export const renderMail = async (
           body: t("test.body"),
           notYou: t("test.notYou"),
         }
-      : isSignUpMail(template)
+      : isResetMail(template)
         ? {
-            subject: t(`signUp.${template}.subject`, { host, code: values.code ?? "" }),
-            body: t(`signUp.${template}.body`, {
+            subject: t(`reset.${template}.subject`, { host, code: values.code ?? "" }),
+            body: t(`reset.${template}.body`, {
               host,
               code: values.code ?? "",
               minutes: values.minutes ?? 15,
-              // An answer to an account a provider made (191) names it; else it's a sign-up's.
-              how: values.provider ? "provider" : "password",
-              provider: values.provider ?? "",
+              command: values.command ?? "",
+              providers: values.providers ?? "",
             }),
-            notYou: t(`signUp.${template}.notYou`),
+            notYou: t(`reset.${template}.notYou`),
           }
-        : {
-            subject: t(`notices.${template}.subject`),
-            body: t(`notices.${template}.body`, { host, provider: values.provider ?? "" }),
-            notYou: t(`notices.${template}.notYou`),
-          };
+        : isSignUpMail(template)
+          ? {
+              subject: t(`signUp.${template}.subject`, { host, code: values.code ?? "" }),
+              body: t(`signUp.${template}.body`, {
+                host,
+                code: values.code ?? "",
+                minutes: values.minutes ?? 15,
+                // An answer to an account a provider made (191) names it; else it's a sign-up's.
+                how: values.provider ? "provider" : "password",
+                provider: values.provider ?? "",
+              }),
+              notYou: t(`signUp.${template}.notYou`),
+            }
+          : {
+              subject: t(`notices.${template}.subject`),
+              body: t(`notices.${template}.body`, { host, provider: values.provider ?? "" }),
+              notYou: t(`notices.${template}.notYou`),
+            };
   const when = t("footer.when", { at: mailTime(values.at) });
   const reach = contact ? t("footer.contact", { contact }) : t("footer.contactReply");
   const footer = [

@@ -57,7 +57,10 @@ export const runRetentionJob = async (
     });
     // An erasure interrupted on MySQL (103): the job finishes its rewrite and records its event.
     const erasuresFinished = await finishErasures(
-      { repo: kyselyEraseRepository(deps.db, deps.dialect), now: deps.now },
+      {
+        repo: kyselyEraseRepository(deps.db, deps.dialect, { authSecret: loadConfig().authSecret }),
+        now: deps.now,
+      },
       { job: true },
     );
     // Accounts left waiting for a root's approval for 30 days are declined, with their email (190).

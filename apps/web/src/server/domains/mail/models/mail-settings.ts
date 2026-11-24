@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { openSetting, sealSetting } from "../../settings/models/instance-secrets";
 import { isHeaderSafe, isMailAddress } from "./message";
 
@@ -166,23 +167,50 @@ export const isInstanceContact = (value: string): boolean => instanceContact(val
 /** The operator's `RONNE_MAIL_HOSTS`: names or addresses, comma- or space-separated, any case. */
 export { parseAllowedHosts as parseMailRelays } from "../../scans/models/endpoint";
 
-/** What the reason category was, and when, of the last test or delivery: the tab's status. */
+/**
+ * What the reason category was, and when, of the last test or delivery: the tab's status. A result
+ * names the setup it went through (`setupFingerprint`), so one that ends after root changed the
+ * setup is never taken for the new setup's (194). A failure before any setup could be read (its
+ * credentials unreadable) names none.
+ */
 export type MailLastStatus =
-  | { status: "working"; at: string }
-  | { status: "failing"; at: string; reason: string };
+  | { status: "working"; at: string; setup?: string }
+  | { status: "failing"; at: string; reason: string; setup?: string };
+
+/** The fields whose change keeps the last result (194): they don't change whether email goes out. */
+export const UNTESTED_FIELDS: ReadonlySet<keyof StoredMailSetup> = new Set([
+  "contact",
+  "fromName",
+  "replyTo",
+]);
+
+/**
+ * Which setup a result is about (194): a SHA-256 of every field that changes whether email goes
+ * out, the sealed secret included (a credential typed again is a new one). Never the secret itself.
+ */
+export const setupFingerprint = (setup: StoredMailSetup): string =>
+  createHash("sha256")
+    .update(
+      JSON.stringify(STORED_FIELDS.filter((f) => !UNTESTED_FIELDS.has(f)).map((f) => setup[f])),
+    )
+    .digest("hex");
 
 export const parseLastStatus = (value: string | null | undefined): MailLastStatus | null => {
   if (!value) return null;
   try {
     const parsed = JSON.parse(value) as Record<string, unknown>;
     if (parsed.status === "working" && typeof parsed.at === "string")
-      return { status: "working", at: parsed.at };
+      return typeof parsed.setup === "string"
+        ? { status: "working", at: parsed.at, setup: parsed.setup }
+        : { status: "working", at: parsed.at };
     if (
       parsed.status === "failing" &&
       typeof parsed.at === "string" &&
       typeof parsed.reason === "string"
     )
-      return { status: "failing", at: parsed.at, reason: parsed.reason };
+      return typeof parsed.setup === "string"
+        ? { status: "failing", at: parsed.at, reason: parsed.reason, setup: parsed.setup }
+        : { status: "failing", at: parsed.at, reason: parsed.reason };
   } catch {}
   return null;
 };

@@ -218,6 +218,12 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     provider: text(m.provider),
   }),
   "user.scim_adopted": (m, e, h) => ({ who: h.who(m, e), provider: text(m.provider) }),
+  "user.password_reset_by_email": (m) => ({
+    // `{ sessionsEnded, tokensRevoked, twoFactor }` (194): the person reset it, with an emailed code.
+    sessions: Number(m.sessionsEnded ?? 0),
+    tokens: Number(m.tokensRevoked ?? 0),
+    twoFactor: m.twoFactor === true ? "true" : "false",
+  }),
   "user.password_reset": (m, e, h) => ({
     who: h.who(m, e),
     twoFactor: flag(m.twoFactorReset === true),
@@ -271,6 +277,23 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   "auth.sign_up_code_failed": (m, _e, h) => ({
     email: text(m.email) || h.part("fallback.unknownEmail"),
     reason: h.word("signUpCodeReasons", text(m.reason) || "unknown"),
+  }),
+  "auth.password_reset_requested": (m, e, h) => ({
+    // `{ sent }` (194): what the request emailed the account, never the code.
+    email: e.targetEmail || h.part("fallback.unknownEmail"),
+    outcome:
+      h.tryWord("resetRequestOutcomes", text(m.sent)) ?? h.word("resetRequestOutcomes", "unknown"),
+  }),
+  "auth.password_reset_code_failed": (m, e, h) => ({
+    // `{ reason }` (194): why a reset code was refused, never the code.
+    email: e.targetEmail || h.part("fallback.unknownEmail"),
+    reason: h.tryWord("resetCodeReasons", text(m.reason)) ?? h.word("resetCodeReasons", "unknown"),
+  }),
+  "auth.password_reset_two_factor_failed": (m, e, h) => ({
+    email: e.targetEmail || h.part("fallback.unknownEmail"),
+    reason:
+      h.tryWord("resetTwoFactorReasons", text(m.reason)) ??
+      h.word("resetTwoFactorReasons", "unknown"),
   }),
   "auth.signed_out": () => ({}),
   "auth.two_factor_enabled": () => ({}),
@@ -684,6 +707,11 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     ].filter((c) => c !== null);
     return { changes: changes.join(", ") || h.part("accountRules.nothing") };
   },
+  "settings.password_reset_changed": (m) => ({
+    // `{ from, to, reason? }` (194): on or off, and why when the contact was cleared.
+    state: m.to === true ? "on" : m.to === false ? "off" : "changed",
+    reason: m.reason === "contact_cleared" ? "contact_cleared" : "none",
+  }),
   "settings.notice": (m, _e, h) => {
     // `{ from: { tone, shown }, to: { tone, shown }, revision }`: never the text (124).
     const from = record(m.from);
